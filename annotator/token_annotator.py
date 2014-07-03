@@ -7,20 +7,14 @@ from annotator import *
 
 class TokenAnnotator:
 
-    def __init__(self, tokenizer=None):
-        """"""
-        if tokenizer:
-            self.tokenizer = tokenizer
-        else:
-            self.tokenizer = nltk.tokenize.WordPunctTokenizer()
+    def __init__(self, tokenizer=nltk.tokenize.WordPunctTokenizer()):
+        """tokenizer should be a function that takes a string and returns a
+           list of token strings"""
+        self.tokenizer = tokenizer
 
-    def annotate_doc(self, doc):
-        for sentence in doc.sentences:
-            self.annotate_sentence(sentence)
+    def annotate(self, doc):
 
-    def annotate_sentence(self, sentence):
-
-        tokens = self.tokenizer.tokenize(sentence.text)
+        tokens = self.tokenizer.tokenize(doc.text)
 
         # Walk through the tokens and consume the string with them in
         # order to figure out the byte offests occupied by each token.
@@ -30,7 +24,7 @@ class TokenAnnotator:
 
         spans = []
         index = 0
-        tail = sentence.text
+        tail = doc.text
 
         for token in tokens:
 
@@ -42,15 +36,13 @@ class TokenAnnotator:
                 index += 1
                 tail = tail[1:]
 
-            spans.append(AnnoSpan(index, index + len(token), sentence, label=token))
+            spans.append(AnnoSpan(index, index + len(token), doc, label=token))
             index += len(token)
             tail = tail.replace(token, '', True)                
 
-        sentence.tiers['tokens'] = AnnoTier(spans)
-        # for span in sentence.tiers['tokens'].spans:
-        #     print span.start, span.end, span.label
-        # print "sentence.tiers['tokens'].spans[1].start", sentence.tiers['tokens'].spans[1].start
-        return sentence
+        doc.tiers['tokens'] = AnnoTier(spans)
+
+        return doc
 
 
 

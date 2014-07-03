@@ -11,35 +11,20 @@ def tokenize(text):
 class Annotator:
 
 	def annotate():
-		"""Take some input, possibly a raw string or Unicode object, or and
-		    annotation tier, and produce a new annotation tier."""
-		raise NotImplementedError("annotate method must be overridden in child")
+		"""Take an AnnoDoc and produce a new annotation tier"""
+		raise NotImplementedError("annotate method must be implemented in child")
 
 class AnnoDoc:
 
 	# TODO what if the original text needs to be later transformed, e.g.
-	# stripped of tags?
+	# stripped of tags? This will ruin offsets.
 
 	def __init__(self, text=None):
-		if text:
-			raw_sentences = sent_tokenize(text)
-			self.sentences = [AnnoSentence(raw_sentence)
-			                  for raw_sentence in raw_sentences]
-
-
-class AnnoSentence:
-
-	# TDOD should we store sentence start and stop offets?
-
-	def __init__(self, text, tiers=None):
 		self.text = text
-		if tiers is None:
-			self.tiers = {}
-		else:
-			self.tiers = tiers
+		self.tiers = {}
 
-	def __repr__(self):
-		return 'text: {0} tiers: {1}'.format(self.text, self.tiers)
+	def add_tier(self, annotator):
+		annotator.annotate(self)
 
 class AnnoTier:
 
@@ -48,7 +33,6 @@ class AnnoTier:
 			self.spans = []
 		else:
 			self.spans = spans
-			
 
 	def __repr__(self):
 		return str([str(span) for span in self.spans])
@@ -91,18 +75,20 @@ class AnnoSpan:
 	def __repr__(self):
 		return '{0}-{1}:{2}'.format(self.start, self.end, self.text)
 
-	def __init__(self, start, end, sentence, label=None):
+	def __init__(self, start, end, doc, label=None):
 		self.start = start
 		self.end = end
-		self.size = start - end
-		if label != None:
-			self.label = label
+		self.doc = doc
+
+		if label == None:
+			self.label = self.text
 		else:
-			self.label = sentence.text[start:end]
-		self.sentence = sentence
+			self.label = label
+	
+	def size(self): return self.end - self.start
 
 	@lazy
 	def text(self):
-		return self.sentence.text[self.start:self.end]
+		return self.doc.text[self.start:self.end]
 
 

@@ -7,7 +7,8 @@ import unittest
 
 sys.path = ['./'] + sys.path
 
-from annotator.geoanme_human_tag_annotator import GeonameHumanTagAnnotator
+from annotator.annotator import AnnoDoc
+from annotator.geoname_human_tag_annotator import GeonameHumanTagAnnotator
 
 
 class GeonameHumanTagAnnotatorTest(unittest.TestCase):
@@ -17,60 +18,66 @@ class GeonameHumanTagAnnotatorTest(unittest.TestCase):
 
 	def test_no_tags(self):
 
-		text = 'I went to Chicago.'
-		plain_text = text
-		sentence = self.annotator.annotate(text=text)
+		doc = AnnoDoc()
+		doc.text = 'I went to Chicago.'
+		doc.add_tier(self.annotator)
+		plain_text = doc.text
 
-		self.assertEqual(sentence.text, plain_text)
+		self.annotator.annotate(doc)
 
-		self.assertEqual(len(sentence.tiers['gold_geonames'].spans), 0)
+		self.assertEqual(doc.text, plain_text)
+
+		self.assertEqual(len(doc.tiers['gold_geonames'].spans), 0)
 
 
 	def test_chicago(self):
 
-		text = 'I went to <geo id="Chicago">Chicago</geo>.'
+		doc = AnnoDoc()
+		doc.text = 'I went to <geo id="Chicago">Chicago</geo>.'
+		doc.add_tier(self.annotator)
+
 		plain_text = 'I went to Chicago.'
-		sentence = self.annotator.annotate(text=text)
 
-		self.assertEqual(sentence.text, plain_text)
+		self.assertEqual(doc.text, plain_text)
+		self.assertEqual(len(doc.tiers['gold_geonames'].spans), 1)
 
-		self.assertEqual(len(sentence.tiers['gold_geonames'].spans), 1)
-
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].label, 'Chicago')
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].start, 10)
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].end, 17)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].label, 'Chicago')
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].start, 10)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].end, 17)
 
 	def test_chicago_with_tags(self):
 
-		text = 'I went <i>to</i> <geo id="Chicago">Chicago</geo>.'
+		doc = AnnoDoc()
+		doc.text = 'I went <i>to</i> <geo id="Chicago">Chicago</geo>.'
 		plain_text = 'I went to Chicago.'
-		sentence = self.annotator.annotate(text=text)
+		doc.add_tier(self.annotator)
 
-		self.assertEqual(sentence.text, plain_text)
+		self.assertEqual(doc.text, plain_text)
 
-		self.assertEqual(len(sentence.tiers['gold_geonames'].spans), 1)
+		self.assertEqual(len(doc.tiers['gold_geonames'].spans), 1)
 
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].label, 'Chicago')
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].start, 10)
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].end, 17)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].label, 'Chicago')
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].start, 10)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].end, 17)
 
 	def test_with_broken_tags(self):
 
-		text = """<i>If<i> <>you g<ggg"fddffd">o <aaaaa>to <geo id="Des Moines">Des Moines</geo>, stop by <geo id="St. Paul">St.<foo></dfdf.> Paul</geo> on the way."""
+		doc = AnnoDoc()
+		doc.text = """<i>If<i> <>you g<ggg"fddffd">o <aaaaa>to <geo id="Des Moines">Des Moines</geo>, stop by <geo id="St. Paul">St.<foo></dfdf.> Paul</geo> on the way."""
 		plain_text = 'If you go to Des Moines, stop by St. Paul on the way.'
-		sentence = self.annotator.annotate(text=text)
+		doc.add_tier(self.annotator)
 
-		self.assertEqual(sentence.text, plain_text)
+		self.assertEqual(doc.text, plain_text)
 
-		self.assertEqual(len(sentence.tiers['gold_geonames'].spans), 2)
+		self.assertEqual(len(doc.tiers['gold_geonames'].spans), 2)
 
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].label, 'Des Moines')
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].start, 13)
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[0].end, 23)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].label, 'Des Moines')
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].start, 13)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[0].end, 23)
 
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[1].label, 'St. Paul')
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[1].start, 33)
-		self.assertEqual(sentence.tiers['gold_geonames'].spans[1].end, 41)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[1].label, 'St. Paul')
+		self.assertEqual(doc.tiers['gold_geonames'].spans[1].start, 33)
+		self.assertEqual(doc.tiers['gold_geonames'].spans[1].end, 41)
 		
 if __name__ == '__main__':
 	unittest.main()
