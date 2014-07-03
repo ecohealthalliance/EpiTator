@@ -31,10 +31,7 @@ class GeonameAnnotator(Annotator):
     # TODO text in this case means AnnoText, elswhere, it's raw text
     def annotate(self, doc):
 
-        print "doc.tiers", doc.tiers
-
         if 'ngrams' not in doc.tiers:
-            print "Annotating ngrams..."
             ngram_annotator = NgramAnnotator()
             doc.add_tier(ngram_annotator)
 
@@ -45,14 +42,11 @@ class GeonameAnnotator(Annotator):
         for ngram in all_ngrams:
             ngrams_by_lc[ngram.lower()] += ngram
 
-        print "Running big query on {num} ngrams...".format(num=len(all_ngrams))
         geoname_cursor = self.geonames_collection.find({
             'name' : { '$in' : list(all_ngrams) }
         })
         geoname_results = list(geoname_cursor)
 
-
-        print 'Big query done., got {num} results'.format(num=len(geoname_results))
         candidates_by_name = defaultdict(list)
         for location in geoname_results:
             candidates_by_name[location['name']].append(location)
@@ -67,7 +61,6 @@ class GeonameAnnotator(Annotator):
 
         while len(resolved_locations_by_name) != previous_length:
             round_id += 1
-            print "Starting round:", round_id
 
             previous_length = len(resolved_locations_by_name)
 
@@ -82,17 +75,12 @@ class GeonameAnnotator(Annotator):
                     ]
                 sorted_candidates = sorted(scored_candidates, reverse=True)
                 if sorted_candidates[0][0] >= 20 or (len(scored_candidates) <= 2 and sorted_candidates[0][0] >= 5):
-                    print "\n\nresolving ", sorted_candidates[0][1]['name']
-                    print 'resolved:', sorted_candidates[0][1]['name'], sorted_candidates[0][1]['timezone'], sorted_candidates[0][1]['population']
                     resolved_locations_by_name[location_name] = sorted_candidates[0][1]
                     rejected_locations_by_name[location_name] = sorted_candidates[1:]
-                    for reject in sorted_candidates[1:]:
-                        print 'rejected:', reject[1]['name'], reject[1]['timezone'], reject[1]['population']
 
                     delete_queue.append(location_name)
                     next
 
-        print "Resolved {0} locations out of {1}".format(
             len(resolved_locations_by_name), len(candidates_by_name))
 
         geo_spans = []
@@ -115,10 +103,10 @@ class GeonameAnnotator(Annotator):
                     geo_span_b.size() >= geo_span_a.size() and
                     geo_span_a != geo_span_b):
                     retain_a = False
-                    print "not retaining ", geo_span_a.geoname['name'], geo_span_a.size(), 'because of', geo_span_b.geoname['name'], geo_span_b.size()
+
             if retain_a:
                 retained_spans.append(geo_span_a)
-                print "retained ", geo_span_a.geoname['name']
+
         doc.tiers['geonames'] = AnnoTier(retained_spans)
         return doc
 
