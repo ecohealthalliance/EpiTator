@@ -49,22 +49,19 @@ def score_LocationExtraction():
 
 		print processed['content']
 
-		anno_doc = AnnoDoc(unicode(processed['content'], 'utf8', 'ignore'))
+		doc = AnnoDoc(unicode(processed['content'], 'utf8', 'ignore'))
 		print "Annotating gold..."
-		gold_geotag_annotator.annotate_doc(anno_doc)
+		doc.add_tier(gold_geotag_annotator)
 		print "Annotating geonames..."
-		geoname_annotator.annotate_doc(anno_doc)
+		doc.add_tier(geoname_annotator)
 
 		gold_locations = [span.label
-		 				  for sentence in anno_doc.sentences
-		                  for span in sentence.tiers['gold_geonames'].spans]
+		                  for span in doc.tiers['gold_geonames'].spans]
 		all_gold_locations += gold_locations
-
 		
 
 		ga_locations = [span.label
-		 				  for sentence in anno_doc.sentences
-		                  for span in sentence.tiers['geonames'].spans]
+		                for span in doc.tiers['geonames'].spans]
 		all_ga_locations += ga_locations
 
 		

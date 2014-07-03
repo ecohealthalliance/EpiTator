@@ -20,16 +20,17 @@ class GeonameAnnotator:
         self.geonames_collection = geonames_collection
 
     # TODO text in this case means AnnoText, elswhere, it's raw text
-    def annotate_doc(self, doc):
+    def annotate(self, doc):
 
-        if 'ngrams' not in doc.sentences[0].tiers:
+        print "doc.tiers", doc.tiers
+
+        if 'ngrams' not in doc.tiers:
             print "Annotating ngrams..."
             ngram_annotator = NgramAnnotator()
-            ngram_annotator.annotate_doc(doc)
+            doc.add_tier(ngram_annotator)
 
         all_ngrams = set([span.label
-                          for sentence in doc.sentences
-                          for span in sentence.tiers['ngrams'].spans])
+                          for span in doc.tiers['ngrams'].spans])
 
         print "Running big query on {num} ngrams...".format(num=len(all_ngrams))
         geoname_cursor = self.geonames_collection.find({
@@ -75,16 +76,15 @@ class GeonameAnnotator:
         print "Resolved {0} locations out of {1}".format(
             len(resolved_locations_by_name), len(candidates_by_name))
 
-        for sentence in doc.sentences:
-            sentence.tiers['geonames'] = AnnoTier()
-            for span in sentence.tiers['ngrams'].spans:
-                if span.label in resolved_locations_by_name:
-                    location = resolved_locations_by_name[span.label]
-                    label = location['name']
-                    geo_span = AnnoSpan(span.start, span.end, 
-                                        span.sentence,
-                                        label=label) 
-                    sentence.tiers['geonames'].spans.append(geo_span)
+        doc.tiers['geonames'] = AnnoTier()
+        for span in doc.tiers['ngrams'].spans:
+            if span.label in resolved_locations_by_name:
+                location = resolved_locations_by_name[span.label]
+                label = location['name']
+                geo_span = AnnoSpan(span.start, span.end, 
+                                    doc,
+                                    label=label) 
+                doc.tiers['geonames'].spans.append(geo_span)
 
         return doc
 
