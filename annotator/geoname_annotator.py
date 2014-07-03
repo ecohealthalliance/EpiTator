@@ -9,7 +9,17 @@ import pymongo
 from annotator import *
 from ngram_annotator import NgramAnnotator
 from geonames_api import get_wikipedia_title_or_fallback
-from geopy.distance import vincenty
+from geopy.distance import great_circle
+
+def geoname_matches_original_ngram(geoname, original_ngrams):
+    if (geoname['name'] in original_ngrams):
+        return True
+    else:
+        for original_ngram in original_ngrams:
+            if original_ngram in geoname['alternatenames']:
+                return True
+
+    return False
 
 class GeonameAnnotator(Annotator):
 
@@ -32,14 +42,25 @@ class GeonameAnnotator(Annotator):
         all_ngrams = set([span.label
                           for span in doc.tiers['ngrams'].spans])
 
+        ngrams_by_lc = defaultdict(list)
+        for ngram in all_ngrams:
+            ngrams_by_lc[ngram.lower()] += ngram
+
         print "Running big query on {num} ngrams...".format(num=len(all_ngrams))
         geoname_cursor = self.geonames_collection.find({
-            'name' : { '$in' : list(all_ngrams) }
+            'lemmatized_name' : { '$in' : list(ngrams_by_lc.keys()) }
         })
-        geoname_results = list(geoname_cursor)
-        print 'Big query done., got {num} results'.format(num=len(geoname_results))
+
+        # Filter the results to only those where the original form, before being
+        # folded to lower case, is either the name or in the alternatenames
+        filtered_results = []
+        for result in geoname_cursor:
+            if geoname_matches_original_ngram(result, ngrams_by_lc[result['lemmatized_name']]):
+                filtered_results.append(result)
+
+        print 'Big query done., got {num} results'.format(num=len(filtered_results))
         candidates_by_name = defaultdict(list)
-        for location in geoname_results:
+        for location in filtered_results:
             candidates_by_name[location['name']].append(location)
 
         # iterative resolution
@@ -102,7 +123,7 @@ class GeonameAnnotator(Annotator):
         if resolved_locations:
             total_distance = 0.0
             for location in resolved_locations:
-                distance = vincenty(
+                distance = great_circle(
                     (candidate['latitude'], candidate['longitude']),
                     (location['latitude'], location['longitude'])
                     ).kilometers
