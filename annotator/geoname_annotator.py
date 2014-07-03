@@ -48,19 +48,14 @@ class GeonameAnnotator(Annotator):
 
         print "Running big query on {num} ngrams...".format(num=len(all_ngrams))
         geoname_cursor = self.geonames_collection.find({
-            'lemmatized_name' : { '$in' : list(ngrams_by_lc.keys()) }
+            'name' : { '$in' : list(all_ngrams) }
         })
+        geoname_results = list(geoname_cursor)
 
-        # Filter the results to only those where the original form, before being
-        # folded to lower case, is either the name or in the alternatenames
-        filtered_results = []
-        for result in geoname_cursor:
-            if geoname_matches_original_ngram(result, ngrams_by_lc[result['lemmatized_name']]):
-                filtered_results.append(result)
 
-        print 'Big query done., got {num} results'.format(num=len(filtered_results))
+        print 'Big query done., got {num} results'.format(num=len(geoname_results))
         candidates_by_name = defaultdict(list)
-        for location in filtered_results:
+        for location in geoname_results:
             candidates_by_name[location['name']].append(location)
 
         # iterative resolution
