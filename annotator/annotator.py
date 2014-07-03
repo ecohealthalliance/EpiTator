@@ -35,7 +35,7 @@ class AnnoTier:
 			self.spans = spans
 
 	def __repr__(self):
-		return str([str(span) for span in self.spans])
+		return unicode([unicode(span) for span in self.spans])
 
 	def spans_over(self, start, end=None):
 		"""Get all spans which overlap a position or range"""
@@ -73,7 +73,7 @@ class AnnoTier:
 class AnnoSpan:
 
 	def __repr__(self):
-		return '{0}-{1}:{2}'.format(self.start, self.end, self.text)
+		return u'{0}-{1}:{2}'.format(self.start, self.end, self.text)
 
 	def __init__(self, start, end, doc, label=None):
 		self.start = start
