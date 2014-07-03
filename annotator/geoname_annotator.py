@@ -82,9 +82,13 @@ class GeonameAnnotator(Annotator):
                     ]
                 sorted_candidates = sorted(scored_candidates, reverse=True)
                 if sorted_candidates[0][0] >= 20 or (len(scored_candidates) <= 2 and sorted_candidates[0][0] >= 5):
-                    print "resolving ", candidate['name']
-                    resolved_locations_by_name[location_name] = candidate
+                    print "\n\nresolving ", sorted_candidates[0][1]['name']
+                    print 'resolved:', sorted_candidates[0][1]['name'], sorted_candidates[0][1]['timezone'], sorted_candidates[0][1]['population']
+                    resolved_locations_by_name[location_name] = sorted_candidates[0][1]
                     rejected_locations_by_name[location_name] = sorted_candidates[1:]
+                    for reject in sorted_candidates[1:]:
+                        print 'rejected:', reject[1]['name'], reject[1]['timezone'], reject[1]['population']
+
                     delete_queue.append(location_name)
                     next
 
@@ -108,10 +112,13 @@ class GeonameAnnotator(Annotator):
             for geo_span_b in geo_spans:
                 if (((geo_span_b.start in range(geo_span_a.start, geo_span_a.end)) or
                     (geo_span_a.start in range(geo_span_b.start, geo_span_b.end))) and
-                    geo_span_b.size > geo_span_a.size):
+                    geo_span_b.size() >= geo_span_a.size() and
+                    geo_span_a != geo_span_b):
                     retain_a = False
+                    print "not retaining ", geo_span_a.geoname['name'], geo_span_a.size(), 'because of', geo_span_b.geoname['name'], geo_span_b.size()
             if retain_a:
                 retained_spans.append(geo_span_a)
+                print "retained ", geo_span_a.geoname['name']
         doc.tiers['geonames'] = AnnoTier(retained_spans)
         return doc
 
