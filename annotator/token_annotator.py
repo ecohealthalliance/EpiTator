@@ -5,7 +5,7 @@ import nltk
 
 from annotator import *
 
-class TokenAnnotator:
+class TokenAnnotator(Annotator):
 
     def __init__(self, tokenizer=nltk.tokenize.WordPunctTokenizer()):
         """tokenizer should be a function that takes a string and returns a

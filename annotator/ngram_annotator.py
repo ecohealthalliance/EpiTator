@@ -6,7 +6,7 @@ import nltk
 from annotator import *
 from token_annotator import TokenAnnotator
 
-class NgramAnnotator:
+class NgramAnnotator(Annotator):
 
     def __init__(self, tokenizer=None):
         pass

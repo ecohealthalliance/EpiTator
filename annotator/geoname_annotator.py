@@ -11,7 +11,7 @@ from ngram_annotator import NgramAnnotator
 from geonames_api import get_wikipedia_title_or_fallback
 from geopy.distance import vincenty
 
-class GeonameAnnotator:
+class GeonameAnnotator(Annotator):
 
     def __init__(self, geonames_collection=None):
         if not geonames_collection:
