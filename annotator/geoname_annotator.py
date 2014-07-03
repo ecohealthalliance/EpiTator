@@ -91,16 +91,28 @@ class GeonameAnnotator(Annotator):
         print "Resolved {0} locations out of {1}".format(
             len(resolved_locations_by_name), len(candidates_by_name))
 
-        doc.tiers['geonames'] = AnnoTier()
+        geo_spans = []
         for span in doc.tiers['ngrams'].spans:
             if span.label in resolved_locations_by_name:
                 location = resolved_locations_by_name[span.label]
                 label = location['name']
                 geo_span = AnnoSpan(span.start, span.end, 
                                     doc,
-                                    label=label) 
-                doc.tiers['geonames'].spans.append(geo_span)
+                                    label=label)
+                geo_span.geoname = location
+                geo_spans.append(geo_span)
 
+        retained_spans = []
+        for geo_span_a in geo_spans:
+            retain_a = True
+            for geo_span_b in geo_spans:
+                if (((geo_span_b.start in range(geo_span_a.start, geo_span_a.end)) or
+                    (geo_span_a.start in range(geo_span_b.start, geo_span_b.end))) and
+                    geo_span_b.size > geo_span_a.size):
+                    retain_a = False
+            if retain_a:
+                retained_spans.append(geo_span_a)
+        doc.tiers['geonames'] = AnnoTier(retained_spans)
         return doc
 
     def score_candidate(self, candidate, resolved_locations):
