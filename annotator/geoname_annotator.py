@@ -8,7 +8,6 @@ import pymongo
 
 from annotator import *
 from ngram_annotator import NgramAnnotator
-from geonames_api import get_wikipedia_title_or_fallback
 from geopy.distance import great_circle
 
 def geoname_matches_original_ngram(geoname, original_ngrams):
