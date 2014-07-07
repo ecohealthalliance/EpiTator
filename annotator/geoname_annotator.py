@@ -74,14 +74,12 @@ class GeonameAnnotator(Annotator):
                     for candidate in candidates
                     ]
                 sorted_candidates = sorted(scored_candidates, reverse=True)
-                if sorted_candidates[0][0] >= 20 or (len(scored_candidates) <= 2 and sorted_candidates[0][0] >= 5):
+                if sorted_candidates[0][0] >= 20 or (len(scored_candidates) <= 2 and sorted_candidates[0][0] >= 10):
                     resolved_locations_by_name[location_name] = sorted_candidates[0][1]
                     rejected_locations_by_name[location_name] = sorted_candidates[1:]
 
                     delete_queue.append(location_name)
                     next
-
-            len(resolved_locations_by_name), len(candidates_by_name))
 
         geo_spans = []
         for span in doc.tiers['ngrams'].spans:
@@ -115,8 +113,10 @@ class GeonameAnnotator(Annotator):
             population_score = 100
         elif candidate['population'] > 500000:
             population_score = 50
-        elif candidate['population'] > 10000:
+        elif candidate['population'] > 100000:
             population_score = 10
+        elif candidate['population'] > 10000:
+            population_score = 5
         else:
             population_score = 0
 
@@ -129,12 +129,18 @@ class GeonameAnnotator(Annotator):
                     (location['latitude'], location['longitude'])
                     ).kilometers
                 total_distance += distance
-                if total_distance < 10:
+                if distance < 10:
                     close_locations += 100
-                elif total_distance < 100:
+                elif distance < 20:
                     close_locations += 50
-                elif total_distance < 1000:
+                elif distance < 30:
+                    close_locations += 20
+                elif distance < 50:
                     close_locations += 10
+                elif distance < 500:
+                    close_locations += 5
+                elif distance < 1000:
+                    close_locations += 2
 
             average_distance = total_distance / len(resolved_locations)
             distance_score = average_distance / 100
