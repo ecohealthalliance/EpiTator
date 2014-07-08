@@ -22,7 +22,8 @@ def geoname_matches_original_ngram(geoname, original_ngrams):
 
 blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
              'August', 'September', 'October', 'November', 'December',
-             'International', 'North', 'East', 'West', 'South']
+             'International', 'North', 'East', 'West', 'South',
+             'About', 'Many', 'See', 'As', 'About', 'Center', 'University', 'Valley']
 
 states = {
         'AK': 'Alaska',
