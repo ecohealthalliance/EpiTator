@@ -20,6 +20,71 @@ def geoname_matches_original_ngram(geoname, original_ngrams):
 
     return False
 
+blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
+             'August', 'September', 'October', 'November', 'December',
+             'International', 'North', 'East', 'West', 'South']
+
+states = {
+        'AK': 'Alaska',
+        'AL': 'Alabama',
+        'AR': 'Arkansas',
+        'AS': 'American Samoa',
+        'AZ': 'Arizona',
+        'CA': 'California',
+        'CO': 'Colorado',
+        'CT': 'Connecticut',
+        'DC': 'District of Columbia',
+        'DE': 'Delaware',
+        'FL': 'Florida',
+        'GA': 'Georgia',
+        'GU': 'Guam',
+        'HI': 'Hawaii',
+        'IA': 'Iowa',
+        'ID': 'Idaho',
+        'IL': 'Illinois',
+        'IN': 'Indiana',
+        'KS': 'Kansas',
+        'KY': 'Kentucky',
+        'LA': 'Louisiana',
+        'MA': 'Massachusetts',
+        'MD': 'Maryland',
+        'ME': 'Maine',
+        'MI': 'Michigan',
+        'MN': 'Minnesota',
+        'MO': 'Missouri',
+        'MP': 'Northern Mariana Islands',
+        'MS': 'Mississippi',
+        'MT': 'Montana',
+        'NA': 'National',
+        'NC': 'North Carolina',
+        'ND': 'North Dakota',
+        'NE': 'Nebraska',
+        'NH': 'New Hampshire',
+        'NJ': 'New Jersey',
+        'NM': 'New Mexico',
+        'NV': 'Nevada',
+        'NY': 'New York',
+        'OH': 'Ohio',
+        'OK': 'Oklahoma',
+        'OR': 'Oregon',
+        'PA': 'Pennsylvania',
+        'PR': 'Puerto Rico',
+        'RI': 'Rhode Island',
+        'SC': 'South Carolina',
+        'SD': 'South Dakota',
+        'TN': 'Tennessee',
+        'TX': 'Texas',
+        'UT': 'Utah',
+        'VA': 'Virginia',
+        'VI': 'Virgin Islands',
+        'VT': 'Vermont',
+        'WA': 'Washington',
+        'WI': 'Wisconsin',
+        'WV': 'West Virginia',
+        'WY': 'Wyoming'
+}
+
+
 class GeonameAnnotator(Annotator):
 
     def __init__(self, geonames_collection=None):
@@ -74,12 +139,13 @@ class GeonameAnnotator(Annotator):
                     for candidate in candidates
                     ]
                 sorted_candidates = sorted(scored_candidates, reverse=True)
-                if sorted_candidates[0][0] >= 20 or (len(scored_candidates) <= 2 and sorted_candidates[0][0] >= 10):
+                if sorted_candidates[0][0] >= 30 or (len(scored_candidates) <= 2 and sorted_candidates[0][0] >= 20):
                     resolved_locations_by_name[location_name] = sorted_candidates[0][1]
                     rejected_locations_by_name[location_name] = sorted_candidates[1:]
 
                     delete_queue.append(location_name)
                     next
+
 
         geo_spans = []
         for span in doc.tiers['ngrams'].spans:
@@ -94,20 +160,46 @@ class GeonameAnnotator(Annotator):
 
         retained_spans = []
         for geo_span_a in geo_spans:
-            retain_a = True
+            retain_a_overlap = True
             for geo_span_b in geo_spans:
                 if (((geo_span_b.start in range(geo_span_a.start, geo_span_a.end)) or
                     (geo_span_a.start in range(geo_span_b.start, geo_span_b.end))) and
                     geo_span_b.size() >= geo_span_a.size() and
                     geo_span_a != geo_span_b):
-                    retain_a = False
+                    retain_a_overlap = False
 
-            if retain_a:
+            if (retain_a_overlap and
+                self.state_town_filter(geo_span_a, geo_spans) and
+                self.blocklist_filter(geo_span_a)):
                 retained_spans.append(geo_span_a)
 
         doc.tiers['geonames'] = AnnoTier(retained_spans)
+
         return doc
 
+    def state_town_filter(self, geo_span_a, geo_spans):
+        """Check to see if we have a mention of the state for a city. If it's a
+           small city and we don't have the state it belongs to in our set, it
+           fails the test. Returns True if passes filter, False otherwise."""
+
+        if ((geo_span_a.geoname['population'] > 100000) or
+            (not "admin1 code" in geo_span_a.geoname) or
+            (not geo_span_a.geoname["admin1 code"] in states)):
+           return True # passes; doesn't have a state associated with it
+        else:
+            state = states[geo_span_a.geoname["admin1 code"]]
+            all_names = [geo_span.geoname['name'] for geo_span in geo_spans]
+            if state in all_names:
+                return True
+            else:
+                return False
+
+    def blocklist_filter(self, geo_span):
+        if geo_span.geoname['name'] in blocklist:
+            return False
+        else:
+            return True
+            
     def score_candidate(self, candidate, resolved_locations):
         if candidate['population'] > 1000000:
             population_score = 100
@@ -145,7 +237,8 @@ class GeonameAnnotator(Annotator):
             average_distance = total_distance / len(resolved_locations)
             distance_score = average_distance / 100
 
-        return population_score + close_locations
-
-
+        if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
+            return 0
+        else: 
+            return population_score + close_locations
 
