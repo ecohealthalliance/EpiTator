@@ -56,19 +56,19 @@ class AnnoTier:
 
 	def spans_over_span(self, span):
 		"""Get all spans which overlap another span"""
-		self.spans_over(span.start, span.end)
+		return self.spans_over(span.start, span.end)
 
 	def spans_in_span(self, span):
 		"""Get all spans which lie within a span"""
-		self.spans_in(span.start, span.end)
+		return self.spans_in(span.start, span.end)
 
 	def spans_at_span(self, span):
 		"""Get all spans which have the same start and end as another span"""
-		self.spans_at(span.start, span.end)
+		return self.spans_at(span.start, span.end)
 
 	def spans_with_label(self, label):
 		"""Get all spans which have a given label"""
-		filter(lambda span: span.label == label, self.spans)
+		return filter(lambda span: span.label == label, self.spans)
 
 	def labels(self):
 		"""Get a list of all labels in this tier"""
