@@ -49,9 +49,9 @@ class AnnoTier:
 		return filter(lambda span: span.start >= start and span.end <= end,
 			          self.spans)
 
-	def spans_at(self, start, size):
+	def spans_at(self, start, end):
 		"""Get all spans with certain start and end positions"""
-		return filter(lambda span: start == span.start and size == span.size,
+		return filter(lambda span: start == span.start and end == span.end,
 			          self.spans)
 
 	def spans_over_span(self, span):
