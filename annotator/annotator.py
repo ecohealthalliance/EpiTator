@@ -70,6 +70,10 @@ class AnnoTier:
 		"""Get all spans which have a given label"""
 		filter(lambda span: span.label == label, self.spans)
 
+	def labels(self):
+		"""Get a list of all labels in this tier"""
+		return [span.label for span in self.spans]
+
 class AnnoSpan:
 
 	def __repr__(self):
