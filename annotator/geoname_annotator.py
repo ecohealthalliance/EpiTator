@@ -8,6 +8,7 @@ import pymongo
 
 from annotator import *
 from ngram_annotator import NgramAnnotator
+from ne_annotator import NEAnnotator
 from geopy.distance import great_circle
 
 def geoname_matches_original_ngram(geoname, original_ngrams):
@@ -99,6 +100,8 @@ class GeonameAnnotator(Annotator):
         if 'ngrams' not in doc.tiers:
             ngram_annotator = NgramAnnotator()
             doc.add_tier(ngram_annotator)
+            ne_annotator = NEAnnotator()
+            doc.add_tier(ne_annotator)
 
         all_ngrams = set([span.label
                           for span in doc.tiers['ngrams'].spans])
@@ -170,7 +173,8 @@ class GeonameAnnotator(Annotator):
 
             if (retain_a_overlap and
                 self.state_town_filter(geo_span_a, geo_spans) and
-                self.blocklist_filter(geo_span_a)):
+                self.blocklist_filter(geo_span_a) and
+                self.ne_filter(geo_span_a)):
                 retained_spans.append(geo_span_a)
 
         doc.tiers['geonames'] = AnnoTier(retained_spans)
@@ -193,6 +197,40 @@ class GeonameAnnotator(Annotator):
                 return True
             else:
                 return False
+
+    def adjacent_state_filter(self, geo_span):
+        """If we have "Fairview, OR" don't allow that to map to Fairview, MN"""
+
+        if ((not "admin1 code" in geo_span.geoname) or
+            (not geo_span.geoname["admin1 code"] in states)):
+           return True # passes; doesn't have a state associated with it
+        else:
+            state = states[geo_span.geoname["admin1 code"]]
+            next_span = geo_span.doc.tiers['geonames'].next_span(geo_span)
+            if (next_span.geoname['name'] in states.values() and
+                next_span.geoname['name'] != state):
+                    return False
+            else:
+                return True
+
+
+    def ne_filter(self, geo_span):
+        """Check to see if this span overlaps with a named entity tag. Return
+           True if not. If it does, return True if the NE is type GPE, else False."""
+
+        print "geo_span.doc.tiers['nes']", geo_span.doc.tiers['nes']
+        ne_spans = geo_span.doc.tiers['nes'].spans_at_span(geo_span)
+
+        if len(ne_spans) == 0:
+            return True
+        else:
+            print "Found NEspans", ne_spans, "for geo_span", geo_span
+            for ne_span in ne_spans:
+                if ne_span.label == 'GPE':
+                    print "was GPE, not filtering"
+                    return True
+            print "wasn't GPE, filtering"
+            return False
 
     def blocklist_filter(self, geo_span):
         if geo_span.geoname['name'] in blocklist:
