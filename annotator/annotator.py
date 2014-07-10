@@ -77,7 +77,7 @@ class AnnoTier:
 class AnnoSpan:
 
 	def __repr__(self):
-		return u'{0}-{1}:{2}'.format(self.start, self.end, self.text)
+		return u'{0}-{1}:{2}'.format(self.start, self.end, self.label)
 
 	def __init__(self, start, end, doc, label=None):
 		self.start = start
