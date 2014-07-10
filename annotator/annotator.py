@@ -40,6 +40,14 @@ class AnnoTier:
 	def __len__(self):
 		return len(self.spans)
 
+	def next_span(self, span):
+		"""Get the next span after this one"""
+		index = self.spans.index(span)
+		if index == len(self.spans) - 1:
+			return None
+		else:
+			return self.spans[index + 1]
+
 	def spans_over(self, start, end=None):
 		"""Get all spans which overlap a position or range"""
 		if not end: end = start + 1
