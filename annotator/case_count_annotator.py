@@ -65,7 +65,7 @@ class CaseCountAnnotator(Annotator):
     
         count_patterns_and_types = [
             (number_pattern + ' JJ*? JJ*|VB*? PATIENT|CASE|INFECTION', 'caseCount'),
-            (number_pattern + ' *? *?INFECT|AFFLICT', 'caseCount'),
+            (number_pattern + ' *? *? INFECT|AFFLICT', 'caseCount'),
             ('NUMBER OF PATIENT|CASE|INFECTION *? *? TO ' + number_pattern, 'caseCount'),
             ('NUMBER OF PATIENT|CASE|INFECTION VP ' + number_pattern, 'caseCount'),
             (number_pattern + ' NP? PATIENT|CASE? DIED|DEATHS|FATALITIES|KILLED', 'deathCount'),
