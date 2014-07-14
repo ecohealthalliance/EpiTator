@@ -27,8 +27,7 @@ def find_nearby_matches(text, start_offset, stop_offset, pattern):
     return list(set(match_list))
 
 class CaseCountAnnotator(Annotator):
-
-     """Extract the case/death/hospitalization counts from some text.
+    """Extract the case/death/hospitalization counts from some text.
     TODO: This should be use the output of the location and time extraction
     so to return more detailed count information. E.g. We could infer that
     a count only applies to a specific location/time.
@@ -44,14 +43,12 @@ class CaseCountAnnotator(Annotator):
     def get_matches(self, count_pattern, text, tree, taxonomy):
         matches = pattern.search.search(count_pattern, tree, taxonomy=taxonomy)
         retained_matches = []
-        for m in matches:
-            print "match", m.group(1)
-            n = self.parse_spelled_number([s.string for s in m.group(1)])
-            print 'parsed:', n
-            if n is not None:
-                print "m.string", m.string
-                start_offsets = self.find_all(text, m.string)
-                for start_offset in start_offsets:
+        for match in matches:
+            number = self.parse_spelled_number([s.string for s in match.group(1)])
+            if number is not None:
+                offsets_tuples = self.find_all_match_offsets(text, match)
+                for offsets_tuple in offsets_tuples:
+
                     cumulative_keywords = find_cumulative_keywords(
                         text,
                         offsets_tuple['numericMatch'][0],
@@ -64,26 +61,94 @@ class CaseCountAnnotator(Annotator):
                         offsets_tuple['numericMatch'][1])
 
                     retained_matches.append(dict({
-                        'value' : n,
-                        'fullMatch' : m.group(1).string,
-                        'textOffsets' : [start_offset, start_offset + len(m.group(1).string)]
+                        'value' : number,
+                        'numericMatch' : match.group(1).string,
+                        'fullMatch' : match.string,
+                        'fullMatchOffsets' : [offsets_tuple['fullMatch'][0],
+                                              offsets_tuple['fullMatch'][1]],
+                        'textOffsets' : [offsets_tuple['numericMatch'][0],
+                                         offsets_tuple['numericMatch'][1]],
                         'cumulative': is_cumulative,
                         'modifiers': modifier_keywords
                     }))
         return retained_matches
 
+    def find_all_match_offsets(self, text, match):
+        """Find all occurrences of the match constituents in the target string,
+           returning the offsets in the string for the full match as well as the
+           numeric portion of the match.
 
-    def find_all(self, string, substring):
-        """Find all occurrences of a string in another string, returning the 
-           start offsets"""
-        i = 0
-        while True:
-            i = string.find(substring, i)
-            if i == -1:
-                return
+           This is not straightforward because we don't know exactly how pattern
+           has tokenized the input text, so a match on:
+                Deaths: 900
+           might have three tokens:
+                'Deaths', ':', and '900',
+           and when it's put back together as a string, it's:
+                Deaths : 900
+           Therefore we have to allow for spaces to exist or not exist separating
+           match constituents that aren't strictly alphabetic."""
+
+        def match_constituents(text, constituents, start_at=0):
+            """Return None if all constituents cannot be found in sequence at the
+               start of the string, otherwise, return the stop_offset of the
+               last constituent."""
+
+            if len(constituents) == 0:
+                return start_at
+            elif text[start_at:].startswith(constituents[0].string):
+                return match_constituents(
+                    text,
+                    constituents[1:],
+                    start_at + len(constituents[0].string))
+            elif (len(text) > start_at + 1 and
+                  text[start_at] is ' ' and
+                  text[start_at + 1:].startswith(constituents[0].string)):
+                return match_constituents(
+                    text,
+                    constituents[1:],
+                    start_at + len(constituents[0].string) + 1)
             else:
-                yield i
-                i += len(substring)
+                return None
+
+
+        start_offset = 0
+        offsets = []
+
+        start_at = 0
+        while start_offset > -1 :
+
+            first_constituent = match.constituents()[0].string
+            start_offset = text.find(first_constituent, start_at)
+
+            if start_offset > -1:
+                stop_offset = match_constituents(
+                    text, match.constituents()[1:], start_offset + len(first_constituent))
+                if stop_offset is not None:
+                    start_at = stop_offset
+
+                    # We now know the offsets of the full match, and need to
+                    # find the offsets of the numeric match.
+                    # TODO this is not safe, looking for the string that way.
+                    # Hopefully the tokenization in the numeric group has not
+                    # altered the actual string.
+                    num_start_offset = text[start_offset:stop_offset].find(
+                        match.group(1).string)
+
+                    if num_start_offset > -1:
+                        offsets.append(
+                            {'fullMatch': (start_offset, stop_offset),
+                             'numericMatch': (
+                                num_start_offset + start_offset,
+                                num_start_offset + start_offset + len(match.group(1).string))
+                            }
+                        )
+                else:
+                    # If we didn't find a stop offset, start looking again after
+                    # this match.
+                    start_at = start_offset + 1
+
+        return offsets
+
 
     def annotate(self, doc):
 
@@ -99,9 +164,8 @@ class CaseCountAnnotator(Annotator):
                 if self.parse_number(word.string) is not None:
                     word.tag = 'CD'
 
-
         number_pattern = '{CD+ and? CD? CD?}'
-    
+
         count_patterns_and_types = [
             #VB* is used because some times the parse tree is wrong.
             #Ex: There have been 12 reported cases in Colorado.
@@ -131,14 +195,26 @@ class CaseCountAnnotator(Annotator):
                 count_pattern, doc.text, tree, taxonomy)
             for pattern_match in pattern_matches:
                 offsets = pattern_match.get("textOffsets")
-                span = AnnoSpan(offsets[0], offsets[1], 
+                span = AnnoSpan(offsets[0], offsets[1],
                                 doc,
                                 label=pattern_match.get("value"))
                 span.type = count_type
+                span.cumulative = pattern_match['cumulative']
+                span.modifiers = pattern_match['modifiers']
                 spans.append(span)
 
         doc.tiers['caseCounts'] = AnnoTier(spans)
-        doc.tiers['caseCounts'].filter_overlapping_spans()
+        def decider(span_a, span_b):
+            """Should span_a be retained if it overlaps with span_b? Yes, if it
+                is a hospitalization count or death count and span_b is a case
+                count, since the former are more specific than case counts."""
+            if (span_a.type is 'caseCount' and
+                span_b.type in ['hospitalizationCount', 'deathCount']):
+                return False
+            else:
+                return True
+        doc.tiers['caseCounts'].filter_overlapping_spans(decider=decider)
+        doc.tiers['caseCounts'].sort_spans()
 
         return doc
 
