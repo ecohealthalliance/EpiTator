@@ -29,16 +29,16 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             self.doc.add_tier(self.annotator)
             self.assertEqual(len(self.doc.tiers['caseCounts']), 1)
             self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, actual_count)
-    
+
     def test_count_offsets(self):
-        
+
         self.doc.text = "The ministry of health reports seventy five new patients were admitted"
         self.doc.add_tier(self.annotator)
         self.assertEqual(len(self.doc.tiers['caseCounts']), 1)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 75)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[0].start, 31)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[0].end, 43)
-            
+
     def test_hospital_counts(self):
         examples = [
             ("222 were admitted to hospitals with symptoms of diarrhea", 222),
@@ -105,7 +105,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
     # def test_misc(self):
     #     self.doc.text = "1200 children between the ages of 2-5 are afflicted with a mystery illness"
     #     self.doc.add_tier(self.annotator)
-        
+
     #     self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'caseCount')
     #     self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 1200)
 
@@ -120,11 +120,11 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         self.assertEqual(len(self.doc.tiers['caseCounts']), 1)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 2)
 
-        
+
     def test_duplicates(self):
         self.doc.text = "Two patients died out of four patients."
         self.doc.add_tier(self.annotator)
-        
+
         self.assertEqual(len(self.doc.tiers['caseCounts']), 2)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 2)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[1].label, 4)
@@ -141,8 +141,8 @@ import unittest
 from diagnosis.feature_extractors import extract_counts
 
 class TestCountExtractor(unittest.TestCase):
-    
-            
+
+
     def test_death_counts_pattern_problem(self):
         example = "Deaths: 2"
         actual_count = 2
