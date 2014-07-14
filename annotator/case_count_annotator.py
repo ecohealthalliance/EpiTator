@@ -102,7 +102,7 @@ class CaseCountAnnotator(Annotator):
                     constituents[1:],
                     start_at + len(constituents[0].string))
             elif (len(text) > start_at + 1 and
-                  text[start_at] is ' ' and
+                  text[start_at] == ' ' and
                   text[start_at + 1:].startswith(constituents[0].string)):
                 return match_constituents(
                     text,
