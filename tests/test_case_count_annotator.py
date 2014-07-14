@@ -129,6 +129,49 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 2)
         self.assertEqual(self.doc.tiers['caseCounts'].spans[1].label, 4)
 
+    def test_cumulative(self):
+        self.doc.text = "In total nationwide, 2613 cases of the disease have been reported as of 2 Jul 2014, with 63 deaths"
+        self.doc.add_tier(self.annotator)
+
+        self.assertEqual(len(self.doc.tiers['caseCounts']), 2)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 2613)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'caseCount')
+        self.assertTrue(self.doc.tiers['caseCounts'].spans[0].cumulative)
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[1].label, 63)
+
+    def test_cumulative2(self):
+        self.doc.text = "it has already claimed about 455 lives in Guinea"
+        self.doc.add_tier(self.annotator)
+
+        self.assertEqual(len(self.doc.tiers['caseCounts']), 1)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 455)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'deathCount')
+        self.assertTrue(self.doc.tiers['caseCounts'].spans[0].cumulative)
+
+    def test_cumulative3(self):
+        self.doc.text = "there have been a total of 176 cases of human infection with influenza A(H1N5) virus including 63 deaths in Egypt"
+        self.doc.add_tier(self.annotator)
+
+        self.assertEqual(len(self.doc.tiers['caseCounts']), 2)
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 176)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'caseCount')
+        self.assertTrue(self.doc.tiers['caseCounts'].spans[0].cumulative)
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[1].label, 63)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[1].type, 'deathCount')
+        self.assertTrue(self.doc.tiers['caseCounts'].spans[1].cumulative)
+
+    def test_value_modifier(self):
+        self.doc.text = "The average number of cases reported annually is 600"
+        self.doc.add_tier(self.annotator)
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 600)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'caseCount')
+        self.assertFalse(self.doc.tiers['caseCounts'].spans[0].cumulative)
+        self.assertListEqual(self.doc.tiers['caseCounts'].spans[0].modifiers, ['average', 'annual'])
+
 if __name__ == '__main__':
     unittest.main()
 

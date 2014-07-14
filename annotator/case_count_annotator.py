@@ -9,6 +9,23 @@ import pattern.search, pattern.en
 
 from annotator import *
 
+cumulative_pattern = re.compile('|'.join(["total", "sum", "brings to", "in all", "already"]), re.I)
+def find_cumulative_keywords(text, start_offset, stop_offset):
+    return find_nearby_matches(text, start_offset, stop_offset, cumulative_pattern)
+
+modifier_pattern = re.compile('|'.join(["average", "mean", "median", "annual"]), re.I)
+def find_modifier_keywords(text, start_offset, stop_offset):
+    return find_nearby_matches(text, start_offset, stop_offset, modifier_pattern)
+
+def find_nearby_matches(text, start_offset, stop_offset, pattern):
+    region_start = text[:start_offset].rfind(".")
+    region_start = 0 if region_start < 0 else region_start
+    region_end = text[stop_offset:].find(".")
+    region_end = len(text) if region_end < 0 else stop_offset + region_end
+    region = text[region_start:region_end]
+    match_list = [region[m.start():m.end()].lower() for m in pattern.finditer(region)]
+    return list(set(match_list))
+
 class CaseCountAnnotator(Annotator):
 
     def __init__(self):
@@ -30,10 +47,23 @@ class CaseCountAnnotator(Annotator):
                 print "m.string", m.string
                 start_offsets = self.find_all(text, m.string)
                 for start_offset in start_offsets:
+                    cumulative_keywords = find_cumulative_keywords(
+                        text,
+                        offsets_tuple['numericMatch'][0],
+                        offsets_tuple['numericMatch'][1])
+                    is_cumulative = len(cumulative_keywords) > 0
+
+                    modifier_keywords = find_modifier_keywords(
+                        text,
+                        offsets_tuple['numericMatch'][0],
+                        offsets_tuple['numericMatch'][1])
+
                     retained_matches.append(dict({
                         'value' : n,
                         'fullMatch' : m.group(1).string,
                         'textOffsets' : [start_offset, start_offset + len(m.group(1).string)]
+                        'cumulative': is_cumulative,
+                        'modifiers': modifier_keywords
                     }))
         return retained_matches
 
