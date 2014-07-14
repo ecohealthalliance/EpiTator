@@ -27,6 +27,3 @@ class POSAnnotator(Annotator):
         doc.tiers['pos'] = AnnoTier(pos_spans)
 
         return doc
-
-
-

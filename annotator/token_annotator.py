@@ -32,17 +32,14 @@ class TokenAnnotator(Annotator):
                 # TODO make this safer. There are certain characters
                 # that we should be willing to consume, but not all. There should
                 # be an error raised if we find non-word-breaking characters
-                # where we expected the next token.                
+                # where we expected the next token.
                 index += 1
                 tail = tail[1:]
 
             spans.append(AnnoSpan(index, index + len(token), doc, label=token))
             index += len(token)
-            tail = tail.replace(token, '', True)                
+            tail = tail.replace(token, '', True)
 
         doc.tiers['tokens'] = AnnoTier(spans)
 
         return doc
-
-
-

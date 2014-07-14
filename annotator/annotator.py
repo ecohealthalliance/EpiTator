@@ -107,7 +107,7 @@ class AnnoTier:
             for span_b in self.spans:
                 b_index += 1
                 if (not b_index in removed_spans_indexes and
-                    a_index != b_index and 
+                    a_index != b_index and
                     ((span_b.start in range(span_a.start, span_a.end)) or
                      (span_a.start in range(span_b.start, span_b.end))) and
                      span_b.size() >= span_a.size()):
@@ -115,7 +115,7 @@ class AnnoTier:
                     if not decider or decider(span_a, span_b) is False:
                         retain_a = False
                         removed_spans_indexes.append(a_index)
-                        
+
             if retain_a:
                 retained_spans.append(span_a)
 
@@ -135,7 +135,7 @@ class AnnoSpan:
             self.label = self.text
         else:
             self.label = label
-    
+
     def size(self): return self.end - self.start
 
     @lazy

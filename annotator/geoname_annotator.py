@@ -21,7 +21,7 @@ def geoname_matches_original_ngram(geoname, original_ngrams):
 
     return False
 
-blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
+blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
              'August', 'September', 'October', 'November', 'December',
              'International', 'North', 'East', 'West', 'South',
              'About', 'Many', 'See', 'As', 'About', 'Center', 'University', 'Valley']
@@ -156,7 +156,7 @@ class GeonameAnnotator(Annotator):
             if span.label in resolved_locations_by_name:
                 location = resolved_locations_by_name[span.label]
                 label = location['name']
-                geo_span = AnnoSpan(span.start, span.end, 
+                geo_span = AnnoSpan(span.start, span.end,
                                     doc,
                                     label=label)
                 geo_span.geoname = location
@@ -238,7 +238,7 @@ class GeonameAnnotator(Annotator):
             return False
         else:
             return True
-            
+
     def score_candidate(self, candidate, resolved_locations):
         if candidate['population'] > 1000000:
             population_score = 100
@@ -278,6 +278,6 @@ class GeonameAnnotator(Annotator):
 
         if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
             return 0
-        else: 
+        else:
             return population_score + close_locations
 

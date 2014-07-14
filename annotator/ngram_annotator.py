@@ -40,5 +40,3 @@ class NgramAnnotator(Annotator):
                 del(doc.tiers[str(n) + 'grams'])
 
         return doc
-
-        

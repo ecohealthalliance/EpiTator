@@ -35,24 +35,23 @@ class GeonameHumanTagAnnotator:
                 geoname_chunks.append(geoname_id)
                 geoname_id = None
             else:
-    
+
                 pass # burning a tag
 
         doc.text = ''.join(retained_chunks)
-
 
         spans = []
 
         index = 0
         for chunk, geoname_id in zip(retained_chunks, geoname_chunks):
             if geoname_id is not None:
-                spans.append(AnnoSpan(index, 
+                spans.append(AnnoSpan(index,
                                       index + len(chunk),
                                       doc,
                                       label=geoname_id))
-    
+
             index += len(chunk)
 
         doc.tiers['gold_geonames'] = AnnoTier(spans)
-                
+
         return doc

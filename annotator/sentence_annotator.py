@@ -33,10 +33,8 @@ class SentenceAnnotator(Annotator):
 
             spans.append(AnnoSpan(index, index + len(sentence), doc))
             index += len(sentence)
-            tail = tail.replace(sentence, '', True)                
+            tail = tail.replace(sentence, '', True)
 
         doc.tiers['sentences'] = AnnoTier(spans)
 
         return doc
-
-        

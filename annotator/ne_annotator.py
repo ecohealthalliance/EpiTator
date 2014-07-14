@@ -36,9 +36,5 @@ class NEAnnotator(Annotator):
                 span_id += 1
 
         doc.tiers['nes'] = AnnoTier(ne_spans)
-        print "add nes:", doc.tiers['nes']
 
         return doc
-
-
-
