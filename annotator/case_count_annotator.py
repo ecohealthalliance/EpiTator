@@ -35,15 +35,14 @@ class CaseCountAnnotator(Annotator):
     a count only applies to a specific location/time.
     """
     def __init__(self):
-        print "Initting CaseCountAnnotator!!!"
-        self.taxonomy = None
+        self.taxonomy = pattern.search.Taxonomy()
+        self.taxonomy.append(pattern.search.WordNetClassifier())
 
     def get_matches(self, count_pattern, text, tree):
-        print "get matches tree:", tree
-        print "get matches count_pattern:", count_pattern
-        print "get matches taxonomy:", self.taxonomy
+
         matches = pattern.search.search(count_pattern, tree, taxonomy=self.taxonomy)
         retained_matches = []
+
         for match in matches:
             number = self.parse_spelled_number([s.string for s in match.group(1)])
             if number is not None:
@@ -153,14 +152,6 @@ class CaseCountAnnotator(Annotator):
 
     def annotate(self, doc):
 
-        import pkg_resources
-        print "pkg_resources.get_distribution(pattern).version", pkg_resources.get_distribution("pattern").version
-
-
-        if not self.taxonomy:
-            self.taxonomy = pattern.search.Taxonomy()
-            self.taxonomy.append(pattern.search.WordNetClassifier())
-
         tree = pattern.en.parsetree(doc.text, lemmata=True)
 
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
@@ -170,8 +161,6 @@ class CaseCountAnnotator(Annotator):
             for word in sent.words:
                 if self.parse_number(word.string) is not None:
                     word.tag = 'CD'
-
-        print "TRee:", tree
 
         number_pattern = '{CD+ and? CD? CD?}'
 
@@ -202,8 +191,7 @@ class CaseCountAnnotator(Annotator):
         for count_pattern, count_type in count_patterns_and_types:
             pattern_matches = self.get_matches(
                 count_pattern, doc.text, tree)
-            print "count_pattern", count_pattern
-            print "pattern_matches", pattern_matches
+
             for pattern_match in pattern_matches:
                 offsets = pattern_match.get("textOffsets")
                 span = AnnoSpan(offsets[0], offsets[1],
@@ -226,8 +214,6 @@ class CaseCountAnnotator(Annotator):
                 return True
         doc.tiers['caseCounts'].filter_overlapping_spans(decider=decider)
         doc.tiers['caseCounts'].sort_spans()
-
-        print "before return:", doc.tiers['caseCounts']
 
         return doc
 
@@ -311,7 +297,6 @@ class CaseCountAnnotator(Annotator):
             idx += 1
 
         return number_out
-
 
 
 if __name__ == '__main__':
