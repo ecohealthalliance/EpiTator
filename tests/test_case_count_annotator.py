@@ -172,6 +172,32 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         self.assertFalse(self.doc.tiers['caseCounts'].spans[0].cumulative)
         self.assertListEqual(self.doc.tiers['caseCounts'].spans[0].modifiers, ['average', 'annual'])
 
+    def test_adjective_or_verb(self):
+        """Sometimes the parse tree is wrong and identifies adjectives as verbs,
+           so check to make sure our patterns are coping with that."""
+
+        self.doc.text = "There have been 12 reported cases in Colorado. There was one suspected case of bird flu in the country."
+        self.doc.add_tier(self.annotator)
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 12)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'caseCount')
+        self.assertFalse(self.doc.tiers['caseCounts'].spans[0].cumulative)
+        self.assertListEqual(self.doc.tiers['caseCounts'].spans[0].modifiers, [])
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[1].label, 1)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[1].type, 'caseCount')
+        self.assertFalse(self.doc.tiers['caseCounts'].spans[1].cumulative)
+        self.assertListEqual(self.doc.tiers['caseCounts'].spans[1].modifiers, [])
+
+    def test_hyphenated_numbers(self):
+        self.doc.text = "There have been nine hundred ninety-nine reported cases."
+        self.doc.add_tier(self.annotator)
+
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, 999)
+        self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'caseCount')
+        self.assertFalse(self.doc.tiers['caseCounts'].spans[0].cumulative)
+        self.assertListEqual(self.doc.tiers['caseCounts'].spans[0].modifiers, [])
+
 if __name__ == '__main__':
     unittest.main()
 

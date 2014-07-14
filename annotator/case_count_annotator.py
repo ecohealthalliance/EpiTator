@@ -28,6 +28,11 @@ def find_nearby_matches(text, start_offset, stop_offset, pattern):
 
 class CaseCountAnnotator(Annotator):
 
+     """Extract the case/death/hospitalization counts from some text.
+    TODO: This should be use the output of the location and time extraction
+    so to return more detailed count information. E.g. We could infer that
+    a count only applies to a specific location/time.
+    """
     def __init__(self):
         pass
 
@@ -85,6 +90,10 @@ class CaseCountAnnotator(Annotator):
         taxonomy = self.get_taxonomy()
 
         tree = pattern.en.parsetree(doc.text, lemmata=True)
+
+        # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
+        # see: https://github.com/clips/pattern/issues/84
+        # This monkey patch tags all the arabic numerals as CDs.
         for sent in tree.sentences:
             for word in sent.words:
                 if self.parse_number(word.string) is not None:
@@ -94,14 +103,24 @@ class CaseCountAnnotator(Annotator):
         number_pattern = '{CD+ and? CD? CD?}'
     
         count_patterns_and_types = [
+            #VB* is used because some times the parse tree is wrong.
+            #Ex: There have been 12 reported cases in Colorado.
+            #Ex: There was one suspected case of bird flu in the country
             (number_pattern + ' JJ*? JJ*|VB*? PATIENT|CASE|INFECTION', 'caseCount'),
             (number_pattern + ' *? *? INFECT|AFFLICT', 'caseCount'),
+
+            #Ex: it brings the number of cases reported in Jeddah since 27 Mar 2014 to 28
+            #Ex: The number of cases has exceeded 30
             ('NUMBER OF PATIENT|CASE|INFECTION *? *? TO ' + number_pattern, 'caseCount'),
             ('NUMBER OF PATIENT|CASE|INFECTION VP ' + number_pattern, 'caseCount'),
             (number_pattern + ' NP? PATIENT|CASE? DIED|DEATHS|FATALITIES|KILLED', 'deathCount'),
+
+            #Ex: it has already claimed about 455 lives in Guinea
             ('CLAIM *? ' + number_pattern + ' LIVES', 'deathCount'),
             ('DEATHS :? {CD+}', 'deathCount'),
             (number_pattern + ' NP? HOSPITALIZED', 'hospitalizationCount'),
+
+            #Ex: 222 were admitted to hospitals with symptoms of diarrhea
             (number_pattern + ' NP? VP TO? HOSPITAL', 'hospitalizationCount')
         ]
 
