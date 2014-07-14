@@ -85,27 +85,41 @@ class AnnoTier:
         """Get a list of all labels in this tier"""
         return [span.label for span in self.spans]
 
-    def filter_overlapping_spans(self):
-        """Remove the smaller of any overlapping spans"""
+    def sort_spans(self):
+        """Sort spans by order of start"""
+
+        self.spans.sort(key=lambda span: span.start)
+
+    # TODO needs testing
+    def filter_overlapping_spans(self, decider=None):
+        """Remove the smaller of any overlapping spans. Takes an optional
+           decider function which takes two spans and returns False if span_a
+           should not be retained, True if span_a should be retained."""
 
         retained_spans = []
-        removed_spans = []
+        removed_spans_indexes = []
 
+        a_index = -1
         for span_a in self.spans:
+            a_index += 1
             retain_a = True
-            for span_b in set(self.spans).difference(set(removed_spans)):
-                print "span_a", span_a, "span_b", span_b
-                if (((span_b.start in range(span_a.start, span_a.end)) or
-                    (span_a.start in range(span_b.start, span_b.end))) and
-                    span_b.size() >= span_a.size() and
-                    span_a != span_b):
-                    retain_a = False
-                    removed_spans.append(span_a)
+            b_index = -1
+            for span_b in self.spans:
+                b_index += 1
+                if (not b_index in removed_spans_indexes and
+                    a_index != b_index and 
+                    ((span_b.start in range(span_a.start, span_a.end)) or
+                     (span_a.start in range(span_b.start, span_b.end))) and
+                     span_b.size() >= span_a.size()):
+
+                    if not decider or decider(span_a, span_b) is False:
+                        retain_a = False
+                        removed_spans_indexes.append(a_index)
+                        
             if retain_a:
                 retained_spans.append(span_a)
 
         self.spans = retained_spans
-
 
 class AnnoSpan:
 
