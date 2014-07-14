@@ -20,8 +20,16 @@ class AnnoDoc:
     # stripped of tags? This will ruin offsets.
 
     def __init__(self, text=None):
-        self.text = text
+        print "text", text
+        print "type(text)", type(text)
+        if type(text) is unicode or text is None:
+            self.text = text
+        elif type(text) is str:
+            self.text = unicode(text, 'utf8', 'ignore')
+        else:
+            raise TypeError("text must be string, unicode or None")
         self.tiers = {}
+        print "self.text", self.text
 
     def add_tier(self, annotator):
         annotator.annotate(self)

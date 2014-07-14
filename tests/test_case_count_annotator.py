@@ -59,6 +59,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         for example, actual_count in examples:
             self.doc.text = example
             self.doc.add_tier(self.annotator)
+            print "self.doc.tiers['caseCounts']", self.doc.tiers['caseCounts']
             self.assertEqual(len(self.doc.tiers['caseCounts']), 1)
             self.assertEqual(self.doc.tiers['caseCounts'].spans[0].label, actual_count)
             self.assertEqual(self.doc.tiers['caseCounts'].spans[0].type, 'hospitalizationCount')
