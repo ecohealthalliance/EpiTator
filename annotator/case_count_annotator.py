@@ -220,7 +220,7 @@ class CaseCountAnnotator(Annotator):
             """Should span_a be retained if it overlaps with span_b? Yes, if it
                 is a hospitalization count or death count and span_b is a case
                 count, since the former are more specific than case counts."""
-            if (span_a.type is 'caseCount' and
+            if (span_a.type is 'caseCount' or
                 span_b.type in ['hospitalizationCount', 'deathCount']):
                 return False
             else:
