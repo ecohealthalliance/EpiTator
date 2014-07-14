@@ -142,10 +142,6 @@ class CaseCountAnnotator(Annotator):
         }
         punctuation = re.compile(r'[\.\,\?\(\)\!]')
         affix = re.compile(r'(\d+)(st|nd|rd|th)')
-        def clean_token(t):
-            t = punctuation.sub('', t)
-            t = affix.sub(r'\1', t)
-            return t.lower()
         def parse_token(t):
             number = self.parse_number(t)
             if number is not None: return number
@@ -153,7 +149,13 @@ class CaseCountAnnotator(Annotator):
                 return numbers[t]
             else:
                 return t
-        cleaned_tokens = [clean_token(t) for t in tokens if t not in ['and', 'or']]
+        cleaned_tokens = []
+        for raw_token in tokens:
+            for t in raw_token.split('-'):
+                if t in ['and', 'or']: continue
+                t = punctuation.sub('', t)
+                t = affix.sub(r'\1', t)
+                cleaned_tokens.append(t.lower())
         numeric_tokens = map(parse_token, cleaned_tokens)
         if any(filter(lambda t: isinstance(t, basestring), numeric_tokens)) or len(numeric_tokens) == 0:
             print 'Error: Could not parse number: ' + unicode(tokens)
