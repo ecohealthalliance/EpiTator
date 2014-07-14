@@ -4,7 +4,6 @@
 import re
 from collections import defaultdict
 
-import pymongo
 import pattern.search, pattern.en
 
 from annotator import *
