@@ -214,23 +214,18 @@ class GeonameAnnotator(Annotator):
             else:
                 return True
 
-
     def ne_filter(self, geo_span):
         """Check to see if this span overlaps with a named entity tag. Return
            True if not. If it does, return True if the NE is type GPE, else False."""
 
-        print "geo_span.doc.tiers['nes']", geo_span.doc.tiers['nes']
         ne_spans = geo_span.doc.tiers['nes'].spans_at_span(geo_span)
 
         if len(ne_spans) == 0:
             return True
         else:
-            print "Found NEspans", ne_spans, "for geo_span", geo_span
             for ne_span in ne_spans:
                 if ne_span.label == 'GPE':
-                    print "was GPE, not filtering"
                     return True
-            print "wasn't GPE, filtering"
             return False
 
     def blocklist_filter(self, geo_span):
