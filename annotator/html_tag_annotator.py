@@ -33,7 +33,7 @@ class HTMLOffsetParser(HTMLParser):
                  })
 
     def handle_endtag(self, tag):
-        if self.pending_tags[-1]['name'] == tag:
+        if self.pending_tags and self.pending_tags[-1]['name'] == tag:
             pending_tag = self.pending_tags.pop()
             pending_tag['end'] = self.index
             self.tags.append(pending_tag)
