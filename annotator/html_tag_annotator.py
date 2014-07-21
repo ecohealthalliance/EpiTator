@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Token Annotator"""
+"""HTML tag annotator"""
 
 from HTMLParser import HTMLParser
 
