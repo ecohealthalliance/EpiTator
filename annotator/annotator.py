@@ -23,10 +23,11 @@ class AnnoDoc:
         if type(text) is unicode or text is None:
             self.text = text
         elif type(text) is str:
-            self.text = unicode(text)
+            self.text = unicode(text, 'utf8')
         else:
             raise TypeError("text must be string, unicode or None")
         self.tiers = {}
+        self.properties = {}
 
     def add_tier(self, annotator):
         annotator.annotate(self)
