@@ -198,13 +198,16 @@ class GeonameAnnotator(Annotator):
         for location in resolved_locations:
             # Copy the dict so we don't need to return a custom class.
             location = dict(location)
-            location.pop('alternateLocations')
             for span in location['spans']:
                 # Maybe we should try to rule out some of the spans that
                 # might not actually be associated with the location.
                 geo_span = AnnoSpan(span.start, span.end, doc, label=location['name'])
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
+            # These properties are removed because they
+            # cannot be easily jsonified.
+            location.pop('alternateLocations')
+            location.pop('spans')
         
         retained_spans = []
         for geo_span_a in geo_spans:
@@ -233,7 +236,7 @@ class GeonameAnnotator(Annotator):
             #if not self.ne_filter(geo_span_a): continue
         
             retained_spans.append(geo_span_a)
-
+        print retained_spans[0].geoname
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 
         return doc
