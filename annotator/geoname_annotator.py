@@ -135,7 +135,7 @@ class GeonameAnnotator(Annotator):
         class Location(dict):
             def __hash__(self):
                 return id(self)
-            
+
         remaining_locations = []
         for location_dict in geoname_results:
             location = Location(location_dict)
@@ -178,7 +178,7 @@ class GeonameAnnotator(Annotator):
                     if candidate['score'] < alt['score']:
                         candidate['score'] = 0
                         break
-            
+
             newly_resolved_candidates = [
                 candidate
                 for candidate in remaining_locations
@@ -208,7 +208,7 @@ class GeonameAnnotator(Annotator):
             # cannot be easily jsonified.
             location.pop('alternateLocations')
             location.pop('spans')
-        
+
         retained_spans = []
         for geo_span_a in geo_spans:
             # This should be done later so we don't throw out geonames
@@ -234,7 +234,7 @@ class GeonameAnnotator(Annotator):
             #if not self.blocklist_filter(geo_span_a): continue
             # Commenting this out because NEs are now used in scoring
             #if not self.ne_filter(geo_span_a): continue
-        
+
             retained_spans.append(geo_span_a)
         print retained_spans[0].geoname
         doc.tiers['geonames'] = AnnoTier(retained_spans)
@@ -298,7 +298,7 @@ class GeonameAnnotator(Annotator):
         Return a score between 0 and 100
         """
         features = {}
-        
+
         if candidate['population'] > 1000000:
             population_score = 100
         elif candidate['population'] > 500000:
@@ -321,16 +321,16 @@ class GeonameAnnotator(Annotator):
         elif len(candidate['alternatenames']) > 0:
             synonymity = 10
         else:
-            synonymity = 0 
+            synonymity = 0
         features['synonymity'] = synonymity
-        
+
         features['spans'] = min(100, len(candidate['spans']))
-        
+
         features['short_spans'] = min(100, 10 * len([
             span for span in candidate['spans']
             if len(span.text) < 4
         ]))
-        
+
         overlapping_NEs = 0
         for span in candidate['spans']:
             ne_spans = span.doc.tiers['nes'].spans_at_span(span)
@@ -338,12 +338,12 @@ class GeonameAnnotator(Annotator):
                 if ne_span.label == 'GPE':
                     overlapping_NEs += 30
         features['overlapping_NEs'] = min(100, overlapping_NEs)
-        
+
         features['distinctiveness'] = 100 /\
             (len(candidate['alternateLocations']) + 1)
-        
+
         features['max_span'] = len(max([span.text for span in candidate['spans']]))
-        
+
         close_locations = 0
         if resolved_locations:
             total_distance = 0.0
@@ -369,10 +369,10 @@ class GeonameAnnotator(Annotator):
             average_distance = total_distance / len(resolved_locations)
             distance_score = average_distance / 100
         features['close_locations'] = close_locations
-        
+
         if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
             return 0
-        
+
         feature_weights = dict(
             population_score=1.5,
             synonymity=1.5,
