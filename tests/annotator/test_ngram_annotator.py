@@ -18,8 +18,7 @@ class NgramAnnotatorTest(unittest.TestCase):
 
     def test_one_word_sentence(self):
 
-        doc = AnnoDoc()
-        doc.text = "Hi"
+        doc = AnnoDoc("Hi")
         doc.add_tier(self.annotator)
 
         self.assertEqual(len(doc.tiers['ngrams'].spans), 1)
@@ -31,8 +30,7 @@ class NgramAnnotatorTest(unittest.TestCase):
 
     def test_two_word_sentence(self):
 
-        doc = AnnoDoc()
-        doc.text = "Hi there"
+        doc = AnnoDoc("Hi there")
         doc.add_tier(self.annotator)
 
         self.assertEqual(len(doc.tiers['ngrams'].spans), 3)
@@ -56,8 +54,7 @@ class NgramAnnotatorTest(unittest.TestCase):
 
     def test_three_word_sentence_with_period(self):
 
-        doc = AnnoDoc()
-        doc.text = "Bears eat tacos."
+        doc = AnnoDoc("Bears eat tacos.")
         doc.add_tier(self.annotator)
 
         self.assertEqual(len(doc.tiers['ngrams'].spans), 10)

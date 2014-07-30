@@ -14,7 +14,6 @@ from annotator.case_count_annotator import CaseCountAnnotator
 class CaseCountAnnotatorTest(unittest.TestCase):
 
     def setUp(self):
-        doc = AnnoDoc()
         self.annotator = CaseCountAnnotator()
 
     def test_verbal_counts(self):
@@ -68,19 +67,23 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['caseCounts'].spans[0].start, 0)
         self.assertEqual(doc.tiers['caseCounts'].spans[0].end, 26)
 
-    def test_hospital_counts(self):
-
-        examples = [
-            ("222 were admitted to hospitals with symptoms of diarrhea", 222),
-            ("33 were hospitalized", 33)]
-
-        for example, actual_count in examples:
-            doc = AnnoDoc(example)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['caseCounts']), 1)
-            self.assertEqual(doc.tiers['caseCounts'].spans[0].label, actual_count)
-            self.assertEqual(doc.tiers['caseCounts'].spans[0].type, 'hospitalizationCount')
-
+    def test_hospital_counts1(self):
+        # STRICT search breaks this
+        example, actual_count = "33 were hospitalized", 33
+        doc = AnnoDoc(example)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['caseCounts']), 1)
+        self.assertEqual(doc.tiers['caseCounts'].spans[0].label, actual_count)
+        self.assertEqual(doc.tiers['caseCounts'].spans[0].type, 'hospitalizationCount')
+    def test_hospital_counts2(self):
+        # STRICT search breaks this
+        example, actual_count = "222 were admitted to hospitals with symptoms of diarrhea", 222
+        doc = AnnoDoc(example)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['caseCounts']), 1)
+        self.assertEqual(doc.tiers['caseCounts'].spans[0].label, actual_count)
+        self.assertEqual(doc.tiers['caseCounts'].spans[0].type, 'hospitalizationCount')
+        
     def test_death_counts(self):
         """We want to make sure that 'deathCount' is the type of the retained
            span here, as it is also a match for a 'caseCount' pattern."""
@@ -179,7 +182,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         self.assertTrue(doc.tiers['caseCounts'].spans[1].cumulative)
 
     def test_value_modifier(self):
-
+        # STRICT search breaks this
         doc = AnnoDoc("The average number of cases reported annually is 600")
         doc.add_tier(self.annotator)
 
@@ -209,7 +212,6 @@ class CaseCountAnnotatorTest(unittest.TestCase):
 
         doc = AnnoDoc("There have been nine hundred ninety-nine reported cases.")
         doc.add_tier(self.annotator)
-
         self.assertEqual(doc.tiers['caseCounts'].spans[0].label, 999)
         self.assertEqual(doc.tiers['caseCounts'].spans[0].type, 'caseCount')
         self.assertFalse(doc.tiers['caseCounts'].spans[0].cumulative)
