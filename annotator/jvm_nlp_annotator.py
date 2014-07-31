@@ -29,6 +29,10 @@ class JVMNLPAnnotator():
 
         data = {'text': doc.text}
 
+        # Stanford SUTime can use a reference date to canonicalize relative
+        # dates like "tomorrow." If we have a doc.date for this document,
+        # send it along and the jvm-nlp will not attempt to find a reference
+        # date in the beginning of the document.
         if doc.date:
             data['referenceDate'] = doc.date.strftime('%Y-%m-%d')
 
