@@ -19,7 +19,7 @@ class AnnoDoc:
     # TODO what if the original text needs to be later transformed, e.g.
     # stripped of tags? This will ruin offsets.
 
-    def __init__(self, text=None):
+    def __init__(self, text=None, date=None):
         if type(text) is unicode or text is None:
             self.text = text
         elif type(text) is str:
@@ -28,6 +28,7 @@ class AnnoDoc:
             raise TypeError("text must be string, unicode or None")
         self.tiers = {}
         self.properties = {}
+        self.date = date
 
     def add_tier(self, annotator):
         annotator.annotate(self)
