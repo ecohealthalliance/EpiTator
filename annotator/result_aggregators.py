@@ -117,9 +117,12 @@ def label(label, results_list):
     """
     return follows([(label, results_list)])
 
-def combine(results_lists, prefer="first"):
+def combine(results_lists, prefer="first", max_proximity=0):
     """
     Combine the results_lists while removing overlapping matches.
+    
+    if matches are within max_proximity of eachother they are considered
+    overlapping
     """
     def first(a,b):
         """
@@ -172,8 +175,13 @@ def combine(results_lists, prefer="first"):
             a_start, a_end = match_a.words[0].index, match_a.words[-1].index
             b_start, b_end = match_b.words[0].index, match_b.words[-1].index
             if (
-                (a_start >= b_start and a_start <= b_end) or
-                (b_start >= a_start and b_start <= a_end)
+                (
+                    a_start + max_proximity >= b_start and
+                    a_start - max_proximity <= b_end
+                ) or (
+                    b_start + max_proximity >= a_start and
+                    b_start - max_proximity <= a_end
+                )
             ):
                 if not prefunc(match_a, match_b):
                     keep_a = False

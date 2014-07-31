@@ -21,13 +21,13 @@ class PatientInfoAnnotator(Annotator):
             ('range_end', numbers)
         ], 2)
         min_number = ra.follows([
-            my_search('ABOVE|OVER|LEAST|MINIMUM'),
+            my_search('GREATER|ABOVE|OVER|LEAST|MINIMUM|DOWN'),
             ('min', numbers)
-        ], 1)
+        ], 3)
         max_number = ra.follows([
-            my_search('LESS|BELOW|UNDER|MOST|MAXIMUM'),
+            my_search('LESS|BELOW|UNDER|MOST|MAXIMUM|UP'),
             ('max', numbers)
-        ], 1)
+        ], 3)
         quantities = ra.combine([
             number_ranges,
             min_number,
@@ -42,30 +42,31 @@ class PatientInfoAnnotator(Annotator):
             approx_quantities, quantities
         ])
         time_quantities = ra.combine([
+            all_quantities,
             ra.follows([
                 all_quantities, ('year_units', my_search('YEAR'))
             ]),
             ra.follows([
                 all_quantities, ('month_units', my_search('MONTH'))
             ])
-        ])
+        ], prefer='longer_match')
         age_quantities = ra.near([
             time_quantities, my_search('AGE|OLD')
         ], 2)
         age_qualities = (
             ra.label('child', my_search('CHILD')) +
             ra.label('adult', my_search('ADULT')) +
-            ra.label('senior', my_search('ELDER|SENIOR'))
+            ra.label('senior', my_search('ELDER') + my_search('SENIOR CITIZEN'))
         )
         age_description = ra.label('age', ra.combine([
             age_quantities,
             age_qualities
         ]))
-        # Associate other features such as locations/times/occupations/symptoms
         patient_sex = (
             ra.label('female', my_search("WOMAN|FEMALE|GIRL")) +
             ra.label('male', my_search("MAN|MALE|BOY"))
         )
+        # TODO: Associate other features such as locations/times/occupations/symptoms
         patient_descriptions = ra.combine([
             age_description,
             patient_sex,

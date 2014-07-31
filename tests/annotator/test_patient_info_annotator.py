@@ -95,3 +95,17 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             }
         })
         
+    def test_senior(self):
+        # based on: http://www.promedmail.org/direct.php?id=2070771
+        doc = AnnoDoc("""
+        The senior physician of the Chelyabinsk Region organised immunisation of
+        all medical workers, teachers, and school employees under the age of 35.
+        According to officials, 58 cases of measles had been confirmed so far.
+        """)
+        doc.add_tier(self.annotator)
+        self.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+            'age' : {
+                'max': 35
+            }
+        })
+        
