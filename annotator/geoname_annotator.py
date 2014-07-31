@@ -167,7 +167,7 @@ class GeonameAnnotator(Annotator):
             for candidate in remaining_locations:
                 candidate['score'] = self.score_candidate(candidate, resolved_locations)
                 # This is just for debugging, put FP and FN ids here to see their score.
-                if candidate['geonameid']  in ['888825']:
+                if candidate['geonameid']  in []:
                     print candidate['name'], candidate['spans'][0].text, candidate['score']
             # If there are alternate locations with higher scores
             # give this candidate a zero.
@@ -205,7 +205,7 @@ class GeonameAnnotator(Annotator):
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
             # These properties are removed because they
-            # cannot be easily jsonified.
+            #
             location.pop('alternateLocations')
             location.pop('spans')
         
@@ -236,7 +236,7 @@ class GeonameAnnotator(Annotator):
             #if not self.ne_filter(geo_span_a): continue
         
             retained_spans.append(geo_span_a)
-        print retained_spans[0].geoname
+        #print retained_spans[0].geoname
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 
         return doc

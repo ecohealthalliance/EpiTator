@@ -13,12 +13,11 @@ from annotator.ne_annotator import NEAnnotator
 class NEAnnotatorTest(unittest.TestCase):
 
     def setUp(self):
-        self.doc = AnnoDoc()
         self.annotator = NEAnnotator()
 
     def test_simple_sentence(self):
 
-        self.doc.text = "I'm married to Joe."
+        self.doc = AnnoDoc("I'm married to Joe.")
         self.doc.add_tier(self.annotator)
 
         self.assertEqual(len(self.doc.tiers['nes'].spans), 1)
@@ -29,8 +28,10 @@ class NEAnnotatorTest(unittest.TestCase):
 
     def test_complex_text(self):
 
-        self.doc.text = "I'm married to Joe from New York City. That is in the United States who works for the Raytheon Corporation."
-
+        self.doc = AnnoDoc(
+        "I'm married to Joe from New York City. "
+        "That is in the United States who works for the Raytheon Corporation."
+        )
         self.doc.add_tier(self.annotator)
 
         self.assertEqual(len(self.doc.tiers['nes'].spans), 4)

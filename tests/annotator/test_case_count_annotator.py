@@ -40,13 +40,6 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             self.assertEqual(len(doc.tiers['caseCounts']), 1)
             self.assertEqual(doc.tiers['caseCounts'].spans[0].label, actual_count)
 
-        for example, actual_count in examples:
-            doc = AnnoDoc()
-            doc.text = example
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['caseCounts']), 1)
-            self.assertEqual(doc.tiers['caseCounts'].spans[0].label, actual_count)
-
     def test_count_offsets(self):
 
         doc = AnnoDoc("The ministry of health reports seventy five new patients were admitted")

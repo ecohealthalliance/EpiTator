@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-"""Tests for the CaseCountAnnotator that annotates a sentence with numerical
-   instances of infections, hospitalizations and deaths."""
-
 import sys
 import unittest
 
@@ -10,14 +7,17 @@ sys.path = ['./'] + sys.path
 from annotator.annotator import AnnoDoc
 from annotator.patient_info_annotator import PatientInfoAnnotator
 
-
 class PatientInfoAnnotatorTest(unittest.TestCase):
 
     def setUp(self):
         self.annotator = PatientInfoAnnotator()
 
     def assertHasProps(self, d, props):
-        return self.assertEqual(d, dict(d, **props))
+        return self.assertEqual({
+            k : d[k]
+            for k in props.keys()
+            if k in d
+        }, props)
 
     def test_snippit1(self):
         # based on: http://www.promedmail.org/direct.php?id=2638359
@@ -32,9 +32,9 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         who was admitted to Arunachal State Hospital died on Thursday,
         state epidemiologist Dr L Jampa told PTI on Saturday [26 Jul 2014].
         The other affected people include children in the age group of
-        aproximately 1 - 14 years besides an 18 year old, he stated.
+        approximately 1 - 14 years besides an 18 year old, he stated.
         They were undergoing treatment at the Arunachal State Hospital [ASH]
-        since last week, while aproximately 12 cases being treated in Guwahati
+        since last week, while approximately 12 cases being treated in Guwahati
         Medical College Hospital in Assam were reportedly improving, he said.
         """)
         doc.add_tier(self.annotator)
@@ -54,7 +54,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             'age' : {
                 'range_start': 1,
                 'range_end': 14,
-                'aproximate': True,
+                'approximate': True,
                 'year_units': True
             }
         })

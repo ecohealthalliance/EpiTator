@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Annotator"""
-
 from lazy import lazy
 
 from nltk import sent_tokenize
@@ -27,12 +26,6 @@ class AnnoDoc:
             self.text = text
         elif type(text) is str:
             self.text = unicode(text, 'utf8')
-        elif text is None:
-            print """
-                We should set text on initialization,
-                it doesn't make sense to annotate an empty doc.
-            """
-            self.text = u"initialization text"
         else:
             raise TypeError("text must be string or unicode")
         self.tiers = {}
@@ -64,13 +57,9 @@ class AnnoDoc:
             return pattern.search.search(
                 query,
                 self.pattern_tree,
-                # We need to use strict because searches like "year" will include
-                # surrounding text the the match chunk.
-                # However, STRICT causes queries like NP or SBJ to return a match
-                # for every word in the noun-phrase or subject.
-                pattern.search.STRICT,
                 taxonomy=self.taxonomy
             )
+            
         self.p_search = p_search
         
     def add_tier(self, annotator):

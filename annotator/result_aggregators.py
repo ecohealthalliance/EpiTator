@@ -59,21 +59,28 @@ def near(results_lists, max_words_between=30):
         result += follows(permutation, max_words_between)
     return result
 
-def match_follows(match_a, match_b, max_words_between):
+def match_follows(match_a, match_b, max_words_between, max_overlap):
     """
-    Returns true if the second match comes after the first
-    and is in the same sentence.
+    Returns true if the second match is in the same sentence,
+    ends after the first, and doesn't start more than max_words_between away
+    from the first match or begin more than max_overlap before the end of the
+    first match.
     """
     if match_a.words[-1].sentence != match_b.words[0].sentence:
         return False
-    word_a_idx = match_a.words[-1].index
-    word_b_idx = match_b.words[0].index
-    if word_a_idx < word_b_idx:
-        if word_a_idx + max_words_between + 1 >= word_b_idx:
-            return True
-    return False
+    word_a_start = match_a.words[0].index
+    word_a_end = match_a.words[-1].index
+    word_b_start = match_b.words[0].index
+    word_b_end = match_b.words[-1].index
+    if word_b_end < word_a_start:
+        return False
+    if word_a_end - max_overlap >= word_b_start:
+        return False
+    if word_a_end + max_words_between + 1 < word_b_start:
+        return False
+    return True
 
-def follows(results_lists, max_words_between=0):
+def follows(results_lists, max_words_between=0, max_overlap=5):
     """
     Find sequences of matches matching the order in the results lists.
     The max_words_between parameter sets how far apart the matches can appear
@@ -91,7 +98,9 @@ def follows(results_lists, max_words_between=0):
             for sequence in sequences:
                 if (
                     len(sequence) == 0 or
-                    match_follows(sequence[-1], result, max_words_between)
+                    match_follows(
+                        sequence[-1], result, max_words_between, max_overlap
+                    )
                 ):
                     next_sequences.append(sequence + [result])
         sequences = next_sequences

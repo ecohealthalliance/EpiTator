@@ -34,12 +34,12 @@ class PatientInfoAnnotator(Annotator):
             max_number,
             ra.label('number', numbers)
         ])
-        aprox_quantities = ra.near([
-            ('aproximate', my_search('APROXIMATELY|ABOUT|NEAR|AROUND')),
+        approx_quantities = ra.near([
+            ('approximate', my_search('APPROXIMATELY|ABOUT|NEAR|AROUND')),
             quantities
         ], 4)
         all_quantities = ra.combine([
-            aprox_quantities, quantities
+            approx_quantities, quantities
         ])
         time_quantities = ra.combine([
             ra.follows([
@@ -52,23 +52,26 @@ class PatientInfoAnnotator(Annotator):
         age_quantities = ra.near([
             time_quantities, my_search('AGE|OLD')
         ], 2)
-        age_qualities = ra.combine([
-            ra.label('child', my_search('CHILD')),
-            ra.label('adult', my_search('ADULT')),
-            ra.label('senior', my_search('ELDER|SENIOR')),
-        ])
-        age_description = ra.label('age', ra.combine([age_quantities,
+        age_qualities = (
+            ra.label('child', my_search('CHILD')) +
+            ra.label('adult', my_search('ADULT')) +
+            ra.label('senior', my_search('ELDER|SENIOR'))
+        )
+        age_description = ra.label('age', ra.combine([
+            age_quantities,
             age_qualities
         ]))
         # Associate other features such as locations/times/occupations/symptoms
+        patient_sex = (
+            ra.label('female', my_search("WOMAN|FEMALE|GIRL")) +
+            ra.label('male', my_search("MAN|MALE|BOY"))
+        )
         patient_descriptions = ra.combine([
             age_description,
+            patient_sex,
             ra.near([
-                ('female', my_search("WOMAN|FEMALE|GIRL")), age_description
-            ], 10),
-            ra.near([
-                ('male', my_search("MAN|MALE|BOY")), age_description
-            ], 10)
+                patient_sex, age_description
+            ], 8)
         ], prefer='longer_match')
 
         def parse_dict(d):
