@@ -11,7 +11,14 @@ import utils
 
 class PatientInfoAnnotator(Annotator):
 
-    def annotate(self, doc):
+    def annotate(self, doc, keyword_categories={}):
+        """
+        Annotate patient descriptions that appear in the doc.
+        
+        Keywords under keyword_categories that appear in the document are added
+        to the patient descriptions under attributes corresponding to the their
+        categories.
+        """
         doc.setup_pattern()
         my_search = doc.p_search
         numbers = my_search('{CD+ and? CD? CD?}')
@@ -66,12 +73,22 @@ class PatientInfoAnnotator(Annotator):
             ra.label('female', my_search("WOMAN|FEMALE|GIRL")) +
             ra.label('male', my_search("MAN|MALE|BOY"))
         )
-        # TODO: Associate other features such as locations/times/occupations/symptoms
+        keyword_attributes = []
+        for cat, kws in keyword_categories.items():
+            keyword_attributes += ra.label(
+                cat,
+                my_search('[' + '|'.join(kws) + ']')
+            )
         patient_descriptions = ra.combine([
             age_description,
             patient_sex,
             ra.near([
-                patient_sex, age_description
+                patient_sex,
+                age_description,
+                # I'm deliberately avoiding creating patient descriptions from
+                # keywords that appear alone since I believe there will be a
+                # high false positive rate.
+                keyword_attributes
             ], 8)
         ], prefer='longer_match')
 
@@ -80,6 +97,8 @@ class PatientInfoAnnotator(Annotator):
             for k, v in d.items():
                 if isinstance(v, dict):
                     d[k] = parse_dict(v)
+                elif k in keyword_categories.keys():
+                    d[k] = utils.restrict_match(v).string
                 elif k in numeric_keys:
                     # Check for None?
                     d[k] = utils.parse_spelled_number(
@@ -104,7 +123,7 @@ class PatientInfoAnnotator(Annotator):
                 )
                 span.metadata = metadata
                 spans.append(span)
-
+        
         doc.tiers['patientInfo'] = AnnoTier(spans)
         doc.tiers['patientInfo'].sort_spans()
         return doc

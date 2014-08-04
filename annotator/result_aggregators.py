@@ -55,7 +55,8 @@ def near(results_lists, max_words_between=30):
     n words away from all other elements in the tuple
     """
     result = []
-    for permutation in itertools.permutations(results_lists):
+    non_empty_lists = (rl for rl in results_lists if len(rl) > 0)
+    for permutation in itertools.permutations(non_empty_lists):
         result += follows(permutation, max_words_between)
     return result
 

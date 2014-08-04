@@ -62,8 +62,8 @@ class AnnoDoc:
             
         self.p_search = p_search
         
-    def add_tier(self, annotator):
-        annotator.annotate(self)
+    def add_tier(self, annotator, **kwargs):
+        annotator.annotate(self, **kwargs)
 
 class AnnoTier:
 

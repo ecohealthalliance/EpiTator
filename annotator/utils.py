@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import re
+import pattern
 
 def parse_number(num):
     try:
@@ -155,3 +156,17 @@ def find_all_match_offsets(text, match):
                 start_at = start_offset + 1
 
     return offsets
+
+def restrict_match(match):
+    """
+    Return a restricted version of a pattern Match object that only includes
+    the words in a chunk that don't violate their own constraint.
+    """
+    return pattern.search.Match(
+        match.pattern,
+        words=filter(
+            lambda x : match.constraint(x).match(x),
+            match.words
+        ),
+        map=match._map1
+    )
