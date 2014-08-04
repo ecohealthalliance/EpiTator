@@ -26,7 +26,10 @@ blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
              'International', 'North', 'East', 'West', 'South',
              'Eastern', 'Western', 'Southern', 'Northern',
              'About', 'Many', 'See', 'As', 'About', 'Center', 'Central',
-             'City', 'World', 'University', 'Valley']
+             'City', 'World', 'University', 'Valley',
+             # NIH could be legitimate, but rarely is it referred to in a context
+             # where its location is relevent.
+             'National Institutes of Health']
 
 states = {
         'AK': 'Alaska',
@@ -108,7 +111,9 @@ class GeonameAnnotator(Annotator):
 
         all_ngrams = set([span.text
             for span in doc.tiers['ngrams'].spans
-            if span.text not in blocklist
+            if span.text not in blocklist and
+            # We can rule out a few FPs by only looking at capitalized names.
+            span.text[0] == span.text[0].upper()
         ])
 
         ngrams_by_lc = defaultdict(list)
@@ -157,11 +162,13 @@ class GeonameAnnotator(Annotator):
             a_spans = set(location_a['spans'])
             for idx, location_b in enumerate(remaining_locations[idx + 1:]):
                 b_spans = set(location_b['spans'])
-                intersection_size = len(a_spans & b_spans)
-                if intersection_size > len(a_spans) / 2:
-                    location_a['alternateLocations'] |= location_b['alternateLocations']
-                if intersection_size > len(b_spans) / 2:
-                    location_b['alternateLocations'] |= location_a['alternateLocations']
+                if len(a_spans & b_spans) > 0:
+                    # Note that is is possible for two valid locations to have
+                    # overlapping names. For example, Harare Province has
+                    # Harare as an alternate name, so the city Harare is very
+                    # to be an alternate location that competes with it.
+                    location_a['alternateLocations'].add(location_b)
+                    location_b['alternateLocations'].add(location_a)
         # Iterative resolution
         # Add location with scores above the threshold to the resolved location.
         # Keep rescoring the remaining locations until no more can be resolved.
@@ -172,15 +179,22 @@ class GeonameAnnotator(Annotator):
                 candidate['score'] = self.score_candidate(
                     candidate, resolved_locations
                 )
-                # This is just for debugging, put FP and FN ids here to see their score.
+                # This is just for debugging, put FP and FN ids here to see
+                # their score.
                 if candidate['geonameid']  in ['888825']:
-                    print candidate['name'], candidate['spans'][0].text, candidate['score']
+                    print (
+                        candidate['name'],
+                        candidate['spans'][0].text,
+                        candidate['score']
+                    )
             # If there are alternate locations with higher scores
             # give this candidate a zero.
             for candidate in remaining_locations:
                 for alt in candidate['alternateLocations']:
-                    # Small chance we end up with multiple locations for one span
+                    # We end up with multiple locations for per span if they
+                    # are resolved in different iterations or
                     # if the scores are exactly the same.
+                    # TODO: This needs to be delt with in the next stage.
                     if candidate['score'] < alt['score']:
                         candidate['score'] = 0
                         break
@@ -194,9 +208,6 @@ class GeonameAnnotator(Annotator):
             for candiate in newly_resolved_candidates:
                 if candidate in remaining_locations:
                     remaining_locations.remove(candiate)
-                for locaiton in candidate['alternateLocations']:
-                    if location in remaining_locations:
-                        remaining_locations.remove(location)
             if len(newly_resolved_candidates) == 0:
                 break
 
@@ -219,8 +230,6 @@ class GeonameAnnotator(Annotator):
 
         retained_spans = []
         for geo_span_a in geo_spans:
-            # This should be done later so we don't throw out geonames
-            # for geonames that get filtered out.
             retain_a_overlap = True
             for geo_span_b in geo_spans:
                 if geo_span_a == geo_span_b: continue
@@ -241,11 +250,6 @@ class GeonameAnnotator(Annotator):
                 continue
             # AFAICT the state town filter has no impact on the results
             #if not self.state_town_filter(geo_span_a, geo_spans): continue
-            # We do this prior to scoring now.
-            #if not self.blocklist_filter(geo_span_a): continue
-            # Commenting this out because NEs are now used in scoring
-            #if not self.ne_filter(geo_span_a): continue
-
             retained_spans.append(geo_span_a)
         
         doc.tiers['geonames'] = AnnoTier(retained_spans)
@@ -401,7 +405,7 @@ class GeonameAnnotator(Annotator):
             distinctiveness : 1,
             max_span : 1,
             close_locations : 1,
-            cannonical_name_used : 1,
+            cannonical_name_used : 0.5,
         }
         return sum([
             score_fun() * float(weight)
