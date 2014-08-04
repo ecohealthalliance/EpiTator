@@ -308,98 +308,102 @@ class GeonameAnnotator(Annotator):
         """
         Return a score between 0 and 100
         """
-        features = {}
+        def population_score():
+            if candidate['population'] > 1000000:
+                return 100
+            elif candidate['population'] > 500000:
+                return 50
+            elif candidate['population'] > 100000:
+                return 10
+            elif candidate['population'] > 10000:
+                return 5
+            else:
+                return 0
 
-        if candidate['population'] > 1000000:
-            population_score = 100
-        elif candidate['population'] > 500000:
-            population_score = 50
-        elif candidate['population'] > 100000:
-            population_score = 10
-        elif candidate['population'] > 10000:
-            population_score = 5
-        else:
-            population_score = 0
-        features['population_score'] = population_score
+        def synonymity():
+            # Geonames with lots of alternate names
+            # tend to be the ones most commonly referred to.
+            # For examle, coutries have lots of alternate names.
+            if len(candidate['alternatenames']) > 8:
+                return 100
+            elif len(candidate['alternatenames']) > 4:
+                return 50
+            elif len(candidate['alternatenames']) > 0:
+                return 10
+            else:
+                return 0
 
-        # Geonames with lots of alternate names
-        # tend to be the ones most commonly referred to.
-        # For examle, coutries have lots of alternate names.
-        if len(candidate['alternatenames']) > 8:
-            synonymity = 100
-        elif len(candidate['alternatenames']) > 4:
-            synonymity = 50
-        elif len(candidate['alternatenames']) > 0:
-            synonymity = 10
-        else:
-            synonymity = 0
-        features['synonymity'] = synonymity
+        def span_score():
+            return min(100, len(candidate['spans']))
 
-        features['spans'] = min(100, len(candidate['spans']))
+        def short_span_score():
+            return min(100, 10 * len([
+                span for span in candidate['spans']
+                if len(span.text) < 4
+            ]))
 
-        features['short_spans'] = min(100, 10 * len([
-            span for span in candidate['spans']
-            if len(span.text) < 4
-        ]))
+        def cannonical_name_used():
+            return 100 if any([
+                span.text == candidate['name'] for span in candidate['spans']
+            ]) else 0
 
-        features['cannonical_name_used'] = 100 if any([
-            span.text == candidate['name'] for span in candidate['spans']
-        ]) else 0
+        def overlapping_NEs():
+            score = 0
+            for span in candidate['spans']:
+                ne_spans = span.doc.tiers['nes'].spans_at_span(span)
+                for ne_span in ne_spans:
+                    if ne_span.label == 'GPE':
+                        score += 30
+            return min(100, score)
 
-        overlapping_NEs = 0
-        for span in candidate['spans']:
-            ne_spans = span.doc.tiers['nes'].spans_at_span(span)
-            for ne_span in ne_spans:
-                if ne_span.label == 'GPE':
-                    overlapping_NEs += 30
-        features['overlapping_NEs'] = min(100, overlapping_NEs)
+        def distinctiveness():
+            return 100 / (len(candidate['alternateLocations']) + 1)
+        
+        def max_span():
+            return len(max([span.text for span in candidate['spans']]))
 
-        features['distinctiveness'] = 100 /\
-            (len(candidate['alternateLocations']) + 1)
-
-        features['max_span'] = len(max([span.text for span in candidate['spans']]))
-
-        close_locations = 0
-        if resolved_locations:
-            total_distance = 0.0
-            for location in resolved_locations:
-                distance = great_circle(
-                    (candidate['latitude'], candidate['longitude']),
-                    (location['latitude'], location['longitude'])
-                    ).kilometers
-                total_distance += distance
-                if distance < 10:
-                    close_locations += 100
-                elif distance < 20:
-                    close_locations += 50
-                elif distance < 30:
-                    close_locations += 20
-                elif distance < 50:
-                    close_locations += 10
-                elif distance < 500:
-                    close_locations += 5
-                elif distance < 1000:
-                    close_locations += 2
-
-            average_distance = total_distance / len(resolved_locations)
-            distance_score = average_distance / 100
-        features['close_locations'] = close_locations
+        def close_locations():
+            score = 0
+            if resolved_locations:
+                total_distance = 0.0
+                for location in resolved_locations:
+                    distance = great_circle(
+                        (candidate['latitude'], candidate['longitude']),
+                        (location['latitude'], location['longitude'])
+                        ).kilometers
+                    total_distance += distance
+                    if distance < 10:
+                        score += 100
+                    elif distance < 20:
+                        score += 50
+                    elif distance < 30:
+                        score += 20
+                    elif distance < 50:
+                        score += 10
+                    elif distance < 500:
+                        score += 5
+                    elif distance < 1000:
+                        score += 2
+                average_distance = total_distance / len(resolved_locations)
+                distance_score = average_distance / 100
+            return score
 
         if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
             return 0
 
-        feature_weights = dict(
-            population_score=1.5,
-            synonymity=1.5,
-            spans=0.2,
-            short_spans=(-4),
-            overlapping_NEs=1,
-            distinctiveness=1,
-            max_span=1,
-            close_locations=1,
-            cannonical_name_used=1,
-        )
+        # Commented out features will not be evaluated.
+        feature_weights = {
+            population_score : 1.5,
+            synonymity : 1.5,
+            span_score : 0.2,
+            short_span_score : (-4),
+            overlapping_NEs : 1,
+            distinctiveness : 1,
+            max_span : 1,
+            close_locations : 1,
+            cannonical_name_used : 1,
+        }
         return sum([
-            features[feature] * float(weight)
-            for feature, weight in feature_weights.items()
+            score_fun() * float(weight)
+            for score_fun, weight in feature_weights.items()
         ]) / math.sqrt(sum([x**2 for x in feature_weights.values()]))
