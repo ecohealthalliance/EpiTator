@@ -25,8 +25,6 @@ class JVMNLPAnnotator():
 
         self.tiers = tiers
 
-        self.encoder = AnnieJSONEncoder()
-
     def annotate(self, doc):
         """Annotate a document by taking the text and sending it to the
         anootation server.
@@ -69,8 +67,9 @@ class JVMNLPAnnotator():
 
                 span = AnnoSpan(request_span['start'],
                                 request_span['stop'],
-                                doc,
-                                label=request_span['label'])
+                                doc)
+                if 'label' in request_span:
+                    span.label = request_span['label']
                 if 'type' in request_span:
                     span.type = request_span['type']
 
