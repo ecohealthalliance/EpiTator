@@ -236,8 +236,9 @@ class GeonameAnnotator(Annotator):
             #if not self.ne_filter(geo_span_a): continue
 
             retained_spans.append(geo_span_a)
-        print retained_spans[0].geoname
+
         doc.tiers['geonames'] = AnnoTier(retained_spans)
+        doc.tiers['geonames'].filter_overlapping_spans()
 
         return doc
 
