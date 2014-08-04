@@ -24,6 +24,7 @@ def geoname_matches_original_ngram(geoname, original_ngrams):
 blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
              'August', 'September', 'October', 'November', 'December',
              'International', 'North', 'East', 'West', 'South',
+             'Eastern', 'Western', 'Southern', 'Northern',
              'About', 'Many', 'See', 'As', 'About', 'Center', 'Central',
              'City', 'World', 'University', 'Valley']
 
@@ -129,7 +130,10 @@ class GeonameAnnotator(Annotator):
         # Associate spans with the geonames.
         # This is done up front so span information can be used in the scoring
         # function
-        span_text_to_spans = { span.text : [] for span in doc.tiers['ngrams'].spans }
+        span_text_to_spans = {
+            span.text : []
+            for span in doc.tiers['ngrams'].spans
+        }
         for span in doc.tiers['ngrams'].spans:
             span_text_to_spans[span.text].append(span)
         class Location(dict):
@@ -143,7 +147,7 @@ class GeonameAnnotator(Annotator):
             location['alternateLocations'] = set()
             remaining_locations.append(location)
             geoname_results
-            names = [location['name']] + location['alternatenames']
+            names = set([location['name']] + location['alternatenames'])
             for name in names:
                 if name not in span_text_to_spans: continue
                 for span in span_text_to_spans[name]:
@@ -165,7 +169,9 @@ class GeonameAnnotator(Annotator):
         THRESH = 60
         while True:
             for candidate in remaining_locations:
-                candidate['score'] = self.score_candidate(candidate, resolved_locations)
+                candidate['score'] = self.score_candidate(
+                    candidate, resolved_locations
+                )
                 # This is just for debugging, put FP and FN ids here to see their score.
                 if candidate['geonameid']  in ['888825']:
                     print candidate['name'], candidate['spans'][0].text, candidate['score']
@@ -201,7 +207,9 @@ class GeonameAnnotator(Annotator):
             for span in location['spans']:
                 # Maybe we should try to rule out some of the spans that
                 # might not actually be associated with the location.
-                geo_span = AnnoSpan(span.start, span.end, doc, label=location['name'])
+                geo_span = AnnoSpan(
+                    span.start, span.end, doc, label=location['name']
+                )
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
             # These properties are removed because they
@@ -216,8 +224,11 @@ class GeonameAnnotator(Annotator):
             retain_a_overlap = True
             for geo_span_b in geo_spans:
                 if geo_span_a == geo_span_b: continue
-                if ((geo_span_b.start in range(geo_span_a.start, geo_span_a.end)) or
-                    (geo_span_a.start in range(geo_span_b.start, geo_span_b.end))):
+                if(
+                    geo_span_b.start in range(geo_span_a.start, geo_span_a.end)
+                    or
+                    geo_span_a.start in range(geo_span_b.start, geo_span_b.end)
+                ):
                     if geo_span_b.size() > geo_span_a.size():
                         # geo_span_a is probably a component of geospan b,
                         # e.g. Washington in University of Washington
@@ -236,7 +247,7 @@ class GeonameAnnotator(Annotator):
             #if not self.ne_filter(geo_span_a): continue
 
             retained_spans.append(geo_span_a)
-        print retained_spans[0].geoname
+        
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 
         return doc
@@ -331,6 +342,10 @@ class GeonameAnnotator(Annotator):
             if len(span.text) < 4
         ]))
 
+        features['cannonical_name_used'] = 100 if any([
+            span.text == candidate['name'] for span in candidate['spans']
+        ]) else 0
+
         overlapping_NEs = 0
         for span in candidate['spans']:
             ne_spans = span.doc.tiers['nes'].spans_at_span(span)
@@ -382,6 +397,7 @@ class GeonameAnnotator(Annotator):
             distinctiveness=1,
             max_span=1,
             close_locations=1,
+            cannonical_name_used=1,
         )
         return sum([
             features[feature] * float(weight)

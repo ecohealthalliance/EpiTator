@@ -25,7 +25,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(annotator)
 
         self.assertEqual(doc.text, text)
-
         self.assertEqual(len(doc.tiers['geonames'].spans), 1)
         self.assertEqual(doc.tiers['geonames'].spans[0].text, "Chicago")
         self.assertEqual(doc.tiers['geonames'].spans[0].label, "Chicago")
