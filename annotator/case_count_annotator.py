@@ -9,8 +9,6 @@ import pattern.search, pattern.en
 from annotator import *
 
 
-
-
 cumulative_pattern = re.compile('|'.join(["total", "sum", "brings to", "in all", "already"]), re.I)
 def find_cumulative_keywords(text, start_offset, stop_offset):
     return find_nearby_matches(text, start_offset, stop_offset, cumulative_pattern)
