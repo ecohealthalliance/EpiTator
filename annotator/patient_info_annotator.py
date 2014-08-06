@@ -26,9 +26,9 @@ class PatientInfoAnnotator(Annotator):
             ('range_start', numbers),
             my_search('-|to|and|or'),
             ('range_end', numbers)
-        ], 2)
+        ], max_words_between=2, max_overlap=0)
         min_number = ra.follows([
-            my_search('GREATER|ABOVE|OVER|LEAST|MINIMUM|DOWN'),
+            my_search('GREATER|ABOVE|OVER|LEAST|MINIMUM|DOWN|EXCEED'),
             ('min', numbers)
         ], 3)
         max_number = ra.follows([
@@ -45,20 +45,22 @@ class PatientInfoAnnotator(Annotator):
             ('approximate', my_search('APPROXIMATELY|ABOUT|NEAR|AROUND')),
             quantities
         ], 4)
-        all_quantities = ra.combine([
+        maybe_approx_quantities = ra.combine([
             approx_quantities, quantities
         ])
         time_quantities = ra.combine([
-            all_quantities,
             ra.follows([
-                all_quantities, ('year_units', my_search('YEAR'))
+                maybe_approx_quantities, ('year_units', my_search('YEAR'))
             ]),
             ra.follows([
-                all_quantities, ('month_units', my_search('MONTH'))
+                maybe_approx_quantities, ('month_units', my_search('MONTH'))
             ])
         ], prefer='longer_match')
         age_quantities = ra.near([
-            time_quantities, my_search('AGE|OLD')
+            ra.combine([
+                time_quantities, maybe_approx_quantities
+            ]),
+            my_search('AGE|OLD')
         ], 2)
         age_qualities = (
             ra.label('child', my_search('CHILD')) +
@@ -79,16 +81,68 @@ class PatientInfoAnnotator(Annotator):
                 cat,
                 my_search('[' + '|'.join(kws) + ']')
             )
+        quantity_modifiers = (
+            ra.label('average', my_search('AVERAGE|MEAN')) +
+            ra.label('annual', my_search('ANNUAL|ANNUALLY')) +
+            ra.label('monthly', my_search('MONTHLY')) +
+            ra.label('weekly', my_search('WEEKLY')) +
+            ra.label('cumulative', my_search('TOTAL|CUMULATIVE|ALREADY'))
+        )
+        all_quantities = ra.combine([
+            ra.near([
+                quantity_modifiers,
+                maybe_approx_quantities
+            ], 1),
+            maybe_approx_quantities
+        ], prefer='longer_match')
+        report_type = map(utils.restrict_match, (
+            ra.label('death',
+                my_search('DIED|DEATHS|FATALITIES|KILLED')
+            ) +
+            ra.label('hospitalization',
+                my_search('HOSPITAL|HOSPITALIZED')
+            ) +
+            ra.label('case',
+                my_search('PATIENT|CASE|PERSON|INFECTION|INFECT|AFFLICT')
+            )
+        ))
+        subject_description = ra.combine([
+            report_type,
+            ra.near([report_type, report_type], 2)
+        ], prefer='longer_match')
+        case_count = ra.label('count',
+            ra.combine([
+                ra.near([
+                    all_quantities, subject_description
+                ], 7) + 
+                # For sentences like:
+                # "The average number of cases reported annually is 600"
+                ra.near([
+                    ra.follows([
+                        quantity_modifiers,
+                        my_search('NUMBER'),
+                        subject_description
+                    ], 3), all_quantities
+                ], 30),
+                ra.follows([
+                    my_search('CLAIM'),
+                    all_quantities,
+                    ('death', my_search('LIVES'))
+                ], 1)
+            ], prefer='longer_match')
+        )
         patient_descriptions = ra.combine([
             age_description,
             patient_sex,
+            case_count,
             ra.near([
                 patient_sex,
                 age_description,
                 # I'm deliberately avoiding creating patient descriptions from
                 # keywords that appear alone since I believe there will be a
                 # high false positive rate.
-                keyword_attributes
+                keyword_attributes,
+                case_count
             ], 8)
         ], prefer='longer_match')
 
@@ -101,9 +155,7 @@ class PatientInfoAnnotator(Annotator):
                     d[k] = utils.restrict_match(v).string
                 elif k in numeric_keys:
                     # Check for None?
-                    d[k] = utils.parse_spelled_number(
-                        v.string.split('-')
-                    )
+                    d[k] = utils.parse_spelled_number(v.string)
                 else:
                     d[k] = True
             return d
@@ -122,6 +174,7 @@ class PatientInfoAnnotator(Annotator):
                     label=desc.string
                 )
                 span.metadata = metadata
+                span.__match__ = desc
                 spans.append(span)
         
         doc.tiers['patientInfo'] = AnnoTier(spans)

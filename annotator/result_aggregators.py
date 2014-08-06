@@ -4,7 +4,7 @@ Pattern search result aggregation functions.
 These functions allow you to build up meta-queries out of
 pattern.search subqueries.
 """
-import pattern
+import pattern, pattern.search
 import itertools
 class MetaMatch(pattern.search.Match):
     """
@@ -16,7 +16,8 @@ class MetaMatch(pattern.search.Match):
         min_idx = min([m.words[0].index for m in matches])
         max_idx = max([m.words[-1].index for m in matches])
         self.words = matches[0].words[-1].sentence.words[min_idx:max_idx + 1]
-
+    def __repr__(self):
+        return "MetaMatch(" + ", ".join(map(str, self.matches)) + ")"
     def groupdict(self):
         """
         Return a dict with all the labeled matches.
@@ -32,17 +33,30 @@ class MetaMatch(pattern.search.Match):
                     out.update(match.groupdict())
         return out
     
-    def match_length(self):
+    def interate_matches(self):
+        """
+        Iterate over all the plain match objects nested in MetaMatches
+        """
+        for match in self.matches:
+            if isinstance(match, MetaMatch):
+                for match2 in match.matches:
+                    yield match2
+            else:
+                yield match
+    def match_length(self, include_overlap=False):
         """
         Return the cumulative length of all the submatches rather than the
         length of the meta match's span including space between submatches
         (which len() would return).
         """
-        return sum([
-            m.match_length() if isinstance(m, MetaMatch) else len(m)
-            for m in self.matches
-        ])
-
+        word_indices = {}
+        for match in self.interate_matches():
+            for word in match.words:
+                word_indices[word.index] = word_indices.get(word.index, 0) + 1
+        if include_overlap:
+            return sum(word_indices.values)
+        else:
+            return len(word_indices)
     def constituents(self):
         return self.words
 
@@ -55,9 +69,14 @@ def near(results_lists, max_words_between=30):
     n words away from all other elements in the tuple
     """
     result = []
-    non_empty_lists = (rl for rl in results_lists if len(rl) > 0)
-    for permutation in itertools.permutations(non_empty_lists):
-        result += follows(permutation, max_words_between)
+    non_empty_lists = [
+        rl for rl in results_lists
+        if (isinstance(rl, list) and len(rl) > 0) or
+           (isinstance(rl, tuple) and len(rl[1]) > 0)
+    ]
+    for i in range(2, len(non_empty_lists) + 1):
+        for permutation in itertools.permutations(non_empty_lists, i):
+            result += follows(permutation, max_words_between)
     return result
 
 def match_follows(match_a, match_b, max_words_between, max_overlap):
@@ -144,10 +163,14 @@ def combine(results_lists, prefer="first", max_proximity=0):
         a_len, b_len = len(a), len(b)
         if isinstance(a, MetaMatch):
             a_len = a.match_length()
-        elif isinstance(b, MetaMatch):
+        if isinstance(b, MetaMatch):
             b_len = b.match_length()
+        if a_len == b_len:
+            # If the match length is equal
+            # prefer the shorter "denser" match
+            return len(a.string) <= len(b.string)
         else:
-            return a_len >= b_len
+            return a_len > b_len
     if prefer == "first":
         prefunc = first
     elif prefer == "longer_text":

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 import unittest
-
+import test_utils
 sys.path = ['./'] + sys.path
 
 from annotator.annotator import AnnoDoc
@@ -11,35 +11,6 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
 
     def setUp(self):
         self.annotator = PatientInfoAnnotator()
-
-    def assertHasProps(self, d, props):
-        """
-        All the properties and values in props must also exist in d for this
-        assertion to be True.
-        """
-        def nested_items(d):
-            for k,v in d.items():
-                if isinstance(v, dict):
-                    for kpath, v2 in nested_items(v):
-                        yield [k] + kpath, v2
-                else:
-                    yield [k], v
-        def get_path(d, path, default=None):
-            if len(path) == 1:
-                return d.get(path[0], default)
-            else:
-                return get_path(d.get(path[0], {}), path[1:])
-        
-        missing_props = []
-        for kpath, v in nested_items(props):
-            dv = get_path(d, kpath)
-            if not dv or dv != v:
-                missing_props.append(kpath)
-            
-        if len(missing_props) > 0:
-            raise AssertionError(
-                "Missing properties\n" + str(d) + "\n" + str(props)
-            )
 
     def test_snippit1(self):
         # based on: http://www.promedmail.org/direct.php?id=2638359
@@ -60,19 +31,19 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         Medical College Hospital in Assam were reportedly improving, he said.
         """)
         doc.add_tier(self.annotator)
-        self.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
             'age' : {
                 'number': 10,
                 'year_units': True,
             },
             'female': True
         })
-        self.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
             'age' : {
                 'child': True,
             }
         })
-        self.assertHasProps(doc.tiers['patientInfo'].spans[2].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[2].metadata, {
             'age' : {
                 'range_start': 1,
                 'range_end': 14,
@@ -80,7 +51,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'year_units': True
             }
         })
-        self.assertHasProps(doc.tiers['patientInfo'].spans[3].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[3].metadata, {
             'age' : {
                 'number': 18,
                 'year_units': True
@@ -104,12 +75,12 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         """)
         doc.add_tier(self.annotator)
         # This should probably be folded into the other match somehow
-        self.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
             'age' : {
                 'child': True
             }
         })
-        self.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
             'female': True,
             'age' : {
                 'max': 15,
@@ -125,7 +96,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         According to officials, 58 cases of measles had been confirmed so far.
         """)
         doc.add_tier(self.annotator)
-        self.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
             'age' : {
                 'max': 35
             }
@@ -147,7 +118,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'hosptial worker'
             ]
         })
-        self.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
             'age' : {
                 'number': 71,
             },

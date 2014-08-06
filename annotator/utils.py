@@ -11,7 +11,14 @@ def parse_number(num):
         except ValueError:
             return None
 
-def parse_spelled_number(tokens):
+def parse_spelled_number(tokens_or_str):
+    if isinstance(tokens_or_str, basestring):
+        tokens = []
+        for word in tokens_or_str.split(' '):
+            if len(word) > 0:
+                tokens.extend(word.split('-'))
+    else:
+        tokens = tokens_or_str
     numbers = {
         'zero':0,
         'half': 1.0/2.0,
@@ -156,12 +163,14 @@ def find_all_match_offsets(text, match):
                 start_at = start_offset + 1
 
     return offsets
-
+import result_aggregators as ra
 def restrict_match(match):
     """
     Return a restricted version of a pattern Match object that only includes
     the words in a chunk that don't violate their own constraint.
     """
+    if isinstance(match, ra.MetaMatch):
+        return ra.MetaMatch(map(restrict_match, match.matches), match.labels)
     return pattern.search.Match(
         match.pattern,
         words=filter(
