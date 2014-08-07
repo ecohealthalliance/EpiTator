@@ -125,3 +125,26 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             'male': True,
             'occupation': u'farmer'
         })
+
+    def test_count_discrimination(self):
+        # based on: http://www.promedmail.org/direct.php?id=2499795
+        doc = AnnoDoc("""
+        A 10 year old girl of Sippi village in Upper Subansiri district,
+        who was admitted to Arunachal State Hospital died on Thursday,
+        state epidemiologist Dr L Jampa told PTI on Saturday [26 Jul 2014].
+        The other affected people include children in the age group of
+        approximately 1 - 14 years besides an 18 year old, he stated.
+        They were undergoing treatment at the Arunachal State Hospital [ASH]
+        since last week, while approximately 12 cases being treated in Guwahati
+        Medical College Hospital in Assam were reportedly improving, he said.
+        """)
+        doc.add_tier(self.annotator, keyword_categories={
+            'occupation' : [
+                'farmer',
+                'hosptial worker'
+            ]
+        })
+        self.assertEqual(test_utils.get_path(
+            doc.tiers['patientInfo'].spans[0].metadata,
+            'count.range_start'
+        ), None)

@@ -56,12 +56,21 @@ class PatientInfoAnnotator(Annotator):
                 maybe_approx_quantities, ('month_units', my_search('MONTH'))
             ])
         ], prefer='longer_match')
-        age_quantities = ra.near([
-            ra.combine([
-                time_quantities, maybe_approx_quantities
-            ]),
-            my_search('AGE|OLD')
-        ], 2)
+        
+        age_quantities = (
+            ra.near([
+                time_quantities,
+                my_search('AGE|OLD')
+            ], 1) +
+            # E.x. in the age group of approximately 1 - 14
+            ra.follows([
+                my_search('AGE *? OF'),
+                ra.combine([
+                    time_quantities,
+                    maybe_approx_quantities
+                ])
+            ], 1)
+        )
         age_qualities = (
             ra.label('child', my_search('CHILD')) +
             ra.label('adult', my_search('ADULT')) +
@@ -79,7 +88,7 @@ class PatientInfoAnnotator(Annotator):
         for cat, kws in keyword_categories.items():
             keyword_attributes += ra.label(
                 cat,
-                my_search('[' + '|'.join(kws) + ']')
+                my_search('[' + '|'.join(map(pattern.search.escape, kws)) + ']')
             )
         quantity_modifiers = (
             ra.label('average', my_search('AVERAGE|MEAN')) +
@@ -92,9 +101,10 @@ class PatientInfoAnnotator(Annotator):
             ra.near([
                 quantity_modifiers,
                 maybe_approx_quantities
-            ], 1),
+            ], 2),
             maybe_approx_quantities
         ], prefer='longer_match')
+        person = my_search('PERSON|CHILD|ADULT|ELDER|PATIENT|LIFE')
         report_type = map(utils.restrict_match, (
             ra.label('death',
                 my_search('DIED|DEATHS|FATALITIES|KILLED')
@@ -103,32 +113,55 @@ class PatientInfoAnnotator(Annotator):
                 my_search('HOSPITAL|HOSPITALIZED')
             ) +
             ra.label('case',
-                my_search('PATIENT|CASE|PERSON|INFECTION|INFECT|AFFLICT')
+                my_search(
+                    'CASE|INFECTION|INFECT'
+                ) + person
             )
         ))
-        subject_description = ra.combine([
+        report_description = ra.combine([
             report_type,
             ra.near([report_type, report_type], 2)
         ], prefer='longer_match')
+        number_description = ra.combine([
+            ra.follows([
+                quantity_modifiers,
+                my_search('NUMBER')
+            ]),
+            my_search('NUMBER')
+        ])
+        people_quantity = ra.follows([
+            all_quantities,
+            person
+        ], 2)
         case_count = ra.label('count',
             ra.combine([
-                ra.near([
-                    all_quantities, subject_description
-                ], 7) + 
-                # For sentences like:
-                # "The average number of cases reported annually is 600"
+                #Ex: 222 were admitted to hospitals
+                ra.follows([
+                    all_quantities, report_description
+                ], 3) + 
+                #Ex: The average number of cases reported annually is 600
                 ra.near([
                     ra.follows([
-                        quantity_modifiers,
-                        my_search('NUMBER'),
-                        subject_description
-                    ], 3), all_quantities
+                        number_description,
+                        report_description
+                    ], 3),
+                    all_quantities
                 ], 30),
+                #Ex: it has already claimed about 455 lives in Guinea
                 ra.follows([
-                    my_search('CLAIM'),
-                    all_quantities,
-                    ('death', my_search('LIVES'))
-                ], 1)
+                    ('death', my_search('CLAIM')),
+                    people_quantity
+                ], 2),
+                #Ex: 1200 children between the ages of 2 and 5 are afflicted
+                ra.near([
+                    people_quantity,
+                    ('case', my_search('AFFLICT'))
+                ], 10),
+                #Ex: Deaths: 13
+                ra.follows([
+                    ra.label('death', my_search('DEATHS :?')),
+                    quantities
+                ])
             ], prefer='longer_match')
         )
         patient_descriptions = ra.combine([

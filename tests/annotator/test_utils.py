@@ -10,6 +10,8 @@ def nested_items(d):
         else:
             yield [k], v
 def get_path(d, path, default=None):
+    if isinstance(path, basestring):
+        path = path.split('.')
     if len(path) == 1:
         return d.get(path[0], default)
     else:
@@ -24,7 +26,7 @@ def assertHasProps(d, props):
         dv = get_path(d, kpath)
         if not dv or dv != v:
             missing_props.append(kpath)
-        
+    
     if len(missing_props) > 0:
         raise AssertionError(
             "Missing properties\n" + str(d) + "\n" + str(props)

@@ -87,7 +87,6 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         example, actual_count = "33 were hospitalized", 33
         doc = AnnoDoc(example)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['patientInfo']), 1)
         test_utils.assertHasProps(
             doc.tiers['patientInfo'].spans[0].metadata, {
                 'count' : {
@@ -96,12 +95,11 @@ class CaseCountAnnotatorTest(unittest.TestCase):
                 }
             }
         )
+        self.assertEqual(len(doc.tiers['patientInfo']), 1)
     def test_hospital_counts2(self):
-        # STRICT search breaks this
         example, actual_count = "222 were admitted to hospitals with symptoms of diarrhea", 222
         doc = AnnoDoc(example)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['patientInfo']), 1)
         test_utils.assertHasProps(
             doc.tiers['patientInfo'].spans[0].metadata, {
                 'count' : {
@@ -110,6 +108,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
                 }
             }
         )
+        self.assertEqual(len(doc.tiers['patientInfo']), 1)
         
     def test_death_counts(self):
         """We want to make sure that 'death' is the type of the retained
@@ -160,6 +159,22 @@ class CaseCountAnnotatorTest(unittest.TestCase):
     #     self.assertEqual(doc.tiers['patientInfo'].spans[0].end, 30)
     #     self.assertEqual(doc.tiers['patientInfo'].spans[0].label, 30)
     #     self.assertEqual(doc.tiers['patientInfo'].spans[0].type, 'caseCount')
+
+    def test_misc(self):
+        doc = AnnoDoc("1200 children between the ages of 2 and 5 are afflicted with a mystery illness")
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(
+            doc.tiers['patientInfo'].spans[0].metadata, {
+                'count' : {
+                    'number': 1200,
+                    'case' : True
+                },
+                'age' : {
+                    'range_start': 2,
+                    'range_end' : 5
+                }
+            }
+        )
 
     def test_misc2(self):
 
@@ -351,18 +366,5 @@ class TestCountExtractorAspirations(unittest.TestCase):
         self.assertEqual(count_obj.get('time'), "2001")
         self.assertEqual(count_obj.get('valueModifier'), "median")
         self.assertEqual(count_obj.get('value'), actual_count)
-    # TODO -- this test should be re-enabled after we figure out how to run
-    # patterns with lots of wildcards in them efficiently.
-    # def test_misc(self):
-    #     doc = AnnoDoc("1200 children between the ages of 2-5 are afflicted with a mystery illness")
-    #     doc.add_tier(self.annotator)
-
-    #     self.assertEqual(doc.tiers['patientInfo'].spans[0].type, 'caseCount')
-    #     self.assertEqual(doc.tiers['patientInfo'].spans[0].label, 1200)
-
-    def test_misc2(self):
-        example = "These 2 new cases bring to 4 the number of people stricken in California this year [2012]."
-        count_set = set([count['value'] for count in extract_counts(example)])
-        self.assertSetEqual(count_set, set([2,4]))
 
 """
