@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Annotator"""
 
+import json
 from lazy import lazy
 
 from nltk import sent_tokenize
@@ -19,7 +20,7 @@ class AnnoDoc:
     # TODO what if the original text needs to be later transformed, e.g.
     # stripped of tags? This will ruin offsets.
 
-    def __init__(self, text=None):
+    def __init__(self, text=None, date=None):
         if type(text) is unicode or text is None:
             self.text = text
         elif type(text) is str:
@@ -28,9 +29,26 @@ class AnnoDoc:
             raise TypeError("text must be string, unicode or None")
         self.tiers = {}
         self.properties = {}
+        self.date = date
 
     def add_tier(self, annotator):
         annotator.annotate(self)
+
+    def to_json(self):
+        json_obj = {'text': self.text,
+                    'properties': self.properties}
+
+        if self.date:
+            json_obj['date'] = self.date.strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
+
+        if self.properties:
+            json_obj['properties'] = self.properties
+
+        json_obj['tiers'] = {}
+        for name, tier in self.tiers.iteritems():
+            json_obj.tiers[name] = tier.to_json
+
+        return json.dumps(json_obj)
 
 class AnnoTier:
 
@@ -45,6 +63,9 @@ class AnnoTier:
 
     def __len__(self):
         return len(self.spans)
+
+    def to_json(self):
+        json.dumps([json.dumps(span.__dict__) for span in self.spans])
 
     def next_span(self, span):
         """Get the next span after this one"""
