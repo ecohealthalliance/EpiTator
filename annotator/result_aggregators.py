@@ -54,7 +54,7 @@ class MetaMatch(pattern.search.Match):
             for word in match.words:
                 word_indices[word.index] = word_indices.get(word.index, 0) + 1
         if include_overlap:
-            return sum(word_indices.values)
+            return sum(word_indices.values())
         else:
             return len(word_indices)
     def constituents(self):
@@ -76,27 +76,28 @@ def near(results_lists, max_words_between=30):
     ]
     for i in range(2, len(non_empty_lists) + 1):
         for permutation in itertools.permutations(non_empty_lists, i):
-            result += follows(permutation, max_words_between)
+            result += follows(permutation, max_words_between, max_overlap=10)
     return result
 
 def match_follows(match_a, match_b, max_words_between, max_overlap):
     """
     Returns true if the second match is in the same sentence,
-    ends after the first, and doesn't start more than max_words_between away
-    from the first match or begin more than max_overlap before the end of the
-    first match.
+    ends after the first begins,
+    doesn't start more than max_words_between away from the first match and
+    doesn't begin more than max_overlap before the end of the first match.
     """
     if match_a.words[-1].sentence != match_b.words[0].sentence:
         return False
-    word_a_start = match_a.words[0].index
-    word_a_end = match_a.words[-1].index
-    word_b_start = match_b.words[0].index
-    word_b_end = match_b.words[-1].index
-    if word_b_end < word_a_start:
+    match_a_start = match_a.words[0].index
+    match_a_end = match_a.words[-1].index
+    match_b_start = match_b.words[0].index
+    match_b_end = match_b.words[-1].index
+    if match_b_end < match_a_start:
         return False
-    if word_a_end - max_overlap >= word_b_start:
+    words_between = match_b_start - match_a_end - 1
+    if (-words_between) > max_overlap:
         return False
-    if word_a_end + max_words_between + 1 < word_b_start:
+    if words_between > max_words_between:
         return False
     return True
 
@@ -105,6 +106,9 @@ def follows(results_lists, max_words_between=0, max_overlap=5):
     Find sequences of matches matching the order in the results lists.
     The max_words_between parameter sets how far apart the matches can appear
     in a sequence.
+    Results are considered to follow eachother so long as the first match
+    starts before the second ends. This is the weakest definition of following.
+    A stronger definition can be used by limiting the max_overlap.
     Sequences must appear in the same sentence. We could try to remove this
     contraint by adding sentence indecies to matches, but I don't think
     that would be very useful.
@@ -156,19 +160,22 @@ def combine(results_lists, prefer="first", max_proximity=0):
         matching content.
         """
         return len(a.string) >= len(b.string)
-    def longer_match(a,b):
+    def longer_match(a, b, include_overlap=False):
         """
         Prefers the match with the most text that matches the submatch patterns.
         """
         a_len, b_len = len(a), len(b)
         if isinstance(a, MetaMatch):
-            a_len = a.match_length()
+            a_len = a.match_length(include_overlap)
         if isinstance(b, MetaMatch):
-            b_len = b.match_length()
+            b_len = b.match_length(include_overlap)
         if a_len == b_len:
-            # If the match length is equal
-            # prefer the shorter "denser" match
-            return len(a.string) <= len(b.string)
+            if not include_overlap:
+                return longer_match(a, b, include_overlap=True)
+            else:
+                # If the match length is equal in all other ways
+                # prefer the shorter "denser" match
+                return len(a.string) <= len(b.string)
         else:
             return a_len > b_len
     if prefer == "first":
