@@ -14,9 +14,9 @@ class PatientInfoAnnotator(Annotator):
     def annotate(self, doc, keyword_categories={}):
         """
         Annotate patient descriptions that appear in the doc.
-        
+
         Keywords under keyword_categories that appear in the document are added
-        to the patient descriptions under attributes corresponding to the their
+        to the patient descriptions under attributes corresponding to their
         categories.
         """
         doc.setup_pattern()
@@ -56,7 +56,7 @@ class PatientInfoAnnotator(Annotator):
                 maybe_approx_quantities, ('month_units', my_search('MONTH'))
             ])
         ], prefer='longer_match')
-        
+
         age_quantities = (
             ra.near([
                 time_quantities,
@@ -138,7 +138,7 @@ class PatientInfoAnnotator(Annotator):
                 #Ex: 222 were admitted to hospitals
                 ra.follows([
                     all_quantities, report_description
-                ], 3) + 
+                ], 3) +
                 #Ex: The average number of cases reported annually is 600
                 ra.near([
                     ra.follows([
@@ -197,7 +197,7 @@ class PatientInfoAnnotator(Annotator):
         for desc in patient_descriptions:
             metadata = parse_dict(desc.groupdict())
             metadata['text'] = desc.string
-            
+
             offsets_tuples = utils.find_all_match_offsets(doc.text, desc)
             for offsets_tuple in offsets_tuples:
                 span = AnnoSpan(
@@ -209,7 +209,7 @@ class PatientInfoAnnotator(Annotator):
                 span.metadata = metadata
                 span.__match__ = desc
                 spans.append(span)
-        
+
         doc.tiers['patientInfo'] = AnnoTier(spans)
         doc.tiers['patientInfo'].sort_spans()
         return doc
