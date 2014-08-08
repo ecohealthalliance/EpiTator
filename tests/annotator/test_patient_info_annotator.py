@@ -123,28 +123,89 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'number': 71,
             },
             'male': True,
-            'occupation': u'farmer'
+            'occupation': 'farmer'
         })
 
     def test_count_discrimination(self):
-        # based on: http://www.promedmail.org/direct.php?id=2499795
+        """
+        Test that we can discriminate between count numbers and age numbers.
+        """
         doc = AnnoDoc("""
-        A 10 year old girl of Sippi village in Upper Subansiri district,
-        who was admitted to Arunachal State Hospital died on Thursday,
-        state epidemiologist Dr L Jampa told PTI on Saturday [26 Jul 2014].
         The other affected people include children in the age group of
         approximately 1 - 14 years besides an 18 year old, he stated.
-        They were undergoing treatment at the Arunachal State Hospital [ASH]
-        since last week, while approximately 12 cases being treated in Guwahati
-        Medical College Hospital in Assam were reportedly improving, he said.
         """)
-        doc.add_tier(self.annotator, keyword_categories={
-            'occupation' : [
-                'farmer',
-                'hosptial worker'
-            ]
-        })
+        doc.add_tier(self.annotator)
         self.assertEqual(test_utils.get_path(
             doc.tiers['patientInfo'].spans[0].metadata,
             'count.range_start'
         ), None)
+
+    def test_count_and_age(self):
+        doc = AnnoDoc("""
+        The other 12 cases include children in the age
+        group of 4 - 14 years besides one elderly male approximately 60 years of
+        age and one six month old infant.
+        """)
+        doc.add_tier(self.annotator)
+        self.assertEqual(test_utils.get_path(
+            doc.tiers['patientInfo'].spans[0].metadata,
+            'count.range_start'
+        ), None)
+    
+    def test_count_and_age2(self):
+        # based on: http://www.promedmail.org/direct.php?id=2558448
+        doc = AnnoDoc("""
+        A 45 year old woman succumbed to rabies at the civic-run Naidu
+        Infectious Diseases Hospital on Friday [20 Jun 2014], taking the fatal
+        infection's death toll in the city to 15 this year [2014].
+        """)
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+            'age' : {
+                'number': 45,
+                'year_units': True
+            },
+            'female': True
+        })
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
+            'count' : {
+                'number': 15,
+                'death': True
+            }
+        })
+    
+    def test_attribute_association(self):
+        doc = AnnoDoc("""
+        The first deaths reported were a seventy-two year old woman
+        and a 6 month old infant. 
+        """)
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+            'age' : {
+                'number': 72,
+                'year_units': True
+            },
+            'female': True,
+            'death' : True
+        })
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
+            'age' : {
+                'number': 6,
+                'month_units': True
+            },
+            'death' : True
+        })
+        self.assertEqual(test_utils.get_path(
+            doc.tiers['patientInfo'].spans[1].metadata,
+            'count.female'
+        ), None)
+
+    def test_hyphenated_age(self):
+        doc = AnnoDoc("seventy-three-year-old")
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+            'age' : {
+                'number': 46,
+                'year_units': True
+            }
+        })
