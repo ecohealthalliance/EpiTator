@@ -32,7 +32,7 @@ class MetaMatch(pattern.search.Match):
                 else:
                     out.update(match.groupdict())
         return out
-    
+
     def interate_matches(self):
         """
         Iterate over all the plain match objects nested in MetaMatches
@@ -64,7 +64,7 @@ def near(results_lists, max_words_between=30):
     """
     Returns matches from mulitple results lists that appear in the same sentence
     within the given proximity.
-    I.e. outer join of the results lists where at least two elements are not 
+    I.e. outer join of the results lists where at least two elements are not
     null, the elements have the same sentence, and no element is more than
     n words away from all other elements in the tuple
     """
@@ -141,16 +141,63 @@ def label(label, results_list):
     """
     return follows([(label, results_list)])
 
+def combine_with_longest_total(results_lists, max_proximity=0):
+    def has_overlap(results):
+        combinations = itertools.combinations(results, 2)
+        for match_a, match_b in combinations:
+            if match_a.words[0].sentence != match_b.words[0].sentence:
+                continue
+            a_start = match_a.words[0].index
+            a_end = match_a.words[-1].index
+            b_start = match_b.words[0].index
+            b_end = match_b.words[-1].index
+            overlap = (
+                (
+                    a_start + max_proximity >= b_start and
+                    a_start - max_proximity <= b_end
+                ) or (
+                    b_start + max_proximity >= a_start and
+                    b_start - max_proximity <= a_end
+                )
+            )
+            if overlap:
+                return True
+        return False
+
+    flat_results_list = [result for results in results_lists for result in results]
+    combinations = []
+    for n in range(len(flat_results_list), 0, -1):
+        combinations += itertools.combinations(flat_results_list, n)
+
+    groups_with_no_overlap = [c for c in combinations if not has_overlap(c)]
+    max_length = 0
+    max_label_count = 0
+    max_group = None
+    for group in groups_with_no_overlap:
+        group_length = 0
+        for result in group:
+            group_length += (result.words[-1].index + 1 - result.words[0].index)
+        if group_length > max_length:
+            max_length = group_length
+            max_group = group
+        elif group_length == max_length:
+            if sum([len(r.labels) for r in group]) > sum([len(r.labels) for r in max_group]):
+                max_length = group_length
+                max_group = group
+    if max_group is not None:
+        return max_group
+    return []
+
 def combine(results_lists, prefer="first", max_proximity=0):
     """
     Combine the results_lists while removing overlapping matches.
-    
+
     if matches are within max_proximity of eachother they are considered
     overlapping
     """
     def first(a,b):
         """
-        This perference function perfers the matches that appear first 
+        This perference function perfers the matches that appear first
         in the first result list.
         """
         return True
@@ -178,7 +225,9 @@ def combine(results_lists, prefer="first", max_proximity=0):
                 return len(a.string) <= len(b.string)
         else:
             return a_len > b_len
-    if prefer == "first":
+    if prefer == "longest_total":
+        return combine_with_longest_total(results_lists, max_proximity)
+    elif prefer == "first":
         prefunc = first
     elif prefer == "longer_text":
         prefunc = longer_text
@@ -186,7 +235,7 @@ def combine(results_lists, prefer="first", max_proximity=0):
         prefunc = longer_match
     else:
         prefunc = prefer
-    
+
     results_a = results_lists[0]
     if len(results_lists) < 2:
         results_b = []
@@ -194,7 +243,7 @@ def combine(results_lists, prefer="first", max_proximity=0):
         results_b = combine(results_lists[1:], prefer)
     else:
         results_b = results_lists[1]
-    
+
     remaining_results = results_a + results_b
     out_results = []
     while len(remaining_results) > 0:

@@ -18,7 +18,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         # Phrases like 10-year-old are treated as single words by pattern
         # which makes it so we can't search for them.
         # Numeric ranges separated by a hyphen (e.g. 1-14) also get treated
-        # as an individual entity, and to make matters more complicated, 
+        # as an individual entity, and to make matters more complicated,
         # they can be confused with date strings and number like ninety-nine.
         doc = AnnoDoc("""
         A 10 year old girl of Sippi village in Upper Subansiri district,
@@ -57,7 +57,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'year_units': True
             }
         })
-    
+
     def test_snippit2(self):
         # based on: http://www.promedmail.org/direct.php?id=2641341
         doc = AnnoDoc("""
@@ -81,13 +81,15 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             }
         })
         test_utils.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
-            'female': True,
             'age' : {
                 'max': 15,
                 'year_units': True
             }
         })
-        
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[2].metadata, {
+            'female' : True
+        })
+
     def test_senior(self):
         # based on: http://www.promedmail.org/direct.php?id=2070771
         doc = AnnoDoc("""
@@ -115,12 +117,13 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator, keyword_categories={
             'occupation' : [
                 'farmer',
-                'hosptial worker'
+                'hospital worker'
             ]
         })
         test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
             'age' : {
                 'number': 71,
+                'year_units': True
             },
             'male': True,
             'occupation': 'farmer'
@@ -151,7 +154,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             doc.tiers['patientInfo'].spans[0].metadata,
             'count.range_start'
         ), None)
-    
+
     def test_count_and_age2(self):
         # based on: http://www.promedmail.org/direct.php?id=2558448
         doc = AnnoDoc("""
@@ -173,11 +176,11 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'death': True
             }
         })
-    
+
     def test_attribute_association(self):
         doc = AnnoDoc("""
         The first deaths reported were a seventy-two year old woman
-        and a 6 month old infant. 
+        and a 6 month old infant.
         """)
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
@@ -201,7 +204,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         ), None)
 
     def test_hyphenated_age(self):
-        doc = AnnoDoc("seventy-three-year-old")
+        doc = AnnoDoc("forty-six-year-old")
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
             'age' : {

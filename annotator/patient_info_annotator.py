@@ -176,8 +176,8 @@ class PatientInfoAnnotator(Annotator):
                 # high false positive rate.
                 keyword_attributes,
                 case_count
-            ], 8)
-        ], prefer='longer_match')
+            ], 3)
+        ], prefer='longest_total')
 
         def parse_dict(d):
             numeric_keys = ['number', 'min', 'max', 'range_start', 'range_end']
