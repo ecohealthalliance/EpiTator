@@ -142,6 +142,36 @@ class AnnoSpan:
         else:
             self.label = label
 
+    def overlaps(self, other_span):
+        return (
+            (self.start >= other_span.start and self.start <= other_span.end) or
+            (other_span.start >= self.start and other_span.start <= self.end)
+        )
+
+    def adjacent_to(self, other_span, max_dist=0):
+        return (
+            self.comes_before(other_span, max_dist) or
+            other_span.comes_before(self, max_dist)
+        )
+
+    def comes_before(self, other_span, max_dist=0):
+        return (
+            self.end >= other_span.start - max_dist - 1 and
+            self.start <= other_span.end
+        )
+
+    def extended_through(self, other_span):
+        """
+        Create a new span like this one but with it's range extended through
+        the range of the other span.
+        """
+        return AnnoSpan(
+            min(self.start, other_span.start),
+            max(self.end, other_span.end),
+            self.doc,
+            self.label
+        )
+
     def size(self): return self.end - self.start
 
     @lazy

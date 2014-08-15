@@ -2,8 +2,7 @@
 """Token Annotator"""
 import math
 import re
-from collections import defaultdict
-
+import itertools
 import pymongo
 
 from annotator import *
@@ -31,66 +30,6 @@ blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
              # where its location is relevent.
              'National Institutes of Health']
 
-states = {
-        'AK': 'Alaska',
-        'AL': 'Alabama',
-        'AR': 'Arkansas',
-        'AS': 'American Samoa',
-        'AZ': 'Arizona',
-        'CA': 'California',
-        'CO': 'Colorado',
-        'CT': 'Connecticut',
-        'DC': 'District of Columbia',
-        'DE': 'Delaware',
-        'FL': 'Florida',
-        'GA': 'Georgia',
-        'GU': 'Guam',
-        'HI': 'Hawaii',
-        'IA': 'Iowa',
-        'ID': 'Idaho',
-        'IL': 'Illinois',
-        'IN': 'Indiana',
-        'KS': 'Kansas',
-        'KY': 'Kentucky',
-        'LA': 'Louisiana',
-        'MA': 'Massachusetts',
-        'MD': 'Maryland',
-        'ME': 'Maine',
-        'MI': 'Michigan',
-        'MN': 'Minnesota',
-        'MO': 'Missouri',
-        'MP': 'Northern Mariana Islands',
-        'MS': 'Mississippi',
-        'MT': 'Montana',
-        'NA': 'National',
-        'NC': 'North Carolina',
-        'ND': 'North Dakota',
-        'NE': 'Nebraska',
-        'NH': 'New Hampshire',
-        'NJ': 'New Jersey',
-        'NM': 'New Mexico',
-        'NV': 'Nevada',
-        'NY': 'New York',
-        'OH': 'Ohio',
-        'OK': 'Oklahoma',
-        'OR': 'Oregon',
-        'PA': 'Pennsylvania',
-        'PR': 'Puerto Rico',
-        'RI': 'Rhode Island',
-        'SC': 'South Carolina',
-        'SD': 'South Dakota',
-        'TN': 'Tennessee',
-        'TX': 'Texas',
-        'UT': 'Utah',
-        'VA': 'Virginia',
-        'VI': 'Virgin Islands',
-        'VT': 'Vermont',
-        'WA': 'Washington',
-        'WI': 'Wisconsin',
-        'WV': 'West Virginia',
-        'WY': 'Wyoming'
-}
-
 
 class GeonameAnnotator(Annotator):
 
@@ -116,10 +55,6 @@ class GeonameAnnotator(Annotator):
             span.text[0] == span.text[0].upper()
         ])
 
-        ngrams_by_lc = defaultdict(list)
-        for ngram in all_ngrams:
-            ngrams_by_lc[ngram.lower()] += ngram
-
         geoname_cursor = self.geonames_collection.find({
             '$or' : [
                 { 'name' : { '$in' : list(all_ngrams) } },
@@ -142,26 +77,57 @@ class GeonameAnnotator(Annotator):
         for span in doc.tiers['ngrams'].spans:
             span_text_to_spans[span.text].append(span)
         class Location(dict):
+            """
+            This main purpose of this class is to create hashable dictionaries
+            that we can use in sets.
+            """
             def __hash__(self):
                 return id(self)
 
-        remaining_locations = []
+        candidate_locations = []
         for location_dict in geoname_results:
             location = Location(location_dict)
-            location['spans'] = []
+            location['spans'] = set()
             location['alternateLocations'] = set()
-            remaining_locations.append(location)
+            candidate_locations.append(location)
             geoname_results
             names = set([location['name']] + location['alternatenames'])
             for name in names:
                 if name not in span_text_to_spans: continue
                 for span in span_text_to_spans[name]:
-                    location['spans'].append(span)
+                    location['spans'].add(span)
+                    
+        # Add combined spans to locations that are adjacent to a span linked to
+        # an administrative division. e.g. Seattle, WA
+        span_to_locations = {}
+        for location in candidate_locations:
+            for span in location['spans']:
+                span_to_locations[span] =\
+                    span_to_locations.get(span, []) + [location]
+
+        for span_a, span_b in itertools.permutations(
+            span_to_locations.keys(), 2
+        ):
+            if span_a.comes_before(span_b, max_dist=3):
+                combined_span = span_a.extended_through(span_b)
+                possible_locations = []
+                for loc_a, loc_b in itertools.product(
+                    span_to_locations[span_a],
+                    span_to_locations[span_b],
+                ):
+                    # print 'loc:', loc_a['name'], loc_b['name'], loc_b['feature code']
+                    # TODO? Check admin codes for containment
+                    if(
+                        loc_b['feature code'].startswith('ADM') and
+                        loc_a['feature code'] != loc_b['feature code']
+                    ):
+                        loc_a['spans'].add(combined_span)
+        
         # Find locations with overlapping spans
-        for idx, location_a in enumerate(remaining_locations):
-            a_spans = set(location_a['spans'])
-            for idx, location_b in enumerate(remaining_locations[idx + 1:]):
-                b_spans = set(location_b['spans'])
+        for idx, location_a in enumerate(candidate_locations):
+            a_spans = location_a['spans']
+            for idx, location_b in enumerate(candidate_locations[idx + 1:]):
+                b_spans = location_b['spans']
                 if len(a_spans & b_spans) > 0:
                     # Note that is is possible for two valid locations to have
                     # overlapping names. For example, Harare Province has
@@ -172,6 +138,7 @@ class GeonameAnnotator(Annotator):
         # Iterative resolution
         # Add location with scores above the threshold to the resolved location.
         # Keep rescoring the remaining locations until no more can be resolved.
+        remaining_locations = list(candidate_locations)
         resolved_locations = []
         THRESH = 60
         while True:
@@ -233,80 +200,25 @@ class GeonameAnnotator(Annotator):
             retain_a_overlap = True
             for geo_span_b in geo_spans:
                 if geo_span_a == geo_span_b: continue
-                if(
-                    geo_span_b.start in range(geo_span_a.start, geo_span_a.end)
-                    or
-                    geo_span_a.start in range(geo_span_b.start, geo_span_b.end)
-                ):
+                if geo_span_a.overlaps(geo_span_b):
                     if geo_span_b.size() > geo_span_a.size():
                         # geo_span_a is probably a component of geospan b,
                         # e.g. Washington in University of Washington
                         # We use the longer span because it's usually correct.
                         retain_a_overlap = False
+                        break
                     elif geo_span_b.size() == geo_span_a.size():
                         # Ambiguous name, use the scores to decide.
-                        retain_a_overlap = geo_span_a.geoname['score'] >= geo_span_b.geoname['score']
+                        if geo_span_a.geoname['score'] < geo_span_b.geoname['score']:
+                            retain_a_overlap = False
+                            break
             if not retain_a_overlap:
                 continue
-            # AFAICT the state town filter has no impact on the results
-            #if not self.state_town_filter(geo_span_a, geo_spans): continue
             retained_spans.append(geo_span_a)
         
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 
         return doc
-
-    def state_town_filter(self, geo_span_a, geo_spans):
-        """Check to see if we have a mention of the state for a city. If it's a
-           small city and we don't have the state it belongs to in our set, it
-           fails the test. Returns True if passes filter, False otherwise."""
-
-        if ((geo_span_a.geoname['population'] > 100000) or
-            (not "admin1 code" in geo_span_a.geoname) or
-            (not geo_span_a.geoname["admin1 code"] in states)):
-           return True # passes; doesn't have a state associated with it
-        else:
-            state = states[geo_span_a.geoname["admin1 code"]]
-            all_names = [geo_span.geoname['name'] for geo_span in geo_spans]
-            if state in all_names:
-                return True
-            else:
-                return False
-
-    def adjacent_state_filter(self, geo_span):
-        """If we have "Fairview, OR" don't allow that to map to Fairview, MN"""
-
-        if ((not "admin1 code" in geo_span.geoname) or
-            (not geo_span.geoname["admin1 code"] in states)):
-           return True # passes; doesn't have a state associated with it
-        else:
-            state = states[geo_span.geoname["admin1 code"]]
-            next_span = geo_span.doc.tiers['geonames'].next_span(geo_span)
-            if (next_span.geoname['name'] in states.values() and
-                next_span.geoname['name'] != state):
-                    return False
-            else:
-                return True
-
-    def ne_filter(self, geo_span):
-        """Check to see if this span overlaps with a named entity tag. Return
-           True if not. If it does, return True if the NE is type GPE, else False."""
-
-        ne_spans = geo_span.doc.tiers['nes'].spans_at_span(geo_span)
-
-        if len(ne_spans) == 0:
-            return True
-        else:
-            for ne_span in ne_spans:
-                if ne_span.label == 'GPE':
-                    return True
-            return False
-
-    def blocklist_filter(self, geo_span):
-        if geo_span.geoname['name'] in blocklist:
-            return False
-        else:
-            return True
 
     def score_candidate(self, candidate, resolved_locations):
         """
@@ -393,6 +305,12 @@ class GeonameAnnotator(Annotator):
             return score
 
         if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
+            return 0
+
+        if any([
+            alt in resolved_locations
+            for alt in candidate['alternateLocations']
+        ]):
             return 0
 
         # Commented out features will not be evaluated.
