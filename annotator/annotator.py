@@ -155,9 +155,11 @@ class AnnoSpan:
         )
 
     def comes_before(self, other_span, max_dist=0):
+        # Note that this is a strict version of comes before where the
+        # span must end before the other one starts.
         return (
             self.end >= other_span.start - max_dist - 1 and
-            self.start <= other_span.end
+            self.end < other_span.start
         )
 
     def extended_through(self, other_span):
