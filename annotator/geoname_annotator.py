@@ -44,7 +44,7 @@ def location_contains(loc_outer, loc_inner):
     """
     Do a comparison to see if one geonames location contains another.
     It returns an integer to indicate how specific the containment is.
-    USA contains Texas should be a smaller integer than Seattle contains WA.
+    USA contains Texas should be a smaller integer than WA contains Seattle.
     0 indicates no containment.
     This is not guarenteed to be correct, it is based on my assumptions
     about the geonames heirarchy.
