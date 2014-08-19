@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Annotator"""
-
 from lazy import lazy
 
 from nltk import sent_tokenize
+
+import pattern
+import utils
 
 def tokenize(text):
     return sent_tokenize(text)
@@ -20,17 +22,48 @@ class AnnoDoc:
     # stripped of tags? This will ruin offsets.
 
     def __init__(self, text=None):
-        if type(text) is unicode or text is None:
+        if type(text) is unicode:
             self.text = text
         elif type(text) is str:
             self.text = unicode(text, 'utf8')
         else:
-            raise TypeError("text must be string, unicode or None")
+            raise TypeError("text must be string or unicode")
         self.tiers = {}
         self.properties = {}
-
-    def add_tier(self, annotator):
-        annotator.annotate(self)
+        self.pattern_tree = None
+        
+    def setup_pattern(self):
+        """
+        Parse the doc with pattern so we can use the pattern.search module on it
+        """
+        if self.pattern_tree:
+            # Document is already parsed.
+            return
+        self.taxonomy = pattern.search.Taxonomy()
+        self.taxonomy.append(pattern.search.WordNetClassifier())
+        self.pattern_tree = pattern.en.parsetree(
+            self.text,
+            lemmata=True,
+            relations=True
+        )
+        # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
+        # see: https://github.com/clips/pattern/issues/84
+        # This monkey patch tags all the arabic numerals as CDs.
+        for sent in self.pattern_tree:
+            for word in sent.words:
+                if utils.parse_number(word.string) is not None:
+                    word.tag = 'CD'
+        def p_search(query):
+            return pattern.search.search(
+                query,
+                self.pattern_tree,
+                taxonomy=self.taxonomy
+            )
+            
+        self.p_search = p_search
+        
+    def add_tier(self, annotator, **kwargs):
+        annotator.annotate(self, **kwargs)
 
 class AnnoTier:
 

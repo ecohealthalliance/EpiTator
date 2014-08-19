@@ -18,8 +18,7 @@ class GeonameHumanTagAnnotatorTest(unittest.TestCase):
 
     def test_no_tags(self):
 
-        doc = AnnoDoc()
-        doc.text = 'I went to Chicago.'
+        doc = AnnoDoc('I went to Chicago.')
         doc.add_tier(self.annotator)
         plain_text = doc.text
 
@@ -32,8 +31,7 @@ class GeonameHumanTagAnnotatorTest(unittest.TestCase):
 
     def test_chicago(self):
 
-        doc = AnnoDoc()
-        doc.text = 'I went to <geo id="Chicago">Chicago</geo>.'
+        doc = AnnoDoc('I went to <geo id="Chicago">Chicago</geo>.')
         doc.add_tier(self.annotator)
 
         plain_text = 'I went to Chicago.'
@@ -47,8 +45,7 @@ class GeonameHumanTagAnnotatorTest(unittest.TestCase):
 
     def test_chicago_with_tags(self):
 
-        doc = AnnoDoc()
-        doc.text = 'I went <i>to</i> <geo id="Chicago">Chicago</geo>.'
+        doc = AnnoDoc('I went <i>to</i> <geo id="Chicago">Chicago</geo>.')
         plain_text = 'I went to Chicago.'
         doc.add_tier(self.annotator)
 
@@ -62,8 +59,11 @@ class GeonameHumanTagAnnotatorTest(unittest.TestCase):
 
     def test_with_broken_tags(self):
 
-        doc = AnnoDoc()
-        doc.text = """<i>If<i> <>you g<ggg"fddffd">o <aaaaa>to <geo id="Des Moines">Des Moines</geo>, stop by <geo id="St. Paul">St.<foo></dfdf.> Paul</geo> on the way."""
+        doc = AnnoDoc(
+            '<i>If<i> <>you g<ggg"fddffd">o <aaaaa>to '
+            '<geo id="Des Moines">Des Moines</geo>, stop by '
+            '<geo id="St. Paul">St.<foo></dfdf.> Paul</geo> on the way.'
+        )
         plain_text = 'If you go to Des Moines, stop by St. Paul on the way.'
         doc.add_tier(self.annotator)
 

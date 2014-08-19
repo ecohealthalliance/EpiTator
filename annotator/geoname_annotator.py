@@ -191,6 +191,7 @@ class GeonameAnnotator(Annotator):
                 candidate['score'] = self.score_candidate(
                     candidate, resolved_locations
                 )
+
             # If there are alternate locations with higher scores
             # give this candidate a zero.
             for candidate in remaining_locations:
@@ -228,7 +229,7 @@ class GeonameAnnotator(Annotator):
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
             # These properties are removed because they
-            # cannot be easily jsonified.
+            #
             location.pop('alternateLocations')
             location.pop('spans')
 
@@ -252,7 +253,7 @@ class GeonameAnnotator(Annotator):
             if not retain_a_overlap:
                 continue
             retained_spans.append(geo_span_a)
-        
+
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 
         return doc
