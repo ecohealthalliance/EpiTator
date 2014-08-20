@@ -1,0 +1,6 @@
+nltk
+requests
+pattern
+pymongo
+pyyaml
+unicodecsv
