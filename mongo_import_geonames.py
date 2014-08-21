@@ -10,7 +10,6 @@ http://download.geonames.org/export/dump/
 import sys, csv
 import unicodecsv
 import pymongo
-import config
 import time
 
 def parse_number(num, default):
@@ -64,8 +63,17 @@ def read_geonames_csv(file_path):
             yield d
             
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mongo_url", default='localhost'
+    )
+    parser.add_argument(
+        "--db_name", default='geonames'
+    )
+    args = parser.parse_args()
     print "This takes me about a half hour to run on my machine..."
-    db = pymongo.Connection(config.mongo_url)['geonames']
+    db = pymongo.Connection(args.mongo_url)[args.db_name]
     collection = db['allCountries']
     collection.drop()
     for i, geoname in enumerate(read_geonames_csv('allCountries.txt')):
