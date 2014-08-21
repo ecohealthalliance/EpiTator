@@ -228,10 +228,19 @@ class GeonameAnnotator(Annotator):
                 )
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
-            # These properties are removed because they
-            #
-            location.pop('alternateLocations')
-            location.pop('spans')
+            # These properties are removed because they are no longer needed
+            # I don't think there will be multiple parents but I'm using a loop
+            # just in case.
+            cur_location = location
+            while True:
+                if not 'alternateLocations' in cur_location: break
+                if not 'spans' in cur_location: break
+                cur_location.pop('alternateLocations')
+                cur_location.pop('spans')
+                if 'parent_location' in cur_location:
+                    cur_location = location['parent_location']
+                else:
+                    break
 
         retained_spans = []
         for geo_span_a in geo_spans:
@@ -247,6 +256,8 @@ class GeonameAnnotator(Annotator):
                         break
                     elif geo_span_b.size() == geo_span_a.size():
                         # Ambiguous name, use the scores to decide.
+                        # TODO: Recompute scores since they could have been
+                        # resolved in different rounds.
                         if geo_span_a.geoname['score'] < geo_span_b.geoname['score']:
                             retain_a_overlap = False
                             break
