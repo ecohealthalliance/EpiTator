@@ -126,6 +126,10 @@ class GeonameAnnotator(Annotator):
         })
         geoname_results = list(geoname_cursor)
 
+        # ObjectId() cannot be JSON serialized and we have no use for them
+        for geoname_result in geoname_results:
+            del geoname_result['_id']
+
         # Associate spans with the geonames.
         # This is done up front so span information can be used in the scoring
         # function
