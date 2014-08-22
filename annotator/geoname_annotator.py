@@ -163,7 +163,7 @@ class GeonameAnnotator(Annotator):
                 ):
                     if location_contains(loc_b, loc_a) > 0:
                         loc_a['spans'].add(combined_span)
-                        loc_a['parent_location'] = loc_b
+                        loc_a['parentLocation'] = loc_b
         
         # Find locations with overlapping spans
         for idx, location_a in enumerate(candidate_locations):
@@ -228,19 +228,6 @@ class GeonameAnnotator(Annotator):
                 )
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
-            # These properties are removed because they are no longer needed
-            # I don't think there will be multiple parents but I'm using a loop
-            # just in case.
-            cur_location = location
-            while True:
-                if not 'alternateLocations' in cur_location: break
-                if not 'spans' in cur_location: break
-                cur_location.pop('alternateLocations')
-                cur_location.pop('spans')
-                if 'parent_location' in cur_location:
-                    cur_location = location['parent_location']
-                else:
-                    break
 
         retained_spans = []
         for geo_span_a in geo_spans:
@@ -264,6 +251,27 @@ class GeonameAnnotator(Annotator):
             if not retain_a_overlap:
                 continue
             retained_spans.append(geo_span_a)
+
+        # Remove unneeded properties:
+        # Be careful if adding these back in, they might not be serializable
+        # data types.
+        props_to_omit = ['spans', 'alternateLocations', 'alternatenames']
+        for geospan in geo_spans:
+            # The while loop removes the properties from the parentLocations.
+            # There will probably only be one parent location.
+            cur_location = geospan.geoname
+            while True:
+                if all([
+                    prop not in cur_location
+                    for prop in props_to_omit
+                ]):
+                    break
+                for prop in props_to_omit:
+                    cur_location.pop(prop)
+                if 'parentLocation' in cur_location:
+                    cur_location = cur_location['parentLocation']
+                else:
+                    break
 
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 

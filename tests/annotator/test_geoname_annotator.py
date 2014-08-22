@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf8
 """Tests for the TokenAnnotator that annotates a sentence with tokens and their
 offsets."""
 
@@ -71,6 +72,17 @@ class GeonameAnnotatorTest(unittest.TestCase):
         ], [
             'England', 'France', 'Germany', 'Italy'
         ])
+
+    def test_bug_causing_sentence(self):
+        text = u"""
+        In late June 2012, an increase in cases of prolonged fever for ≥3 days
+        was reported from the Vanimo General Hospital in
+        Vanimo, Sandaun Province.
+        """
+        annotator = GeonameAnnotator()
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+        print doc.tiers['geonames'].spans
 
 if __name__ == '__main__':
     unittest.main()
