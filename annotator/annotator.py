@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Annotator"""
-
 import json
 from lazy import lazy
 
 from nltk import sent_tokenize
+
+import pattern
+import utils
 
 def tokenize(text):
     return sent_tokenize(text)
@@ -21,18 +23,49 @@ class AnnoDoc:
     # stripped of tags? This will ruin offsets.
 
     def __init__(self, text=None, date=None):
-        if type(text) is unicode or text is None:
+        if type(text) is unicode or text:
             self.text = text
         elif type(text) is str:
             self.text = unicode(text, 'utf8')
         else:
-            raise TypeError("text must be string, unicode or None")
+            raise TypeError("text must be string or unicode")
         self.tiers = {}
         self.properties = {}
+        self.pattern_tree = None
         self.date = date
-
-    def add_tier(self, annotator):
-        annotator.annotate(self)
+        
+    def setup_pattern(self):
+        """
+        Parse the doc with pattern so we can use the pattern.search module on it
+        """
+        if self.pattern_tree:
+            # Document is already parsed.
+            return
+        self.taxonomy = pattern.search.Taxonomy()
+        self.taxonomy.append(pattern.search.WordNetClassifier())
+        self.pattern_tree = pattern.en.parsetree(
+            self.text,
+            lemmata=True,
+            relations=True
+        )
+        # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
+        # see: https://github.com/clips/pattern/issues/84
+        # This monkey patch tags all the arabic numerals as CDs.
+        for sent in self.pattern_tree:
+            for word in sent.words:
+                if utils.parse_number(word.string) is not None:
+                    word.tag = 'CD'
+        def p_search(query):
+            return pattern.search.search(
+                query,
+                self.pattern_tree,
+                taxonomy=self.taxonomy
+            )
+            
+        self.p_search = p_search
+        
+    def add_tier(self, annotator, **kwargs):
+        annotator.annotate(self, **kwargs)
 
     def to_json(self):
         json_obj = {'text': self.text,
@@ -46,7 +79,7 @@ class AnnoDoc:
 
         json_obj['tiers'] = {}
         for name, tier in self.tiers.iteritems():
-            json_obj.tiers[name] = tier.to_json
+            json_obj['tiers'][name] = tier.to_json()
 
         return json.dumps(json_obj)
 
@@ -65,7 +98,14 @@ class AnnoTier:
         return len(self.spans)
 
     def to_json(self):
-        json.dumps([json.dumps(span.__dict__) for span in self.spans])
+
+        docless_spans = []
+        for span in self.spans:
+            span_dict = span.__dict__.copy()
+            del span_dict['doc']
+            docless_spans.append(span_dict)
+
+        return json.dumps(docless_spans)
 
     def next_span(self, span):
         """Get the next span after this one"""
@@ -162,6 +202,38 @@ class AnnoSpan:
             self.label = self.text
         else:
             self.label = label
+
+    def overlaps(self, other_span):
+        return (
+            (self.start >= other_span.start and self.start <= other_span.end) or
+            (other_span.start >= self.start and other_span.start <= self.end)
+        )
+
+    def adjacent_to(self, other_span, max_dist=0):
+        return (
+            self.comes_before(other_span, max_dist) or
+            other_span.comes_before(self, max_dist)
+        )
+
+    def comes_before(self, other_span, max_dist=0):
+        # Note that this is a strict version of comes before where the
+        # span must end before the other one starts.
+        return (
+            self.end >= other_span.start - max_dist - 1 and
+            self.end < other_span.start
+        )
+
+    def extended_through(self, other_span):
+        """
+        Create a new span like this one but with it's range extended through
+        the range of the other span.
+        """
+        return AnnoSpan(
+            min(self.start, other_span.start),
+            max(self.end, other_span.end),
+            self.doc,
+            self.label
+        )
 
     def size(self): return self.end - self.start
 

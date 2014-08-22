@@ -2,8 +2,7 @@
 """Token Annotator"""
 import math
 import re
-from collections import defaultdict
-
+import itertools
 import pymongo
 
 from annotator import *
@@ -21,72 +20,52 @@ def geoname_matches_original_ngram(geoname, original_ngrams):
 
     return False
 
-blocklist = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-             'August', 'September', 'October', 'November', 'December',
-             'International', 'North', 'East', 'West', 'South',
-             'About', 'Many', 'See', 'As', 'About', 'Center', 'Central',
-             'City', 'World', 'University', 'Valley']
+# TODO: We might be able to remove some of these names in a more general way
+# by adding a feature to the scoring function.
+blocklist = [
+    'January', 'February', 'March', 'April', 'May', 'June', 'July',
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    'August', 'September', 'October', 'November', 'December',
+    'North', 'East', 'West', 'South',
+    'Eastern', 'Western', 'Southern', 'Northern',
+    'About', 'Many', 'See', 'As', 'About', 'Health',
+    'International', 'City', 'World', 'Federal', 'Federal District',
+    'British', 'Russian',
+    'Valley', 'University', 'Center', 'Central',
+    # These locations could be legitimate,
+    # but they are rarely referred to in a context
+    # where its location is relevent.
+    'National Institutes of Health',
+    'Centers for Disease Control',
+    'Ministry of Health and Sanitation',
+]
 
-states = {
-        'AK': 'Alaska',
-        'AL': 'Alabama',
-        'AR': 'Arkansas',
-        'AS': 'American Samoa',
-        'AZ': 'Arizona',
-        'CA': 'California',
-        'CO': 'Colorado',
-        'CT': 'Connecticut',
-        'DC': 'District of Columbia',
-        'DE': 'Delaware',
-        'FL': 'Florida',
-        'GA': 'Georgia',
-        'GU': 'Guam',
-        'HI': 'Hawaii',
-        'IA': 'Iowa',
-        'ID': 'Idaho',
-        'IL': 'Illinois',
-        'IN': 'Indiana',
-        'KS': 'Kansas',
-        'KY': 'Kentucky',
-        'LA': 'Louisiana',
-        'MA': 'Massachusetts',
-        'MD': 'Maryland',
-        'ME': 'Maine',
-        'MI': 'Michigan',
-        'MN': 'Minnesota',
-        'MO': 'Missouri',
-        'MP': 'Northern Mariana Islands',
-        'MS': 'Mississippi',
-        'MT': 'Montana',
-        'NA': 'National',
-        'NC': 'North Carolina',
-        'ND': 'North Dakota',
-        'NE': 'Nebraska',
-        'NH': 'New Hampshire',
-        'NJ': 'New Jersey',
-        'NM': 'New Mexico',
-        'NV': 'Nevada',
-        'NY': 'New York',
-        'OH': 'Ohio',
-        'OK': 'Oklahoma',
-        'OR': 'Oregon',
-        'PA': 'Pennsylvania',
-        'PR': 'Puerto Rico',
-        'RI': 'Rhode Island',
-        'SC': 'South Carolina',
-        'SD': 'South Dakota',
-        'TN': 'Tennessee',
-        'TX': 'Texas',
-        'UT': 'Utah',
-        'VA': 'Virginia',
-        'VI': 'Virgin Islands',
-        'VT': 'Vermont',
-        'WA': 'Washington',
-        'WI': 'Wisconsin',
-        'WV': 'West Virginia',
-        'WY': 'Wyoming'
-}
-
+def location_contains(loc_outer, loc_inner):
+    """
+    Do a comparison to see if one geonames location contains another.
+    It returns an integer to indicate how specific the containment is.
+    USA contains Texas should be a smaller integer than WA contains Seattle.
+    0 indicates no containment.
+    This is not guarenteed to be correct, it is based on my assumptions
+    about the geonames heirarchy.
+    """
+    if not loc_outer['feature class'].startswith('ADM'):
+        # I don't think admin codes are comparable in this case,
+        # so just use the country code.
+        return loc_outer['country code'] == loc_inner['country code']
+    props = [
+        'country code',
+        'admin1 code',
+        'admin2 code',
+        'admin3 code',
+        'admin4 code'
+    ]
+    for idx, prop in enumerate(props):
+        if len(loc_outer[prop]) == 0:
+            return idx
+        if loc_outer[prop] != loc_inner[prop]:
+            return 0
+    return len(props)
 
 class GeonameAnnotator(Annotator):
 
@@ -107,12 +86,10 @@ class GeonameAnnotator(Annotator):
 
         all_ngrams = set([span.text
             for span in doc.tiers['ngrams'].spans
-            if span.text not in blocklist
+            if span.text not in blocklist and
+            # We can rule out a few FPs by only looking at capitalized names.
+            span.text[0] == span.text[0].upper()
         ])
-
-        ngrams_by_lc = defaultdict(list)
-        for ngram in all_ngrams:
-            ngrams_by_lc[ngram.lower()] += ngram
 
         geoname_cursor = self.geonames_collection.find({
             '$or' : [
@@ -126,55 +103,107 @@ class GeonameAnnotator(Annotator):
         })
         geoname_results = list(geoname_cursor)
 
+        # ObjectId() cannot be JSON serialized and we have no use for them
+        for geoname_result in geoname_results:
+            del geoname_result['_id']
+
         # Associate spans with the geonames.
         # This is done up front so span information can be used in the scoring
         # function
-        span_text_to_spans = { span.text : [] for span in doc.tiers['ngrams'].spans }
+        span_text_to_spans = {
+            span.text : []
+            for span in doc.tiers['ngrams'].spans
+        }
         for span in doc.tiers['ngrams'].spans:
             span_text_to_spans[span.text].append(span)
         class Location(dict):
+            """
+            This main purpose of this class is to create hashable dictionaries
+            that we can use in sets.
+            """
             def __hash__(self):
                 return id(self)
 
-        remaining_locations = []
+        candidate_locations = []
         for location_dict in geoname_results:
             location = Location(location_dict)
-            location['spans'] = []
+            location['spans'] = set()
             location['alternateLocations'] = set()
-            remaining_locations.append(location)
+            candidate_locations.append(location)
             geoname_results
-            names = [location['name']] + location['alternatenames']
+            names = set([location['name']] + location['alternatenames'])
             for name in names:
                 if name not in span_text_to_spans: continue
                 for span in span_text_to_spans[name]:
-                    location['spans'].append(span)
+                    location['spans'].add(span)
+                    
+        # Add combined spans to locations that are adjacent to a span linked to
+        # an administrative division. e.g. Seattle, WA
+        span_to_locations = {}
+        for location in candidate_locations:
+            for span in location['spans']:
+                span_to_locations[span] =\
+                    span_to_locations.get(span, []) + [location]
+        for span_a, span_b in itertools.permutations(
+            span_to_locations.keys(), 2
+        ):
+            if not span_a.comes_before(span_b, max_dist=4): continue
+            if (
+                len(
+                    set(span_a.doc.text[span_a.end:span_b.start]) - set(", ")
+                ) > 1
+            ): continue
+                
+            combined_span = span_a.extended_through(span_b)
+            possible_locations = []
+            for loc_a, loc_b in itertools.product(
+                span_to_locations[span_a],
+                span_to_locations[span_b],
+            ):
+                # print 'loc:', loc_a['name'], loc_b['name'], loc_b['feature code']
+                if(
+                    loc_b['feature code'].startswith('ADM') and
+                    loc_a['feature code'] != loc_b['feature code']
+                ):
+                    if location_contains(loc_b, loc_a) > 0:
+                        loc_a['spans'].add(combined_span)
+                        loc_a['parentLocation'] = loc_b
+        
         # Find locations with overlapping spans
-        for idx, location_a in enumerate(remaining_locations):
-            a_spans = set(location_a['spans'])
-            for idx, location_b in enumerate(remaining_locations[idx + 1:]):
-                b_spans = set(location_b['spans'])
-                intersection_size = len(a_spans & b_spans)
-                if intersection_size > len(a_spans) / 2:
-                    location_a['alternateLocations'] |= location_b['alternateLocations']
-                if intersection_size > len(b_spans) / 2:
-                    location_b['alternateLocations'] |= location_a['alternateLocations']
+        for idx, location_a in enumerate(candidate_locations):
+            a_spans = location_a['spans']
+            for idx, location_b in enumerate(candidate_locations[idx + 1:]):
+                b_spans = location_b['spans']
+                if len(a_spans & b_spans) > 0:
+                    # Note that is is possible for two valid locations to have
+                    # overlapping names. For example, Harare Province has
+                    # Harare as an alternate name, so the city Harare is very
+                    # to be an alternate location that competes with it.
+                    location_a['alternateLocations'].add(location_b)
+                    location_b['alternateLocations'].add(location_a)
         # Iterative resolution
         # Add location with scores above the threshold to the resolved location.
         # Keep rescoring the remaining locations until no more can be resolved.
+        remaining_locations = list(candidate_locations)
         resolved_locations = []
         THRESH = 60
+        iteration = 0
         while True:
+            # print "iteration:", iteration
+            iteration += 1
             for candidate in remaining_locations:
-                candidate['score'] = self.score_candidate(candidate, resolved_locations)
-                # This is just for debugging, put FP and FN ids here to see their score.
-                if candidate['geonameid']  in ['888825']:
-                    print candidate['name'], candidate['spans'][0].text, candidate['score']
+                candidate['score'] = self.score_candidate(
+                    candidate, resolved_locations
+                )
+
             # If there are alternate locations with higher scores
             # give this candidate a zero.
             for candidate in remaining_locations:
                 for alt in candidate['alternateLocations']:
-                    # Small chance we end up with multiple locations for one span
+                    # We end up with multiple locations for per span if they
+                    # are resolved in different iterations or
                     # if the scores are exactly the same.
+                    # TODO: This needs to be delt with in the next stage.
                     if candidate['score'] < alt['score']:
                         candidate['score'] = 0
                         break
@@ -188,9 +217,6 @@ class GeonameAnnotator(Annotator):
             for candiate in newly_resolved_candidates:
                 if candidate in remaining_locations:
                     remaining_locations.remove(candiate)
-                for locaiton in candidate['alternateLocations']:
-                    if location in remaining_locations:
-                        remaining_locations.remove(location)
             if len(newly_resolved_candidates) == 0:
                 break
 
@@ -201,189 +227,233 @@ class GeonameAnnotator(Annotator):
             for span in location['spans']:
                 # Maybe we should try to rule out some of the spans that
                 # might not actually be associated with the location.
-                geo_span = AnnoSpan(span.start, span.end, doc, label=location['name'])
+                geo_span = AnnoSpan(
+                    span.start, span.end, doc, label=location['name']
+                )
                 geo_span.geoname = location
                 geo_spans.append(geo_span)
-            # These properties are removed because they
-            # cannot be easily jsonified.
-            location.pop('alternateLocations')
-            location.pop('spans')
 
         retained_spans = []
         for geo_span_a in geo_spans:
-            # This should be done later so we don't throw out geonames
-            # for geonames that get filtered out.
             retain_a_overlap = True
             for geo_span_b in geo_spans:
                 if geo_span_a == geo_span_b: continue
-                if ((geo_span_b.start in range(geo_span_a.start, geo_span_a.end)) or
-                    (geo_span_a.start in range(geo_span_b.start, geo_span_b.end))):
+                if geo_span_a.overlaps(geo_span_b):
                     if geo_span_b.size() > geo_span_a.size():
                         # geo_span_a is probably a component of geospan b,
                         # e.g. Washington in University of Washington
                         # We use the longer span because it's usually correct.
                         retain_a_overlap = False
+                        break
                     elif geo_span_b.size() == geo_span_a.size():
                         # Ambiguous name, use the scores to decide.
-                        retain_a_overlap = geo_span_a.geoname['score'] >= geo_span_b.geoname['score']
+                        # TODO: Recompute scores since they could have been
+                        # resolved in different rounds.
+                        if geo_span_a.geoname['score'] < geo_span_b.geoname['score']:
+                            retain_a_overlap = False
+                            break
             if not retain_a_overlap:
                 continue
-            # AFAICT the state town filter has no impact on the results
-            #if not self.state_town_filter(geo_span_a, geo_spans): continue
-            # We do this prior to scoring now.
-            #if not self.blocklist_filter(geo_span_a): continue
-            # Commenting this out because NEs are now used in scoring
-            #if not self.ne_filter(geo_span_a): continue
-
             retained_spans.append(geo_span_a)
+
+        # Remove unneeded properties:
+        # Be careful if adding these back in, they might not be serializable
+        # data types.
+        props_to_omit = ['spans', 'alternateLocations', 'alternatenames']
+        for geospan in geo_spans:
+            # The while loop removes the properties from the parentLocations.
+            # There will probably only be one parent location.
+            cur_location = geospan.geoname
+            while True:
+                if all([
+                    prop not in cur_location
+                    for prop in props_to_omit
+                ]):
+                    break
+                for prop in props_to_omit:
+                    cur_location.pop(prop)
+                if 'parentLocation' in cur_location:
+                    cur_location = cur_location['parentLocation']
+                else:
+                    break
 
         doc.tiers['geonames'] = AnnoTier(retained_spans)
 
         return doc
 
-    def state_town_filter(self, geo_span_a, geo_spans):
-        """Check to see if we have a mention of the state for a city. If it's a
-           small city and we don't have the state it belongs to in our set, it
-           fails the test. Returns True if passes filter, False otherwise."""
-
-        if ((geo_span_a.geoname['population'] > 100000) or
-            (not "admin1 code" in geo_span_a.geoname) or
-            (not geo_span_a.geoname["admin1 code"] in states)):
-           return True # passes; doesn't have a state associated with it
-        else:
-            state = states[geo_span_a.geoname["admin1 code"]]
-            all_names = [geo_span.geoname['name'] for geo_span in geo_spans]
-            if state in all_names:
-                return True
-            else:
-                return False
-
-    def adjacent_state_filter(self, geo_span):
-        """If we have "Fairview, OR" don't allow that to map to Fairview, MN"""
-
-        if ((not "admin1 code" in geo_span.geoname) or
-            (not geo_span.geoname["admin1 code"] in states)):
-           return True # passes; doesn't have a state associated with it
-        else:
-            state = states[geo_span.geoname["admin1 code"]]
-            next_span = geo_span.doc.tiers['geonames'].next_span(geo_span)
-            if (next_span.geoname['name'] in states.values() and
-                next_span.geoname['name'] != state):
-                    return False
-            else:
-                return True
-
-    def ne_filter(self, geo_span):
-        """Check to see if this span overlaps with a named entity tag. Return
-           True if not. If it does, return True if the NE is type GPE, else False."""
-
-        ne_spans = geo_span.doc.tiers['nes'].spans_at_span(geo_span)
-
-        if len(ne_spans) == 0:
-            return True
-        else:
-            for ne_span in ne_spans:
-                if ne_span.label == 'GPE':
-                    return True
-            return False
-
-    def blocklist_filter(self, geo_span):
-        if geo_span.geoname['name'] in blocklist:
-            return False
-        else:
-            return True
-
     def score_candidate(self, candidate, resolved_locations):
         """
         Return a score between 0 and 100
         """
-        features = {}
+        def population_score():
+            if candidate['population'] > 1000000:
+                return 100
+            elif candidate['population'] > 500000:
+                return 60
+            elif candidate['population'] > 300000:
+                return 40
+            elif candidate['population'] > 200000:
+                return 30
+            elif candidate['population'] > 100000:
+                return 20
+            elif candidate['population'] > 10000:
+                return 5
+            else:
+                return 0
 
-        if candidate['population'] > 1000000:
-            population_score = 100
-        elif candidate['population'] > 500000:
-            population_score = 50
-        elif candidate['population'] > 100000:
-            population_score = 10
-        elif candidate['population'] > 10000:
-            population_score = 5
-        else:
-            population_score = 0
-        features['population_score'] = population_score
+        def synonymity():
+            # Geonames with lots of alternate names
+            # tend to be the ones most commonly referred to.
+            # For examle, coutries have lots of alternate names.
+            if len(candidate['alternatenames']) > 8:
+                return 100
+            elif len(candidate['alternatenames']) > 4:
+                return 50
+            elif len(candidate['alternatenames']) > 0:
+                return 10
+            else:
+                return 0
 
-        # Geonames with lots of alternate names
-        # tend to be the ones most commonly referred to.
-        # For examle, coutries have lots of alternate names.
-        if len(candidate['alternatenames']) > 8:
-            synonymity = 100
-        elif len(candidate['alternatenames']) > 4:
-            synonymity = 50
-        elif len(candidate['alternatenames']) > 0:
-            synonymity = 10
-        else:
-            synonymity = 0
-        features['synonymity'] = synonymity
+        def num_spans_score():
+            return min(len(candidate['spans']), 4) * 25
 
-        features['spans'] = min(100, len(candidate['spans']))
+        def short_span_score():
+            max_span_length = max([
+                len(span.text) for span in candidate['spans']
+            ])
+            if max_span_length < 4:
+                return 100
+            elif max_span_length < 5:
+                return 10
+            else:
+                return 0
 
-        features['short_spans'] = min(100, 10 * len([
-            span for span in candidate['spans']
-            if len(span.text) < 4
-        ]))
+        def cannonical_name_used():
+            return 100 if any([
+                span.text == candidate['name'] for span in candidate['spans']
+            ]) else 0
 
-        overlapping_NEs = 0
-        for span in candidate['spans']:
-            ne_spans = span.doc.tiers['nes'].spans_at_span(span)
-            for ne_span in ne_spans:
-                if ne_span.label == 'GPE':
-                    overlapping_NEs += 30
-        features['overlapping_NEs'] = min(100, overlapping_NEs)
+        def NEs_contained():
+            NE_overlap = 0
+            total_len = 0
+            for span in candidate['spans']:
+                ne_spans = span.doc.tiers['nes'].spans_in_span(span)
+                total_len += len(span.text)
+                for ne_span in ne_spans:
+                    if ne_span.label == 'GPE':
+                        NE_overlap += len(ne_span.text)
+            return float(100 * NE_overlap) / total_len
 
-        features['distinctiveness'] = 100 /\
-            (len(candidate['alternateLocations']) + 1)
+        def distinctness():
+            return 100 / float(len(candidate['alternateLocations']) + 1)
+        
+        def max_span_score():
+            max_span = max([
+                len(span.text) for span in candidate['spans']
+            ])
+            if max_span < 5: return 0
+            elif max_span < 8: return 40
+            elif max_span < 10: return 60
+            elif max_span < 15: return 80
+            else: return 100
 
-        features['max_span'] = len(max([span.text for span in candidate['spans']]))
-
-        close_locations = 0
-        if resolved_locations:
-            total_distance = 0.0
+        def close_locations():
+            if len(resolved_locations) == 0: return 0
+            count = 0
             for location in resolved_locations:
                 distance = great_circle(
                     (candidate['latitude'], candidate['longitude']),
                     (location['latitude'], location['longitude'])
-                    ).kilometers
-                total_distance += distance
-                if distance < 10:
-                    close_locations += 100
-                elif distance < 20:
-                    close_locations += 50
-                elif distance < 30:
-                    close_locations += 20
-                elif distance < 50:
-                    close_locations += 10
-                elif distance < 500:
-                    close_locations += 5
-                elif distance < 1000:
-                    close_locations += 2
+                ).kilometers
+                if distance < 500:
+                    count += 1
+            return 100 * float(count) / len(resolved_locations)
+            
+        def closest_location():
+            if len(resolved_locations) == 0: return 0
+            closest = min([
+                great_circle(
+                    (candidate['latitude'], candidate['longitude']),
+                    (location['latitude'], location['longitude'])
+                ).kilometers
+                for location in resolved_locations
+            ])
+            if closest < 10:
+                return 100
+            elif closest < 100:
+                return 60
+            elif closest < 1000:
+                return 40
+            else:
+                return 0
+            
+        def containment_level():
+            max_containment_level = max([
+                max(
+                    location_contains(location, candidate),
+                    location_contains(candidate, location)
+                )
+                for location in resolved_locations
+            ] + [0])
+            if max_containment_level == 0:
+                return 0
+            else:
+                return 40 + max_containment_level * 10
+            
+        def feature_code_score():
+            for code, score in {
+                # Continent (need this bc Africa has 0 population)
+                'CONT' : 100,
+                'ADM' : 80,
+                'PPL' : 65,
+            }.items():
+                if candidate['feature code'].startswith(code):
+                    return score
+            return 0
+        
+        # This prevents us from picking up congo town
+        # if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
+        #     return 0
 
-            average_distance = total_distance / len(resolved_locations)
-            distance_score = average_distance / 100
-        features['close_locations'] = close_locations
-
-        if candidate['population'] < 1000 and candidate['feature class'] in ['A', 'P']:
+        if any([
+            alt in resolved_locations
+            for alt in candidate['alternateLocations']
+        ]):
             return 0
 
-        feature_weights = dict(
-            population_score=1.5,
-            synonymity=1.5,
-            spans=0.2,
-            short_spans=(-4),
-            overlapping_NEs=1,
-            distinctiveness=1,
-            max_span=1,
-            close_locations=1,
-        )
-        return sum([
-            features[feature] * float(weight)
-            for feature, weight in feature_weights.items()
+        # Commented out features will not be evaluated.
+        feature_weights = {
+            population_score : 2.0,
+            synonymity : 1.0,
+            num_spans_score : 0.4,
+            short_span_score : (-5),
+            NEs_contained : 1.2,
+            # Distinctness is probably more effective when combined
+            # with other features
+            distinctness : 1.0,
+            max_span_score : 1.0,
+            close_locations : 0.8,
+            closest_location : 0.8,
+            containment_level : 0.8,
+            cannonical_name_used : 0.5,
+            feature_code_score : 0.6,
+        }
+        total_score = sum([
+            score_fun() * float(weight)
+            for score_fun, weight in feature_weights.items()
         ]) / math.sqrt(sum([x**2 for x in feature_weights.values()]))
+        
+        # This is just for debugging, put FP and FN ids here to see
+        # their score.
+        if candidate['geonameid'] in ['372299', '8060879', '408664', '377268']:
+            print (
+                candidate['name'],
+                list(candidate['spans'])[0].text,
+                total_score
+            )
+            print {
+                score_fun.__name__ : score_fun()
+                for score_fun, weight in feature_weights.items()
+            }
+        
+        return total_score
