@@ -79,7 +79,7 @@ class AnnoDoc:
 
         json_obj['tiers'] = {}
         for name, tier in self.tiers.iteritems():
-            json_obj.tiers[name] = tier.to_json
+            json_obj['tiers'][name] = tier.to_json()
 
         return json.dumps(json_obj)
 
@@ -98,7 +98,14 @@ class AnnoTier:
         return len(self.spans)
 
     def to_json(self):
-        json.dumps([json.dumps(span.__dict__) for span in self.spans])
+
+        docless_spans = []
+        for span in self.spans:
+            span_dict = span.__dict__.copy()
+            del span_dict['doc']
+            docless_spans.append(span_dict)
+
+        return json.dumps(docless_spans)
 
     def next_span(self, span):
         """Get the next span after this one"""
