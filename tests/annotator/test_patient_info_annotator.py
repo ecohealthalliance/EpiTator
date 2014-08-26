@@ -212,3 +212,22 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'year_units': True
             }
         })
+
+    def test_speed(self):
+        """
+        Some articles can be very slow to process when using longest_total
+        matches to do replacement.
+        This test checks that the processing time is reasonable.
+        """
+        from datetime import datetime, timedelta
+        start = datetime.utcnow()
+        doc = AnnoDoc("""
+        [3] UK (England) - HPA report Date: Fri 22 Aug 2014 Source: Health Protection Report, Volume 8, No 33 [edited] http://www.hpa.org.uk/hpr/infections/immunisation.htm Measles -- April-June 2014 -------------------------- 16 measles infections with onset dates in the April to June 2014 quarter were confirmed in England compared to 70 cases in the 1st quarter of the year [2014]. 7 of the confirmed infections were identified in London with 4 cases reported from West Midlands, 3 cases the South East and one case each from Eastern and East Midlands regions. Across the UK, Scotland reported one case linked to recent travel to Viet Nam but there were no measles cases reported from Wales or Northern Ireland. 7 of the 16 English cases in the period reported a history of recent travel; 5 cases to the Far East (China and Viet Nam) one each to Malawi and United Arab Emirates. Measles virus sequence was obtained from 11 out of the 16 English cases and the single Scottish case which either confirmed the importation of infection or suggested links to an importation. 7 cases this quarter were in children aged 1 to 4 years and the remaining 9 cases were adults aged 20 to 64 years. Only one case reported previously receiving a measles-containing vaccine. In the 12-month period July 2013 to June 2014, countries within the European Union and European Economic Area (EU/EEA) reported a total of 7116 cases. More than 3/4ths of the cases were reported from 3 countries; the Netherlands 34.4 percent, Italy 30.7 percent and Germany 12.2 percent. The previously reported outbreak in the Hague in the Netherlands is now over, but new outbreaks have been reported recently in Sweden and Belgium. Several outbreaks in EU Member States have a serological and epidemiological link to the large ongoing outbreak in the Philippines with 47 000 cases.
+        """)
+        doc.add_tier(self.annotator)
+        self.assertTrue(
+            (datetime.utcnow() - start) < timedelta(seconds=5)
+        )
+
+if __name__ == '__main__':
+    unittest.main()

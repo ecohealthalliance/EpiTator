@@ -164,6 +164,7 @@ class PatientInfoAnnotator(Annotator):
                 ])
             ], prefer='longer_match')
         )
+        
         patient_descriptions = ra.combine([
             age_description,
             patient_sex,
@@ -177,7 +178,7 @@ class PatientInfoAnnotator(Annotator):
                 keyword_attributes,
                 case_count
             ], 3)
-        ], prefer='longest_total')
+        ], prefer='longer_match')
 
         def parse_dict(d):
             numeric_keys = ['number', 'min', 'max', 'range_start', 'range_end']
