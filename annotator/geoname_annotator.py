@@ -32,6 +32,7 @@ blocklist = [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
     'August', 'September', 'October', 'November', 'December',
     'North', 'East', 'West', 'South',
+    'Northeast', 'Southeast', 'Northwest', 'Southwest',
     'Eastern', 'Western', 'Southern', 'Northern',
     'About', 'Many', 'See', 'As', 'About', 'Health',
     'International', 'City', 'World', 'Federal', 'Federal District',
