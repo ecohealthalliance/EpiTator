@@ -129,6 +129,31 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             'occupation': 'farmer'
         })
 
+    def test_location_keywords(self):
+        doc = AnnoDoc("""
+        Currently, 5 people are undergoing treatment for the disease in the
+        Infectious Diseases Hospital of Tbilisi, one is a 6 year old girl.
+        """)
+        from annotator.geoname_annotator import GeonameAnnotator
+        doc.add_tier(GeonameAnnotator())
+        doc.add_tier(self.annotator, keyword_categories={
+            'occupation' : [
+                'farmer',
+                'hospital worker'
+            ],
+            'locations' : [
+                span.text for span in doc.tiers['geonames'].spans
+            ]
+        })
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[1].metadata, {
+            'age' : {
+                'number': 6,
+                'year_units': True
+            },
+            'locations': 'Tbilisi',
+            'female': True,
+        })
+
     def test_count_discrimination(self):
         """
         Test that we can discriminate between count numbers and age numbers.
