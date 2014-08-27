@@ -10,6 +10,11 @@ from ngram_annotator import NgramAnnotator
 from ne_annotator import NEAnnotator
 from geopy.distance import great_circle
 
+import datetime
+import logging
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
+logger = logging.getLogger(__name__)
+
 def geoname_matches_original_ngram(geoname, original_ngrams):
     if (geoname['name'] in original_ngrams):
         return True
@@ -77,12 +82,11 @@ class GeonameAnnotator(Annotator):
 
     # TODO text in this case means AnnoText, elswhere, it's raw text
     def annotate(self, doc):
-
+        logger.info('geoannotator started')
+        
         if 'ngrams' not in doc.tiers:
             ngram_annotator = NgramAnnotator()
             doc.add_tier(ngram_annotator)
-            ne_annotator = NEAnnotator()
-            doc.add_tier(ne_annotator)
 
         all_ngrams = set([span.text
             for span in doc.tiers['ngrams'].spans
@@ -90,7 +94,12 @@ class GeonameAnnotator(Annotator):
             # We can rule out a few FPs by only looking at capitalized names.
             span.text[0] == span.text[0].upper()
         ])
-
+        logger.info('%s ngrams extracted' % len(all_ngrams))
+        if 'nes' not in doc.tiers:
+            ne_annotator = NEAnnotator()
+            doc.add_tier(ne_annotator)
+        logger.info('Named entities annotated')
+        
         geoname_cursor = self.geonames_collection.find({
             '$or' : [
                 { 'name' : { '$in' : list(all_ngrams) } },
@@ -102,7 +111,7 @@ class GeonameAnnotator(Annotator):
             ]
         })
         geoname_results = list(geoname_cursor)
-
+        logger.info('%s geonames fetched' % len(geoname_results))
         # ObjectId() cannot be JSON serialized and we have no use for them
         for geoname_result in geoname_results:
             del geoname_result['_id']
@@ -136,7 +145,7 @@ class GeonameAnnotator(Annotator):
                 if name not in span_text_to_spans: continue
                 for span in span_text_to_spans[name]:
                     location['spans'].add(span)
-                    
+        
         # Add combined spans to locations that are adjacent to a span linked to
         # an administrative division. e.g. Seattle, WA
         span_to_locations = {}
@@ -168,7 +177,7 @@ class GeonameAnnotator(Annotator):
                     if location_contains(loc_b, loc_a) > 0:
                         loc_a['spans'].add(combined_span)
                         loc_a['parentLocation'] = loc_b
-        
+        logger.info('%s candidate locations prepared' % len(candidate_locations))
         # Find locations with overlapping spans
         for idx, location_a in enumerate(candidate_locations):
             a_spans = location_a['spans']
@@ -189,13 +198,13 @@ class GeonameAnnotator(Annotator):
         THRESH = 60
         iteration = 0
         while True:
-            # print "iteration:", iteration
+            logger.info('itartion: %s' % iteration)
             iteration += 1
             for candidate in remaining_locations:
                 candidate['score'] = self.score_candidate(
                     candidate, resolved_locations
                 )
-
+            logger.info('locations scored')
             # If there are alternate locations with higher scores
             # give this candidate a zero.
             for candidate in remaining_locations:
@@ -207,19 +216,28 @@ class GeonameAnnotator(Annotator):
                     if candidate['score'] < alt['score']:
                         candidate['score'] = 0
                         break
-
             newly_resolved_candidates = [
                 candidate
                 for candidate in remaining_locations
                 if candidate['score'] > THRESH
             ]
+            # If there are a lot of locations
+            # comparing against the resolved locations is slow.
+            # This removes locations that have a low score.
+            if len(remaining_locations) > 1000:
+                for loc in list(remaining_locations):
+                    if loc['score'] < 15:
+                        remaining_locations.remove(loc)
             resolved_locations.extend(newly_resolved_candidates)
             for candiate in newly_resolved_candidates:
                 if candidate in remaining_locations:
                     remaining_locations.remove(candiate)
             if len(newly_resolved_candidates) == 0:
                 break
-
+        logger.info(
+            'resolved %s locations in %s iterations' %
+            (len(resolved_locations), iteration)
+        )
         geo_spans = []
         for location in resolved_locations:
             # Copy the dict so we don't need to return a custom class.
@@ -255,7 +273,7 @@ class GeonameAnnotator(Annotator):
             if not retain_a_overlap:
                 continue
             retained_spans.append(geo_span_a)
-
+        logger.info('overlapping geospans removed')
         # Remove unneeded properties:
         # Be careful if adding these back in, they might not be serializable
         # data types.
