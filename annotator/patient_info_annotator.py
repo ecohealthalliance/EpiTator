@@ -118,6 +118,10 @@ class PatientInfoAnnotator(Annotator):
                 ) + person
             )
         ))
+        report_type = ra.combine([
+            report_type,
+            ra.follows([my_search('!NUMBER of'), report_type], max_overlap=1)
+        ], remove_conflicts=True)
         report_description = ra.combine([
             report_type,
             ra.near([report_type, report_type], 2)

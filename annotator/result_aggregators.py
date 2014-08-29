@@ -188,12 +188,19 @@ def combine_with_longest_total(results_lists, max_proximity=0):
         return max_group
     return []
 
-def combine(results_lists, prefer="first", max_proximity=0):
+def combine(
+    results_lists,
+    prefer="first",
+    max_proximity=0,
+    remove_conflicts=False
+):
     """
     Combine the results_lists while removing overlapping matches.
 
     if matches are within max_proximity of eachother they are considered
     overlapping
+    
+    remove_conflicts removes all results that overlap rather than keeping one.
     """
     def first(a,b):
         """
@@ -236,15 +243,7 @@ def combine(results_lists, prefer="first", max_proximity=0):
     else:
         prefunc = prefer
 
-    results_a = results_lists[0]
-    if len(results_lists) < 2:
-        results_b = []
-    elif len(results_lists) > 2:
-        results_b = combine(results_lists[1:], prefer)
-    else:
-        results_b = results_lists[1]
-
-    remaining_results = results_a + results_b
+    remaining_results = reduce(lambda sofar, k: sofar + k, results_lists, [])
     out_results = []
     while len(remaining_results) > 0:
         match_a = remaining_results.pop(0)
@@ -263,7 +262,10 @@ def combine(results_lists, prefer="first", max_proximity=0):
                     b_start - max_proximity <= a_end
                 )
             ):
-                if not prefunc(match_a, match_b):
+                if remove_conflicts:
+                    keep_a = False
+                    overlaps.append(match_b)
+                elif not prefunc(match_a, match_b):
                     keep_a = False
                     break
                 else:
@@ -271,6 +273,7 @@ def combine(results_lists, prefer="first", max_proximity=0):
         if keep_a:
             if match_a not in out_results:
                 out_results.append(match_a)
+        if keep_a or remove_conflicts:
             for overlap in overlaps:
                 if overlap in remaining_results:
                     remaining_results.remove(overlap)

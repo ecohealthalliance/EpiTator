@@ -262,6 +262,14 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'number': 16439
             }
         })
+    
+    def test_false_counts_with_of(self):
+        doc = AnnoDoc("one group of patients")
+        doc.add_tier(self.annotator)
+        self.assertListEqual(doc.tiers['patientInfo'].spans, [])
+        doc = AnnoDoc("35 percent of cases")
+        doc.add_tier(self.annotator)
+        self.assertListEqual(doc.tiers['patientInfo'].spans, [])
 
 if __name__ == '__main__':
     unittest.main()
