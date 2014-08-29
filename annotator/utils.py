@@ -2,6 +2,65 @@
 import re
 import pattern
 
+numbers = {
+    'zero':0,
+    'half': 1.0/2.0,
+    'one':1,
+    'two':2,
+    'three':3,
+    'four':4,
+    'five':5,
+    'six':6,
+    'seven':7,
+    'eight':8,
+    'nine':9,
+    'ten':10,
+    'eleven':11,
+    'twelve':12,
+    'thirteen':13,
+    'fourteen':14,
+    'fifteen':15,
+    'sixteen':16,
+    'seventeen':17,
+    'eighteen':18,
+    'nineteen':19,
+    'twenty':20,
+    'thirty':30,
+    'forty':40,
+    'fifty':50,
+    'sixty':60,
+    'seventy':70,
+    'eighty':80,
+    'ninety':90,
+    'hundred':100,
+    'thousand':1000,
+    'million': 1000000,
+    'billion': 1000000000,
+    'trillion':1000000000000,
+    'gillion' :1000000000,
+}
+
+def dehyphenate_numbers_and_ages(text):
+    dehyphenateable_string_set = set(numbers.keys()) | set([
+        "year",
+        "old"
+    ])
+    outtext = ""
+    last = 0
+    for match in re.finditer("\S+", text):
+        outtext += text[last:match.start()]
+        if(
+            '-' in match.string and len(match.string) > 1 and
+            len(set(match.string.split('-')) & dehyphenateable_string_set) > 0
+        ):
+            outtext += re.sub("-", " ", text[match.start():match.end()])
+        else:
+            outtext += text[match.start():match.end()]
+        last = match.end()
+    outtext += text[last:]
+    print outtext
+    return outtext
+
 def parse_number(num):
     try:
         return int(num)
@@ -19,43 +78,6 @@ def parse_spelled_number(tokens_or_str):
                 tokens.extend(word.split('-'))
     else:
         tokens = tokens_or_str
-    numbers = {
-        'zero':0,
-        'half': 1.0/2.0,
-        'one':1,
-        'two':2,
-        'three':3,
-        'four':4,
-        'five':5,
-        'six':6,
-        'seven':7,
-        'eight':8,
-        'nine':9,
-        'ten':10,
-        'eleven':11,
-        'twelve':12,
-        'thirteen':13,
-        'fourteen':14,
-        'fifteen':15,
-        'sixteen':16,
-        'seventeen':17,
-        'eighteen':18,
-        'nineteen':19,
-        'twenty':20,
-        'thirty':30,
-        'forty':40,
-        'fifty':50,
-        'sixty':60,
-        'seventy':70,
-        'eighty':80,
-        'ninety':90,
-        'hundred':100,
-        'thousand':1000,
-        'million': 1000000,
-        'billion': 1000000000,
-        'trillion':1000000000000,
-        'gillion' :1000000000,
-    }
     punctuation = re.compile(r'[\.\,\?\(\)\!]')
     affix = re.compile(r'(\d+)(st|nd|rd|th)')
     def parse_token(t):
@@ -128,7 +150,10 @@ def find_all_match_offsets(text, match):
                 start_at + len(constituents[0].string))
         elif (
             len(text) > start_at + 1 and
-            re.match(r"\s$", text[start_at])
+            # Hyphens may be removed from the pattern text
+            # so they are treated as spaces and can be skipped when aligning
+            # the text.
+            re.match(r"\s|-$", text[start_at])
         ):
             return match_constituents(
                 text,

@@ -44,7 +44,7 @@ class AnnoDoc:
         self.taxonomy = pattern.search.Taxonomy()
         self.taxonomy.append(pattern.search.WordNetClassifier())
         self.pattern_tree = pattern.en.parsetree(
-            self.text,
+            utils.dehyphenate_numbers_and_ages(self.text),
             lemmata=True,
             relations=True
         )
