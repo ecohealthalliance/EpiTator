@@ -58,7 +58,6 @@ def dehyphenate_numbers_and_ages(text):
             outtext += text[match.start():match.end()]
         last = match.end()
     outtext += text[last:]
-    print outtext
     return outtext
 
 def parse_number(num):
@@ -71,6 +70,11 @@ def parse_number(num):
             return None
 
 def parse_spelled_number(tokens_or_str):
+    """
+    This uses the number() function in pattern.en to do most of the parsing.
+    Instead of returning zero when the number can't be parsed it returns None
+    and it can handle numbers delimited with spaces.
+    """
     if isinstance(tokens_or_str, basestring):
         tokens = []
         for word in tokens_or_str.split(' '):
@@ -78,39 +82,14 @@ def parse_spelled_number(tokens_or_str):
                 tokens.extend(word.split('-'))
     else:
         tokens = tokens_or_str
-    punctuation = re.compile(r'[\.\,\?\(\)\!]')
-    affix = re.compile(r'(\d+)(st|nd|rd|th)')
-    def parse_token(t):
-        number = parse_number(t)
-        if number is not None: return number
-        if t in numbers:
-            return numbers[t]
-        else:
-            return t
-    cleaned_tokens = []
-    for raw_token in tokens:
-        for t in raw_token.split('-'):
-            if t in ['and', 'or']: continue
-            t = punctuation.sub('', t)
-            t = affix.sub(r'\1', t)
-            cleaned_tokens.append(t.lower())
-    numeric_tokens = map(parse_token, cleaned_tokens)
-    if any(filter(lambda t: isinstance(t, basestring), numeric_tokens)) or len(numeric_tokens) == 0:
-        print 'Error: Could not parse number: ' + unicode(tokens)
-        return
-    number_out = 0
-    idx = 0
-    while idx < len(numeric_tokens):
-        cur_t = numeric_tokens[idx]
-        next_t = numeric_tokens[idx + 1] if idx + 1 < len(numeric_tokens) else None
-        if next_t and cur_t < next_t:
-            number_out += cur_t * next_t
-            idx += 2
-            continue
-        number_out += cur_t
-        idx += 1
-
-    return number_out
+    if re.match('^\d+$', ''.join(tokens)):
+        value = pattern.en.number(''.join(tokens))
+    else:
+        value = pattern.en.number(' '.join(tokens))
+    if value == 0 and tokens[0] not in ['0', 'zero']:
+        return None
+    else:
+        return value
     
 def find_nearby_matches(text, start_offset, stop_offset, pattern):
     region_start = text[:start_offset].rfind(".")

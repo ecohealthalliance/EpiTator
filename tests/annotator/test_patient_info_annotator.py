@@ -254,5 +254,14 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             (datetime.utcnow() - start) < timedelta(seconds=5)
         )
 
+    def test_number_with_space(self):
+        doc = AnnoDoc("16 439 new cases")
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+            'count' : {
+                'number': 16439
+            }
+        })
+
 if __name__ == '__main__':
     unittest.main()
