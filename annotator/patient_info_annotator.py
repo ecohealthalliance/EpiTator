@@ -11,7 +11,7 @@ import utils
 
 class PatientInfoAnnotator(Annotator):
 
-    def annotate(self, doc, keyword_categories={}):
+    def annotate(self, doc, keyword_categories={}, locations=[]):
         """
         Annotate patient descriptions that appear in the doc.
 
@@ -20,6 +20,10 @@ class PatientInfoAnnotator(Annotator):
         categories.
         """
         doc.setup_pattern()
+        # location_results = [
+        #     doc.byte_offsets_to_pattern_match(l['offsets'])
+        #     for l in locations
+        # ]
         my_search = doc.p_search
         numbers = my_search('{CD+ and? CD? CD?}')
         number_ranges = ra.follows([
@@ -203,17 +207,16 @@ class PatientInfoAnnotator(Annotator):
             metadata = parse_dict(desc.groupdict())
             metadata['text'] = desc.string
 
-            offsets_tuples = utils.find_all_match_offsets(doc.text, desc)
-            for offsets_tuple in offsets_tuples:
-                span = AnnoSpan(
-                    offsets_tuple['fullMatch'][0],
-                    offsets_tuple['fullMatch'][1],
-                    doc,
-                    label=desc.string
-                )
-                span.metadata = metadata
-                span.__match__ = desc
-                spans.append(span)
+            offsets_tuple = doc.find_match_offsets(desc)
+            span = AnnoSpan(
+                offsets_tuple[0],
+                offsets_tuple[1],
+                doc,
+                label=desc.string
+            )
+            span.metadata = metadata
+            span.__match__ = desc
+            spans.append(span)
 
         doc.tiers['patientInfo'] = AnnoTier(spans)
         doc.tiers['patientInfo'].sort_spans()

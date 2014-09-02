@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Annotator"""
 import json
+import re
 from lazy import lazy
 
 from nltk import sent_tokenize
@@ -33,7 +34,28 @@ class AnnoDoc:
         self.properties = {}
         self.pattern_tree = None
         self.date = date
-        
+    
+    def find_match_offsets(self, match):
+        """
+        Returns the byte offsets of a pattern lib match object.
+        """
+        return (
+            match.words[0].byte_offsets[0],
+            match.words[-1].byte_offsets[-1]
+        )
+    
+    def byte_offsets_to_pattern_match(self, offsets):
+        """
+        Create a pattern lib match object from the given byte offsets.
+        """
+        start_word = self.__offset_to_abs_word_idx[offsets[0]]
+        end_word = self.__offset_to_abs_word_idx[offsets[-1]]
+        return pattern.search.Match(
+            None,
+            words=self.pattern_tree.all_words[start_word:end_word+1],
+            map={}
+        )
+    
     def setup_pattern(self):
         """
         Parse the doc with pattern so we can use the pattern.search module on it
@@ -50,15 +72,56 @@ class AnnoDoc:
         )
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
         # see: https://github.com/clips/pattern/issues/84
-        # This monkey patch tags all the arabic numerals as CDs.
-        abs_index = 0
+        # This code tags all the arabic numerals as CDs. It is a temporairy fix 
+        # that should be discarded when issue is resulted in the pattern lib.
         for sent in self.pattern_tree:
             for word in sent.words:
                 if utils.parse_number(word.string) is not None:
                     word.tag = 'CD'
+        # Annotate the words in the parse tree with their absolute index and
+        # and create an array with all the words.
+        abs_index = 0
+        self.pattern_tree.all_words = []
+        for sent in self.pattern_tree:
+            for word in sent.words:
+                self.pattern_tree.all_words.append(word)
                 word.abs_index = abs_index
                 abs_index += 1
-                
+        # Create __offset_to_abs_word_idx array and add byte offsets to all the
+        # words in the parse tree.
+        text_offset = 0
+        word_offset = 0
+        self.__offset_to_abs_word_idx = [None] * len(self.text)
+        while(
+            text_offset < len(self.text) and
+            word_offset < len(self.pattern_tree.all_words)
+        ):
+            word = self.pattern_tree.all_words[word_offset]
+            if self.text[text_offset:].startswith(word.string):
+                word.byte_offsets = (text_offset, text_offset + len(word.string))
+                self.__offset_to_abs_word_idx[text_offset] = word
+                text_offset += len(word.string)
+                word_offset += 1
+            elif (
+                # Hyphens may be removed from the pattern text
+                # so they are treated as spaces and can be skipped when aligning
+                # the text.
+                re.match(r"\s|-$", self.text[text_offset])
+            ):
+                text_offset += 1
+            else:
+                raise Exception(
+                    "Cannot match word [" + word.string +
+                    "] with text [" + self.text[text_offset:text_offset + 10] + "]"
+                )
+        # Fill the empty offsets with their previous value
+        prev_val = None
+        for idx, value in enumerate(self.__offset_to_abs_word_idx):
+            if value is not None:
+                prev_val = value
+            else:
+                self.__offset_to_abs_word_idx[idx] = prev_val
+        
         def p_search(query):
             # Add offsets:
             results = pattern.search.search(
