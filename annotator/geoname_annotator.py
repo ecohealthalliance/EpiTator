@@ -73,6 +73,18 @@ def location_contains(loc_outer, loc_inner):
             return 0
     return len(props)
 
+class GeoSpan(AnnoSpan):
+    def __init__(self, start, end, doc, geoname):
+        self.start = start
+        self.end = end
+        self.doc = doc
+        self.geoname = geoname
+        self.label = geoname['name']
+    def to_dict(self):
+        result = super(GeoSpan, self).to_dict()
+        result.update(self.geoname)
+        return result
+
 class GeonameAnnotator(Annotator):
 
     def __init__(self, geonames_collection=None):
@@ -246,10 +258,9 @@ class GeonameAnnotator(Annotator):
             for span in location['spans']:
                 # Maybe we should try to rule out some of the spans that
                 # might not actually be associated with the location.
-                geo_span = AnnoSpan(
-                    span.start, span.end, doc, label=location['name']
+                geo_span = GeoSpan(
+                    span.start, span.end, doc, location
                 )
-                geo_span.geoname = location
                 geo_spans.append(geo_span)
 
         retained_spans = []

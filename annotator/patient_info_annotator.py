@@ -9,9 +9,39 @@ from annotator import *
 import result_aggregators as ra
 import utils
 
+def process_match_dict(d):
+    numeric_keys = ['number', 'min', 'max', 'range_start', 'range_end']
+    for k, v in d.items():
+        if isinstance(v, dict):
+            d[k] = process_match_dict(v)
+        elif hasattr(v, 'keyword_object'):
+            d[k] = v.keyword_object
+        elif k in numeric_keys:
+            # Check for None?
+            d[k] = utils.parse_spelled_number(v.string)
+        else:
+            d[k] = True
+    return d
+
+class KeypointSpan(AnnoSpan):
+    def __init__(self, kp_match, doc):
+        offsets_tuple = doc.find_match_offsets(kp_match)
+        self.start = offsets_tuple[0]
+        self.end = offsets_tuple[1]
+        self.doc = doc
+        self.label = kp_match.string
+        metadata = process_match_dict(kp_match.groupdict())
+        metadata['text'] = kp_match.string
+        self.metadata = metadata
+        self.__match__ = kp_match
+    def to_dict(self):
+        result = super(KeypointSpan, self).to_dict()
+        result.update(self.metadata)
+        return result
+
 class PatientInfoAnnotator(Annotator):
 
-    def annotate(self, doc, keyword_categories={}, locations=[]):
+    def annotate(self, doc, keyword_categories={}):
         """
         Annotate patient descriptions that appear in the doc.
 
@@ -20,10 +50,6 @@ class PatientInfoAnnotator(Annotator):
         categories.
         """
         doc.setup_pattern()
-        # location_results = [
-        #     doc.byte_offsets_to_pattern_match(l['offsets'])
-        #     for l in locations
-        # ]
         my_search = doc.p_search
         numbers = my_search('{CD+ and? CD? CD?}')
         number_ranges = ra.follows([
@@ -90,10 +116,25 @@ class PatientInfoAnnotator(Annotator):
         )
         keyword_attributes = []
         for cat, kws in keyword_categories.items():
-            keyword_attributes += ra.label(
-                cat,
-                my_search('[' + '|'.join(map(pattern.search.escape, kws)) + ']')
-            )
+            category_results = []
+            for kw in kws:
+                if isinstance(kw, basestring):
+                    for match in my_search(pattern.search.escape(kw)):
+                        match.keyword_object = kw
+                        category_results.append(match)
+                elif isinstance(kw, dict):
+                    match = doc.byte_offsets_to_pattern_match(kw['offsets'][0])
+                    match.keyword_object = kw
+                    category_results.append(match)
+                elif isinstance(kw, AnnoSpan):
+                    match = doc.byte_offsets_to_pattern_match((kw.start, kw.end))
+                    match.keyword_object = kw.to_dict()
+                    category_results.append(match)
+                else:
+                    raise Exception(
+                        "Unknown keyword datatype for: " + str(kws[0])
+                    )
+            keyword_attributes += [ra.label(cat, category_results)]
         quantity_modifiers = (
             ra.label('average', my_search('AVERAGE|MEAN')) +
             ra.label('annual', my_search('ANNUAL|ANNUALLY')) +
@@ -172,52 +213,30 @@ class PatientInfoAnnotator(Annotator):
                 ])
             ], prefer='match_length')
         )
-        
-        patient_descriptions = ra.combine([
+        case_and_patient_info = ra.combine([
             age_description,
             patient_sex,
             case_count,
             ra.near([
-                patient_sex,
                 age_description,
-                # I'm deliberately avoiding creating patient descriptions from
-                # keywords that appear alone since I believe there will be a
-                # high false positive rate.
-                keyword_attributes,
-                case_count
+                patient_sex,
+                case_count,
             ], 3)
         ], prefer='match_length')
-
-        def parse_dict(d):
-            numeric_keys = ['number', 'min', 'max', 'range_start', 'range_end']
-            for k, v in d.items():
-                if isinstance(v, dict):
-                    d[k] = parse_dict(v)
-                elif k in keyword_categories.keys():
-                    d[k] = utils.restrict_match(v).string
-                elif k in numeric_keys:
-                    # Check for None?
-                    d[k] = utils.parse_spelled_number(v.string)
-                else:
-                    d[k] = True
-            return d
-
-        spans = []
-        for desc in patient_descriptions:
-            metadata = parse_dict(desc.groupdict())
-            metadata['text'] = desc.string
-
-            offsets_tuple = doc.find_match_offsets(desc)
-            span = AnnoSpan(
-                offsets_tuple[0],
-                offsets_tuple[1],
-                doc,
-                label=desc.string
-            )
-            span.metadata = metadata
-            span.__match__ = desc
-            spans.append(span)
-
-        doc.tiers['patientInfo'] = AnnoTier(spans)
+        keypoint_matches = ra.combine(
+            keyword_attributes +
+            [case_and_patient_info] +
+            [ra.near(
+                keyword_attributes + 
+                [case_and_patient_info],
+                6
+            )],
+            prefer='match_length'
+        )
+        
+        doc.tiers['patientInfo'] = AnnoTier([
+            KeypointSpan(kp_match, doc)
+            for kp_match in keypoint_matches
+        ])
         doc.tiers['patientInfo'].sort_spans()
         return doc
