@@ -140,7 +140,8 @@ class PatientInfoAnnotator(Annotator):
             ra.label('annual', my_search('ANNUAL|ANNUALLY')) +
             ra.label('monthly', my_search('MONTHLY')) +
             ra.label('weekly', my_search('WEEKLY')) +
-            ra.label('cumulative', my_search('TOTAL|CUMULATIVE|ALREADY'))
+            ra.label('cumulative', my_search('TOTAL|CUMULATIVE|ALREADY')) +
+            ra.label('incremental', my_search('NEW|ADDITIONAL|RECENT'))
         )
         all_quantities = ra.combine([
             ra.near([
@@ -152,25 +153,26 @@ class PatientInfoAnnotator(Annotator):
         person = my_search('PERSON|CHILD|ADULT|ELDER|PATIENT|LIFE')
         report_type = map(utils.restrict_match, (
             ra.label('death',
-                my_search('DIED|DEATHS|FATALITIES|KILLED')
+                my_search('DIED|DEATH|FATALITIES|KILLED')
             ) +
             ra.label('hospitalization',
                 my_search('HOSPITAL|HOSPITALIZED')
             ) +
             ra.label('case',
                 my_search(
-                    'CASE|INFECTION|INFECT'
+                    'CASE|INFECTION|INFECT|STRICKEN'
                 ) + person
             )
         ))
         report_type = ra.combine([
             report_type,
+            #Remove matches like "group of X"
             ra.follows([my_search('!NUMBER of'), report_type], max_overlap=1)
         ], remove_conflicts=True)
         report_description = ra.combine([
+            ra.near([report_type, report_type], 2),
             report_type,
-            ra.near([report_type, report_type], 2)
-        ], prefer='match_length')
+        ])
         number_description = ra.combine([
             ra.follows([
                 quantity_modifiers,
@@ -188,14 +190,27 @@ class PatientInfoAnnotator(Annotator):
                 ra.follows([
                     all_quantities, report_description
                 ], 3) +
+                ra.combine([
+                    ra.follows([
+                        ra.follows([my_search('to'), all_quantities]),
+                        report_description
+                    ], 2),
+                    #Ex: bringing the infection death toll in the city to 15
+                    ra.combine([
+                        ra.follows([
+                            report_description,
+                            ra.follows([my_search('to'), all_quantities])
+                        ], max_words_between=6)
+                    ], prefer='match_length')
+                ]) +
                 #Ex: The average number of cases reported annually is 600
                 ra.near([
                     ra.follows([
                         number_description,
                         report_description
                     ], 3),
-                    all_quantities
-                ], 30),
+                    ra.follows([my_search('VP'), all_quantities])
+                ], 15),
                 #Ex: it has already claimed about 455 lives in Guinea
                 ra.follows([
                     ('death', my_search('CLAIM')),
@@ -226,6 +241,9 @@ class PatientInfoAnnotator(Annotator):
         keypoint_matches = ra.combine(
             keyword_attributes +
             [case_and_patient_info] +
+            # In this invocation of near, keyword attributes can be paired with
+            # eachother, but case_and_patient_info can only be paired with
+            # keyword attributes.
             [ra.near(
                 keyword_attributes + 
                 [case_and_patient_info],
@@ -233,7 +251,6 @@ class PatientInfoAnnotator(Annotator):
             )],
             prefer='match_length'
         )
-        
         doc.tiers['patientInfo'] = AnnoTier([
             KeypointSpan(kp_match, doc)
             for kp_match in keypoint_matches

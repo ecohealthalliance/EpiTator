@@ -177,22 +177,24 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         )
 
     def test_misc2(self):
-
-        doc = AnnoDoc("These 2 new cases bring to 4 stricken in California this year [2012].")
+        doc = AnnoDoc("These 2 new cases bring to 4 the number stricken in California this year [2012].")
         doc.add_tier(self.annotator)
-
-        # TODO what pattern is supposed to match '4' here?
-        # self.assertEqual(len(doc.tiers['patientInfo']), 2)
-        # self.assertEqual(doc.tiers['patientInfo'].spans[1].label, 4)
-
-        self.assertEqual(len(doc.tiers['patientInfo']), 1)
         test_utils.assertHasProps(
             doc.tiers['patientInfo'].spans[0].metadata, {
                 'count' : {
+                    'incremental': True,
                     'number': 2,
                 }
             }
         )
+        test_utils.assertHasProps(
+            doc.tiers['patientInfo'].spans[1].metadata, {
+                'count' : {
+                    'number': 4,
+                }
+            }
+        )
+        self.assertEqual(len(doc.tiers['patientInfo']), 2)
 
     def test_duplicates(self):
         doc = AnnoDoc("Two patients died out of four patients.")
