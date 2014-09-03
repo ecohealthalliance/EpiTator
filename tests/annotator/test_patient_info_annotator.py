@@ -254,5 +254,22 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             (datetime.utcnow() - start) < timedelta(seconds=5)
         )
 
+    def test_number_with_space(self):
+        doc = AnnoDoc("16 439 new cases")
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(doc.tiers['patientInfo'].spans[0].metadata, {
+            'count' : {
+                'number': 16439
+            }
+        })
+    
+    def test_false_counts_with_of(self):
+        doc = AnnoDoc("one group of patients")
+        doc.add_tier(self.annotator)
+        self.assertListEqual(doc.tiers['patientInfo'].spans, [])
+        doc = AnnoDoc("35 percent of cases")
+        doc.add_tier(self.annotator)
+        self.assertListEqual(doc.tiers['patientInfo'].spans, [])
+
 if __name__ == '__main__':
     unittest.main()

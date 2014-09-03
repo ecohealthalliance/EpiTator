@@ -2,6 +2,64 @@
 import re
 import pattern
 
+numbers = {
+    'zero':0,
+    'half': 1.0/2.0,
+    'one':1,
+    'two':2,
+    'three':3,
+    'four':4,
+    'five':5,
+    'six':6,
+    'seven':7,
+    'eight':8,
+    'nine':9,
+    'ten':10,
+    'eleven':11,
+    'twelve':12,
+    'thirteen':13,
+    'fourteen':14,
+    'fifteen':15,
+    'sixteen':16,
+    'seventeen':17,
+    'eighteen':18,
+    'nineteen':19,
+    'twenty':20,
+    'thirty':30,
+    'forty':40,
+    'fifty':50,
+    'sixty':60,
+    'seventy':70,
+    'eighty':80,
+    'ninety':90,
+    'hundred':100,
+    'thousand':1000,
+    'million': 1000000,
+    'billion': 1000000000,
+    'trillion':1000000000000,
+    'gillion' :1000000000,
+}
+
+def dehyphenate_numbers_and_ages(text):
+    dehyphenateable_string_set = set(numbers.keys()) | set([
+        "year",
+        "old"
+    ])
+    outtext = ""
+    last = 0
+    for match in re.finditer("\S+", text):
+        outtext += text[last:match.start()]
+        if(
+            '-' in match.string and len(match.string) > 1 and
+            len(set(match.string.split('-')) & dehyphenateable_string_set) > 0
+        ):
+            outtext += re.sub("-", " ", text[match.start():match.end()])
+        else:
+            outtext += text[match.start():match.end()]
+        last = match.end()
+    outtext += text[last:]
+    return outtext
+
 def parse_number(num):
     try:
         return int(num)
@@ -12,6 +70,11 @@ def parse_number(num):
             return None
 
 def parse_spelled_number(tokens_or_str):
+    """
+    This uses the number() function in pattern.en to do most of the parsing.
+    Instead of returning zero when the number can't be parsed it returns None
+    and it can handle numbers delimited with spaces.
+    """
     if isinstance(tokens_or_str, basestring):
         tokens = []
         for word in tokens_or_str.split(' '):
@@ -19,76 +82,14 @@ def parse_spelled_number(tokens_or_str):
                 tokens.extend(word.split('-'))
     else:
         tokens = tokens_or_str
-    numbers = {
-        'zero':0,
-        'half': 1.0/2.0,
-        'one':1,
-        'two':2,
-        'three':3,
-        'four':4,
-        'five':5,
-        'six':6,
-        'seven':7,
-        'eight':8,
-        'nine':9,
-        'ten':10,
-        'eleven':11,
-        'twelve':12,
-        'thirteen':13,
-        'fourteen':14,
-        'fifteen':15,
-        'sixteen':16,
-        'seventeen':17,
-        'eighteen':18,
-        'nineteen':19,
-        'twenty':20,
-        'thirty':30,
-        'forty':40,
-        'fifty':50,
-        'sixty':60,
-        'seventy':70,
-        'eighty':80,
-        'ninety':90,
-        'hundred':100,
-        'thousand':1000,
-        'million': 1000000,
-        'billion': 1000000000,
-        'trillion':1000000000000,
-        'gillion' :1000000000,
-    }
-    punctuation = re.compile(r'[\.\,\?\(\)\!]')
-    affix = re.compile(r'(\d+)(st|nd|rd|th)')
-    def parse_token(t):
-        number = parse_number(t)
-        if number is not None: return number
-        if t in numbers:
-            return numbers[t]
-        else:
-            return t
-    cleaned_tokens = []
-    for raw_token in tokens:
-        for t in raw_token.split('-'):
-            if t in ['and', 'or']: continue
-            t = punctuation.sub('', t)
-            t = affix.sub(r'\1', t)
-            cleaned_tokens.append(t.lower())
-    numeric_tokens = map(parse_token, cleaned_tokens)
-    if any(filter(lambda t: isinstance(t, basestring), numeric_tokens)) or len(numeric_tokens) == 0:
-        print 'Error: Could not parse number: ' + unicode(tokens)
-        return
-    number_out = 0
-    idx = 0
-    while idx < len(numeric_tokens):
-        cur_t = numeric_tokens[idx]
-        next_t = numeric_tokens[idx + 1] if idx + 1 < len(numeric_tokens) else None
-        if next_t and cur_t < next_t:
-            number_out += cur_t * next_t
-            idx += 2
-            continue
-        number_out += cur_t
-        idx += 1
-
-    return number_out
+    if re.match('^\d+$', ''.join(tokens)):
+        value = pattern.en.number(''.join(tokens))
+    else:
+        value = pattern.en.number(' '.join(tokens))
+    if value == 0 and tokens[0] not in ['0', 'zero']:
+        return None
+    else:
+        return value
     
 def find_nearby_matches(text, start_offset, stop_offset, pattern):
     region_start = text[:start_offset].rfind(".")
@@ -128,7 +129,10 @@ def find_all_match_offsets(text, match):
                 start_at + len(constituents[0].string))
         elif (
             len(text) > start_at + 1 and
-            re.match(r"\s$", text[start_at])
+            # Hyphens may be removed from the pattern text
+            # so they are treated as spaces and can be skipped when aligning
+            # the text.
+            re.match(r"\s|-$", text[start_at])
         ):
             return match_constituents(
                 text,

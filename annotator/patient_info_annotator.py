@@ -55,7 +55,7 @@ class PatientInfoAnnotator(Annotator):
             ra.follows([
                 maybe_approx_quantities, ('month_units', my_search('MONTH'))
             ])
-        ], prefer='longer_match')
+        ], prefer='match_length')
 
         age_quantities = (
             ra.near([
@@ -103,7 +103,7 @@ class PatientInfoAnnotator(Annotator):
                 maybe_approx_quantities
             ], 2),
             maybe_approx_quantities
-        ], prefer='longer_match')
+        ], prefer='match_length')
         person = my_search('PERSON|CHILD|ADULT|ELDER|PATIENT|LIFE')
         report_type = map(utils.restrict_match, (
             ra.label('death',
@@ -118,10 +118,14 @@ class PatientInfoAnnotator(Annotator):
                 ) + person
             )
         ))
+        report_type = ra.combine([
+            report_type,
+            ra.follows([my_search('!NUMBER of'), report_type], max_overlap=1)
+        ], remove_conflicts=True)
         report_description = ra.combine([
             report_type,
             ra.near([report_type, report_type], 2)
-        ], prefer='longer_match')
+        ], prefer='match_length')
         number_description = ra.combine([
             ra.follows([
                 quantity_modifiers,
@@ -162,7 +166,7 @@ class PatientInfoAnnotator(Annotator):
                     ra.label('death', my_search('DEATHS :?')),
                     quantities
                 ])
-            ], prefer='longer_match')
+            ], prefer='match_length')
         )
         
         patient_descriptions = ra.combine([
@@ -178,7 +182,7 @@ class PatientInfoAnnotator(Annotator):
                 keyword_attributes,
                 case_count
             ], 3)
-        ], prefer='longer_match')
+        ], prefer='match_length')
 
         def parse_dict(d):
             numeric_keys = ['number', 'min', 'max', 'range_start', 'range_end']

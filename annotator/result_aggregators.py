@@ -6,6 +6,7 @@ pattern.search subqueries.
 """
 import pattern, pattern.search
 import itertools
+import maximum_weight_interval_set as mwis
 class MetaMatch(pattern.search.Match):
     """
     A match composed of pattern Matches
@@ -141,137 +142,86 @@ def label(label, results_list):
     """
     return follows([(label, results_list)])
 
-def combine_with_longest_total(results_lists, max_proximity=0):
-    def has_overlap(results):
-        combinations = itertools.combinations(results, 2)
-        for match_a, match_b in combinations:
-            if match_a.words[0].sentence != match_b.words[0].sentence:
-                continue
-            a_start = match_a.words[0].index
-            a_end = match_a.words[-1].index
-            b_start = match_b.words[0].index
-            b_end = match_b.words[-1].index
-            overlap = (
-                (
-                    a_start + max_proximity >= b_start and
-                    a_start - max_proximity <= b_end
-                ) or (
-                    b_start + max_proximity >= a_start and
-                    b_start - max_proximity <= a_end
-                )
-            )
-            if overlap:
-                return True
-        return False
-
-    flat_results_list = [result for results in results_lists for result in results]
-    combinations = []
-    for n in range(len(flat_results_list), 0, -1):
-        combinations += itertools.combinations(flat_results_list, n)
-
-    groups_with_no_overlap = [c for c in combinations if not has_overlap(c)]
-    max_length = 0
-    max_label_count = 0
-    max_group = None
-    for group in groups_with_no_overlap:
-        group_length = 0
-        for result in group:
-            group_length += (result.words[-1].index + 1 - result.words[0].index)
-        if group_length > max_length:
-            max_length = group_length
-            max_group = group
-        elif group_length == max_length:
-            if sum([len(r.labels) for r in group]) > sum([len(r.labels) for r in max_group]):
-                max_length = group_length
-                max_group = group
-    if max_group is not None:
-        return max_group
-    return []
-
-def combine(results_lists, prefer="first", max_proximity=0):
+def combine(
+    results_lists,
+    prefer="first",
+    max_proximity=0,
+    remove_conflicts=False
+):
     """
     Combine the results_lists while removing overlapping matches.
 
     if matches are within max_proximity of eachother they are considered
     overlapping
+    
+    remove_conflicts removes all results that overlap rather than keeping one.
     """
-    def first(a,b):
+    all_results = reduce(lambda sofar, k: sofar + k, results_lists, [])
+    def first(x):
         """
-        This perference function perfers the matches that appear first
-        in the first result list.
+        Perfers the matches that appear first in the first result list.
         """
-        return True
-    def longer_text(a,b):
+        return len(all_results) - all_results.index(x)
+    def text_length(x):
         """
         Prefers the match with the longest span of text that contains all the
         matching content.
         """
-        return len(a.string) >= len(b.string)
-    def longer_match(a, b, include_overlap=False):
+        return len(x.string)
+    def match_length(x, include_overlap=False):
         """
         Prefers the match with the most text that matches the submatch patterns.
         """
-        a_len, b_len = len(a), len(b)
-        if isinstance(a, MetaMatch):
-            a_len = a.match_length(include_overlap)
-        if isinstance(b, MetaMatch):
-            b_len = b.match_length(include_overlap)
-        if a_len == b_len:
-            if not include_overlap:
-                return longer_match(a, b, include_overlap=True)
-            else:
-                # If the match length is equal in all other ways
-                # prefer the shorter "denser" match
-                return len(a.string) <= len(b.string)
+        if isinstance(x, MetaMatch):
+            return x.match_length(include_overlap)
         else:
-            return a_len > b_len
-    if prefer == "longest_total":
-        return combine_with_longest_total(results_lists, max_proximity)
-    elif prefer == "first":
+            return len(x)
+    if prefer == "first":
         prefunc = first
-    elif prefer == "longer_text":
-        prefunc = longer_text
-    elif prefer == "longer_match":
-        prefunc = longer_match
+    elif prefer == "text_length":
+        prefunc = text_length
+    elif prefer == "match_length":
+        prefunc = match_length
     else:
         prefunc = prefer
-
-    results_a = results_lists[0]
-    if len(results_lists) < 2:
-        results_b = []
-    elif len(results_lists) > 2:
-        results_b = combine(results_lists[1:], prefer)
+    if not remove_conflicts:
+        my_mwis = mwis.find_maximum_weight_interval_set([
+            mwis.Interval(
+                start=match.words[0].abs_index,
+                end=match.words[-1].abs_index,
+                weight=prefunc(match),
+                corresponding_object=match
+            )
+            for match in all_results
+        ])
+        return [
+            interval.corresponding_object
+            for interval in my_mwis
+        ]
     else:
-        results_b = results_lists[1]
-
-    remaining_results = results_a + results_b
-    out_results = []
-    while len(remaining_results) > 0:
-        match_a = remaining_results.pop(0)
-        keep_a = True
-        overlaps = []
-        for match_b in remaining_results:
-            if match_a.words[0].sentence != match_b.words[0].sentence: continue
-            a_start, a_end = match_a.words[0].index, match_a.words[-1].index
-            b_start, b_end = match_b.words[0].index, match_b.words[-1].index
-            if (
-                (
-                    a_start + max_proximity >= b_start and
-                    a_start - max_proximity <= b_end
-                ) or (
-                    b_start + max_proximity >= a_start and
-                    b_start - max_proximity <= a_end
-                )
-            ):
-                if not prefunc(match_a, match_b):
-                    keep_a = False
-                    break
-                else:
+        remaining_results = all_results
+        out_results = []
+        while len(remaining_results) > 0:
+            match_a = remaining_results.pop(0)
+            overlaps = []
+            for match_b in remaining_results:
+                if match_a.words[0].sentence != match_b.words[0].sentence: continue
+                a_start, a_end = match_a.words[0].index, match_a.words[-1].index
+                b_start, b_end = match_b.words[0].index, match_b.words[-1].index
+                if (
+                    (
+                        a_start + max_proximity >= b_start and
+                        a_start - max_proximity <= b_end
+                    ) or (
+                        b_start + max_proximity >= a_start and
+                        b_start - max_proximity <= a_end
+                    )
+                ):
                     overlaps.append(match_b)
-        if keep_a:
-            if match_a not in out_results:
+            if len(overlaps) == 0:
                 out_results.append(match_a)
-            for overlap in overlaps:
-                if overlap in remaining_results:
-                    remaining_results.remove(overlap)
-    return out_results
+            else:
+                for overlap in overlaps:
+                    if overlap in remaining_results:
+                        remaining_results.remove(overlap)
+        return out_results

@@ -44,23 +44,32 @@ class AnnoDoc:
         self.taxonomy = pattern.search.Taxonomy()
         self.taxonomy.append(pattern.search.WordNetClassifier())
         self.pattern_tree = pattern.en.parsetree(
-            self.text,
+            utils.dehyphenate_numbers_and_ages(self.text),
             lemmata=True,
             relations=True
         )
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
         # see: https://github.com/clips/pattern/issues/84
         # This monkey patch tags all the arabic numerals as CDs.
+        abs_index = 0
         for sent in self.pattern_tree:
             for word in sent.words:
                 if utils.parse_number(word.string) is not None:
                     word.tag = 'CD'
+                word.abs_index = abs_index
+                abs_index += 1
+                
         def p_search(query):
-            return pattern.search.search(
+            # Add offsets:
+            results = pattern.search.search(
                 query,
                 self.pattern_tree,
                 taxonomy=self.taxonomy
             )
+            # for r in results:
+            #     r.sentence_idx = self.pattern_tree.sentences.index(r.words[0].sentence)
+            return results
+                
             
         self.p_search = p_search
         
