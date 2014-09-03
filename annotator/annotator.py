@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Annotator"""
 import json
+import re
 from lazy import lazy
 
 from nltk import sent_tokenize
@@ -11,13 +12,13 @@ import utils
 def tokenize(text):
     return sent_tokenize(text)
 
-class Annotator:
+class Annotator(object):
 
     def annotate():
         """Take an AnnoDoc and produce a new annotation tier"""
         raise NotImplementedError("annotate method must be implemented in child")
 
-class AnnoDoc:
+class AnnoDoc(object):
 
     # TODO what if the original text needs to be later transformed, e.g.
     # stripped of tags? This will ruin offsets.
@@ -33,7 +34,34 @@ class AnnoDoc:
         self.properties = {}
         self.pattern_tree = None
         self.date = date
-        
+    
+    def find_match_offsets(self, match):
+        """
+        Returns the byte offsets of a pattern lib match object.
+        """
+        return (
+            match.words[0].byte_offsets[0],
+            match.words[-1].byte_offsets[-1]
+        )
+
+    def byte_offsets_to_pattern_match(self, offsets):
+        """
+        Create a pattern lib match object from the given byte offsets.
+        """
+        class ExtrnalMatch(pattern.search.Match):
+            """
+            A sequence of words that implements the pattern match interface.
+            """
+            def __init__(self, words):
+                self.words = words
+        start_word = self.__offset_to_word[offsets[0]]
+        end_word = self.__offset_to_word[offsets[-1]]
+        return ExtrnalMatch(
+            self.pattern_tree.all_words[
+                start_word.abs_index:end_word.abs_index+1
+            ]
+        )
+    
     def setup_pattern(self):
         """
         Parse the doc with pattern so we can use the pattern.search module on it
@@ -50,15 +78,56 @@ class AnnoDoc:
         )
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
         # see: https://github.com/clips/pattern/issues/84
-        # This monkey patch tags all the arabic numerals as CDs.
-        abs_index = 0
+        # This code tags all the arabic numerals as CDs. It is a temporairy fix 
+        # that should be discarded when issue is resulted in the pattern lib.
         for sent in self.pattern_tree:
             for word in sent.words:
                 if utils.parse_number(word.string) is not None:
                     word.tag = 'CD'
+        # Annotate the words in the parse tree with their absolute index and
+        # and create an array with all the words.
+        abs_index = 0
+        self.pattern_tree.all_words = []
+        for sent in self.pattern_tree:
+            for word in sent.words:
+                self.pattern_tree.all_words.append(word)
                 word.abs_index = abs_index
                 abs_index += 1
-                
+        # Create __offset_to_word array and add byte offsets to all the
+        # words in the parse tree.
+        text_offset = 0
+        word_offset = 0
+        self.__offset_to_word = [None] * len(self.text)
+        while(
+            text_offset < len(self.text) and
+            word_offset < len(self.pattern_tree.all_words)
+        ):
+            word = self.pattern_tree.all_words[word_offset]
+            if self.text[text_offset:].startswith(word.string):
+                word.byte_offsets = (text_offset, text_offset + len(word.string))
+                self.__offset_to_word[text_offset] = word
+                text_offset += len(word.string)
+                word_offset += 1
+            elif (
+                # Hyphens may be removed from the pattern text
+                # so they are treated as spaces and can be skipped when aligning
+                # the text.
+                re.match(r"\s|-$", self.text[text_offset])
+            ):
+                text_offset += 1
+            else:
+                raise Exception(
+                    "Cannot match word [" + word.string +
+                    "] with text [" + self.text[text_offset:text_offset + 10] + "]"
+                )
+        # Fill the empty offsets with their previous value
+        prev_val = None
+        for idx, value in enumerate(self.__offset_to_word):
+            if value is not None:
+                prev_val = value
+            else:
+                self.__offset_to_word[idx] = prev_val
+        
         def p_search(query):
             # Add offsets:
             results = pattern.search.search(
@@ -92,7 +161,7 @@ class AnnoDoc:
 
         return json.dumps(json_obj)
 
-class AnnoTier:
+class AnnoTier(object):
 
     def __init__(self, spans=None):
         if spans is None:
@@ -197,7 +266,7 @@ class AnnoTier:
 
         self.spans = retained_spans
 
-class AnnoSpan:
+class AnnoSpan(object):
 
     def __repr__(self):
         return u'{0}-{1}:{2}'.format(self.start, self.end, self.label)
@@ -250,4 +319,11 @@ class AnnoSpan:
     def text(self):
         return self.doc.text[self.start:self.end]
 
-
+    def to_dict(self):
+        """
+        Return a json serializable dictionary.
+        """
+        return dict(
+            label=self.label,
+            textOffsets=[[self.start, self.end]]
+        )

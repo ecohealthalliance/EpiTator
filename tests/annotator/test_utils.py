@@ -10,6 +10,9 @@ def nested_items(d):
         else:
             yield [k], v
 def get_path(d, path, default=None):
+    if not isinstance(d, dict):
+        #print "Could not get %s in non-dict %s" % (path, d)
+        return None
     if isinstance(path, basestring):
         path = path.split('.')
     if len(path) == 1:
