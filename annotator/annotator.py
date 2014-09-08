@@ -55,10 +55,10 @@ class AnnoDoc(object):
             def __init__(self, words):
                 self.words = words
         start_word = self.__offset_to_word[offsets[0]]
-        end_word = self.__offset_to_word[offsets[-1]]
+        end_word = self.__offset_to_word[offsets[-1] - 1]
         return ExtrnalMatch(
             self.pattern_tree.all_words[
-                start_word.abs_index:end_word.abs_index+1
+                start_word.abs_index:end_word.abs_index + 1
             ]
         )
     

@@ -156,6 +156,16 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             'female': True,
         })
 
+    def test_off_by_one_error(self):
+        from annotator.geoname_annotator import GeonameAnnotator
+        doc = AnnoDoc("Fever in Seattle")
+        doc.add_tier(GeonameAnnotator())
+        doc.add_tier(self.annotator, keyword_categories={
+            'location' : [
+                span for span in doc.tiers['geonames'].spans
+            ]
+        })
+
     def test_date_and_location_keywords(self):
         from annotator.jvm_nlp_annotator import JVMNLPAnnotator
         from annotator.geoname_annotator import GeonameAnnotator
