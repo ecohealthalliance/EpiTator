@@ -159,6 +159,10 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[1].start, 22)
         self.assertEqual(doc.tiers['times'].spans[1].end, 40)
         self.assertEqual(doc.tiers['times'].spans[1].type, 'TIME')
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.year, '2014')
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.month, '10')
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.date, '10')
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.hour, '15')
 
     def test_duration(self):
 
