@@ -7,6 +7,7 @@ import dateutil.parser
 import requests
 
 from annotator import *
+from time_expressions import *
 
 
 class JVMNLPAnnotator():
@@ -63,6 +64,7 @@ class JVMNLPAnnotator():
                 doc.date = return_date
 
         for tier in self.tiers:
+
             for request_span in return_json['tiers'][tier]['spans']:
 
                 span = AnnoSpan(request_span['start'],
@@ -72,6 +74,14 @@ class JVMNLPAnnotator():
                     span.label = request_span['label']
                 if 'type' in request_span:
                     span.type = request_span['type']
+                if 'timePoint' in request_span:
+                    span.timePoint = TimePoint.from_json(request_span['timePoint'])
+                if 'timeRange' in request_span:
+                    span.timeRange = TimeRange.from_json(request_span['timeRange'])
+                if 'timeDuration' in request_span:
+                    span.timeDuration = TimeDuration.from_json(request_span['timeDuration'])
+                if 'timeSet' in request_span:
+                    span.timeSet = TimeSet.from_json(request_span['timeSet'])
 
                 spans.append(span)
 

@@ -142,6 +142,173 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[2].end, 65)
         self.assertEqual(doc.tiers['times'].spans[2].type, 'DATE')
 
+    def test_time(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = '10/10/14 I saw him at 3 in the afternoon.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 2)
+
+        self.assertEqual(doc.tiers['times'].spans[1].label, '2014-10-10T15:00')
+        self.assertEqual(doc.tiers['times'].spans[1].text, '3 in the afternoon')
+        self.assertEqual(doc.tiers['times'].spans[1].start, 22)
+        self.assertEqual(doc.tiers['times'].spans[1].end, 40)
+        self.assertEqual(doc.tiers['times'].spans[1].type, 'TIME')
+
+    def test_duration(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'I lived there for three years while getting my BA.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'P3Y')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'three years')
+        self.assertEqual(doc.tiers['times'].spans[0].start, 18)
+        self.assertEqual(doc.tiers['times'].spans[0].end, 29)
+        self.assertEqual(doc.tiers['times'].spans[0].type, 'DURATION')
+
+    def test_duration_with_years(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'I lived there for three years, from 1999 until 2001'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 3)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'P3Y')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'three years')
+        self.assertEqual(doc.tiers['times'].spans[0].start, 18)
+        self.assertEqual(doc.tiers['times'].spans[0].end, 29)
+        self.assertEqual(doc.tiers['times'].spans[0].type, 'DURATION')
+
+        self.assertEqual(doc.tiers['times'].spans[1].label, '1999')
+        self.assertEqual(doc.tiers['times'].spans[1].text, '1999')
+        self.assertEqual(doc.tiers['times'].spans[1].start, 36)
+        self.assertEqual(doc.tiers['times'].spans[1].end, 40)
+        self.assertEqual(doc.tiers['times'].spans[1].type, 'DATE')
+
+        self.assertEqual(doc.tiers['times'].spans[2].label, '2001')
+        self.assertEqual(doc.tiers['times'].spans[2].text, '2001')
+        self.assertEqual(doc.tiers['times'].spans[2].start, 47)
+        self.assertEqual(doc.tiers['times'].spans[2].end, 51)
+        self.assertEqual(doc.tiers['times'].spans[2].type, 'DATE')
+
+    def test_duration_with_years(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'I lived there for three years, from 1999 until late 2001'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 3)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'P3Y')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'three years')
+        self.assertEqual(doc.tiers['times'].spans[0].start, 18)
+        self.assertEqual(doc.tiers['times'].spans[0].end, 29)
+        self.assertEqual(doc.tiers['times'].spans[0].type, 'DURATION')
+        self.assertEqual(doc.tiers['times'].spans[0].timeDuration.label, 'P3Y')
+
+        self.assertEqual(doc.tiers['times'].spans[1].label, '1999')
+        self.assertEqual(doc.tiers['times'].spans[1].text, '1999')
+        self.assertEqual(doc.tiers['times'].spans[1].start, 36)
+        self.assertEqual(doc.tiers['times'].spans[1].end, 40)
+        self.assertEqual(doc.tiers['times'].spans[1].type, 'DATE')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.year, '1999')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.month, '01')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.date, '01')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.year, '1999')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.month, '12')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.date, '31')
+
+        self.assertEqual(doc.tiers['times'].spans[2].label, '2001')
+        self.assertEqual(doc.tiers['times'].spans[2].text, 'late 2001')
+        self.assertEqual(doc.tiers['times'].spans[2].start, 47)
+        self.assertEqual(doc.tiers['times'].spans[2].end, 56)
+        self.assertEqual(doc.tiers['times'].spans[2].type, 'DATE')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.mod, 'LATE')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.mod, None)
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.year, '2001')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.month, '01')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.date, '01')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.year, '2001')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.month, '12')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.date, '31')
+
+    def test_modifier_late(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = '1/1/2000 I lived there at the end of the 1920s.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 2)
+
+        self.assertEqual(doc.tiers['times'].spans[1].label, '192X')
+        self.assertEqual(doc.tiers['times'].spans[1].text, 'the end of the 1920s')
+        self.assertEqual(doc.tiers['times'].spans[1].start, 26)
+        self.assertEqual(doc.tiers['times'].spans[1].end, 46)
+        self.assertEqual(doc.tiers['times'].spans[1].type, 'DATE')
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.mod, 'LATE')
+
+    def test_modifier_less_than(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'I lived there for less than three years.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'P3Y')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'less than three years')
+        self.assertEqual(doc.tiers['times'].spans[0].start, 18)
+        self.assertEqual(doc.tiers['times'].spans[0].end, 39)
+        self.assertEqual(doc.tiers['times'].spans[0].type, 'DURATION')
+        self.assertEqual(doc.tiers['times'].spans[0].timeDuration.mod, 'LESS_THAN')
+
+    def test_set(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'We meet for coffee every Tuesday.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'XXXX-WXX-2')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'every Tuesday')
+        self.assertEqual(doc.tiers['times'].spans[0].start, 19)
+        self.assertEqual(doc.tiers['times'].spans[0].end, 32)
+        self.assertEqual(doc.tiers['times'].spans[0].type, 'SET')
+        self.assertEqual(doc.tiers['times'].spans[0].timeSet.mod, None)
 
 if __name__ == '__main__':
     unittest.main()
