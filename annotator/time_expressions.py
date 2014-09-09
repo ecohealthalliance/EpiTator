@@ -19,6 +19,12 @@ class TimePoint:
                          'minute:', str(self.minute), 'second:', str(self.second),
                          'mod:', str(self.mod)])
 
+    def to_dict(self):
+        return dict( (key, val)
+                     for key, val in self.__dict__.iteritems()
+                     if val is not None)
+
+
     @staticmethod
     def from_json(json):
         """Build a TimePoint from a JSON object"""
@@ -31,6 +37,11 @@ class TimeRange:
         self.begin = begin
         self.end = end
         self.mod = mod
+
+    def to_dict(self):
+        return dict( (key, val)
+                     for key, val in self.__dict__.iteritems()
+                     if val is not None)
 
     @staticmethod
     def from_json(json):
@@ -49,6 +60,11 @@ class TimeDuration:
     def __repr__(self):
         return ' '.join(['label:', str(self.label), 'mod:', str(self.mod)])
 
+    def to_dict(self):
+        return dict( (key, val)
+                     for key, val in self.__dict__.iteritems()
+                     if val is not None)
+
     @staticmethod
     def from_json(json):
         """Build a TimeDuration from a JSON object"""
@@ -62,6 +78,12 @@ class TimeSet:
 
     def __repr__(self):
         return ' '.join(['label:', str(self.label), 'mod:', str(self.mod)])
+
+    def to_dict(self):
+        return dict( (key, val)
+                     for key, val in self.__dict__.iteritems()
+                     if val is not None)
+
 
     @staticmethod
     def from_json(json):
