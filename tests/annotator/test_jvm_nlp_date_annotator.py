@@ -159,10 +159,10 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[1].start, 22)
         self.assertEqual(doc.tiers['times'].spans[1].end, 40)
         self.assertEqual(doc.tiers['times'].spans[1].type, 'TIME')
-        self.assertEqual(doc.tiers['times'].spans[1].timePoint.year, '2014')
-        self.assertEqual(doc.tiers['times'].spans[1].timePoint.month, '10')
-        self.assertEqual(doc.tiers['times'].spans[1].timePoint.date, '10')
-        self.assertEqual(doc.tiers['times'].spans[1].timePoint.hour, '15')
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.year, 2014)
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.month, 10)
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.date, 10)
+        self.assertEqual(doc.tiers['times'].spans[1].timePoint.hour, 15)
 
     def test_duration(self):
 
@@ -236,12 +236,12 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[1].start, 36)
         self.assertEqual(doc.tiers['times'].spans[1].end, 40)
         self.assertEqual(doc.tiers['times'].spans[1].type, 'DATE')
-        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.year, '1999')
-        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.month, '01')
-        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.date, '01')
-        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.year, '1999')
-        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.month, '12')
-        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.date, '31')
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.year, 1999)
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.month, 1)
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.begin.date, 1)
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.year, 1999)
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.month, 12)
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.end.date, 31)
 
         self.assertEqual(doc.tiers['times'].spans[2].label, '2001')
         self.assertEqual(doc.tiers['times'].spans[2].text, 'late 2001')
@@ -250,12 +250,12 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[2].type, 'DATE')
         self.assertEqual(doc.tiers['times'].spans[2].timeRange.mod, 'LATE')
         self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.mod, None)
-        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.year, '2001')
-        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.month, '01')
-        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.date, '01')
-        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.year, '2001')
-        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.month, '12')
-        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.date, '31')
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.year, 2001)
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.month, 1)
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.begin.date, 1)
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.year, 2001)
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.month, 12)
+        self.assertEqual(doc.tiers['times'].spans[2].timeRange.end.date, 31)
 
     def test_modifier_late(self):
 
@@ -274,7 +274,8 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[1].start, 26)
         self.assertEqual(doc.tiers['times'].spans[1].end, 46)
         self.assertEqual(doc.tiers['times'].spans[1].type, 'DATE')
-        self.assertEqual(doc.tiers['times'].spans[1].timePoint.mod, 'LATE')
+        self.assertEqual(hasattr(doc.tiers['times'].spans[1], 'timePoint'), False)
+        self.assertEqual(doc.tiers['times'].spans[1].timeRange.mod, 'LATE')
 
     def test_modifier_less_than(self):
 
