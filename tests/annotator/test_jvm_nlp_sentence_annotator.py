@@ -14,11 +14,10 @@ class SentenceAnnotatorTest(unittest.TestCase):
 
     def setUp(self):
         self.annotator = JVMNLPAnnotator(['sentences'])
-        self.doc = AnnoDoc()
 
     def test_one_sentence(self):
 
-        self.doc.text = "Hi Joe."
+        self.doc = AnnoDoc("Hi Joe.")
         sentence = self.annotator.annotate(self.doc)
 
         self.assertEqual(len(self.doc.tiers['sentences'].spans), 1)
@@ -30,7 +29,7 @@ class SentenceAnnotatorTest(unittest.TestCase):
 
     def test_two_sentences(self):
 
-        self.doc.text = "Hi Joe. It's me, Jane."
+        self.doc = AnnoDoc("Hi Joe. It's me, Jane.")
         sentence = self.annotator.annotate(self.doc)
 
         self.assertEqual(len(self.doc.tiers['sentences'].spans), 2)
@@ -49,7 +48,7 @@ class SentenceAnnotatorTest(unittest.TestCase):
     # space is not considered to be part of the sentence.
     def test_odd_spacing(self):
 
-        self.doc.text = "  \t      Hi Joe      .   \n \n \n \t  It's me, Jane   \t  .   \t  "
+        self.doc = AnnoDoc("  \t      Hi Joe      .   \n \n \n \t  It's me, Jane   \t  .   \t  ")
         sentence = self.annotator.annotate(self.doc)
 
         self.assertEqual(len(self.doc.tiers['sentences'].spans), 2)

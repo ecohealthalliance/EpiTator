@@ -80,7 +80,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         annotator = GeonameAnnotator()
         doc = AnnoDoc(text)
         doc.add_tier(annotator)
-        print doc.tiers['geonames'].spans
 
     def test_slow_article(self):
         from datetime import datetime, timedelta
@@ -102,6 +101,16 @@ class GeonameAnnotatorTest(unittest.TestCase):
         self.assertTrue(
             'Northeast' not in [span.text for span in doc.tiers['geonames'].spans]
         )
-        
+
+    def test_url_names(self):
+        doc = AnnoDoc(u"""
+        [1] Cholera - South Sudan
+        Date: Sat 19 Jul 2014
+        Source: Radio Tamazuj [edited]
+        https://radiotamazuj.org/en/article/south-sudan-100-total-cholera-deaths
+        """)
+        doc.add_tier(GeonameAnnotator())
+        self.assertEqual(len(doc.tiers['geonames']), 1)
+
 if __name__ == '__main__':
     unittest.main()

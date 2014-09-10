@@ -374,5 +374,16 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertListEqual(doc.tiers['patientInfo'].spans, [])
 
+    def test_duplicate_counts(self):
+        doc = AnnoDoc("""
+        7 of the confirmed infections were identified in London with 4 cases reported from West Midlands,
+        3 cases the South East and one case each from Eastern and East Midlands regions.
+        Across the UK, Scotland reported one case linked to recent travel to Viet Nam
+        but there were no measles cases reported from Wales or Northern Ireland.
+        """)
+        doc.add_tier(self.annotator)
+        #print doc.tiers['patientInfo'].spans
+        self.assertEqual(len(doc.tiers['patientInfo'].spans), 5)
+
 if __name__ == '__main__':
     unittest.main()

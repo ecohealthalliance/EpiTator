@@ -14,12 +14,11 @@ from annotator.jvm_nlp_annotator import JVMNLPAnnotator
 class POSAnnotatorTest(unittest.TestCase):
 
     def setUp(self):
-        self.doc = AnnoDoc()
         self.annotator = JVMNLPAnnotator(['pos'])
 
     def test_simple_sentence(self):
 
-        self.doc.text = "Hi Joe."
+        self.doc = AnnoDoc("Hi Joe.")
         sentence = self.annotator.annotate(self.doc)
 
         self.assertEqual(len(self.doc.tiers['pos'].spans), 3)
@@ -38,7 +37,7 @@ class POSAnnotatorTest(unittest.TestCase):
 
     def test_initial_space(self):
 
-        self.doc.text = " Hi."
+        self.doc = AnnoDoc(" Hi.")
         sentence = self.annotator.annotate(self.doc)
 
         # This is true for the default wordpunct annotator, but not e.g. the
@@ -55,7 +54,7 @@ class POSAnnotatorTest(unittest.TestCase):
 
     def test_multiple_spaces_in_a_row(self):
 
-        self.doc.text = "         Hi  there      Joe  ."
+        self.doc = AnnoDoc("         Hi  there      Joe  .")
         sentence = self.annotator.annotate(self.doc)
 
         # This is true for the default wordpunct annotator, but not e.g. the
