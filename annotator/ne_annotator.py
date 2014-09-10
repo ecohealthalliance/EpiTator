@@ -30,7 +30,7 @@ class NEAnnotator(Annotator):
                 ne_spans.append(AnnoSpan(token_spans[span_id].start,
                                      token_spans[span_id + len(tag.leaves()) - 1].end,
                                      doc,
-                                     label=tag.node))
+                                     label=tag.label()))
                 span_id += len(tag.leaves())
             else:
                 span_id += 1
