@@ -103,10 +103,28 @@ class AnnoDoc(object):
             word_offset < len(self.pattern_tree.all_words)
         ):
             word = self.pattern_tree.all_words[word_offset]
-            if self.text[text_offset:].startswith(word.string):
-                word.byte_offsets = (text_offset, text_offset + len(word.string))
+            # Sometimes words remove spaces that were present in the original
+            # e.g. :3 so we need to ignore spaces inside the original
+            match_offset = 0
+            for word_char in word.string:
+                if self.text[text_offset + match_offset] == word_char:
+                    match_offset += 1
+                else:
+                    while self.text[text_offset + match_offset] == ' ':
+                        match_offset += 1
+                    if self.text[text_offset + match_offset] == word_char:
+                        match_offset += 1
+                    else:
+                        match_offset = -1
+                        break
+            if (
+                word.string[0] == self.text[text_offset] and
+                match_offset > 0 and
+                word.string[-1] == self.text[text_offset + match_offset - 1]
+            ):
+                word.byte_offsets = (text_offset, text_offset + match_offset)
                 self.__offset_to_word[text_offset] = word
-                text_offset += len(word.string)
+                text_offset += match_offset
                 word_offset += 1
             elif (
                 # Hyphens may be removed from the pattern text

@@ -385,5 +385,14 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         #print doc.tiers['patientInfo'].spans
         self.assertEqual(len(doc.tiers['patientInfo'].spans), 5)
 
+    def test_pattern_parse_emoticon(self):
+        # Pattern parses ": 3" as a single word, I think because it thinks it is
+        # an emoticon. However doing so removes the space which can cause
+        # bugs.
+        doc = AnnoDoc("""
+        Number of new cases: 3
+        """)
+        doc.add_tier(self.annotator)
+
 if __name__ == '__main__':
     unittest.main()
