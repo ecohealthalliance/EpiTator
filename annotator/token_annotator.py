@@ -7,7 +7,7 @@ from annotator import *
 
 class TokenAnnotator(Annotator):
 
-    def __init__(self, tokenizer=nltk.tokenize.WordPunctTokenizer()):
+    def __init__(self, tokenizer=nltk.tokenize.RegexpTokenizer(r'(http\S+)|\w+|[^\w\s]+')):
         """tokenizer should be a function that takes a string and returns a
            list of token strings"""
         self.tokenizer = tokenizer

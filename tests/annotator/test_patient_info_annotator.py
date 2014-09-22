@@ -156,6 +156,16 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             'female': True,
         })
 
+    def test_off_by_one_error(self):
+        from annotator.geoname_annotator import GeonameAnnotator
+        doc = AnnoDoc("Fever in Seattle")
+        doc.add_tier(GeonameAnnotator())
+        doc.add_tier(self.annotator, keyword_categories={
+            'location' : [
+                span for span in doc.tiers['geonames'].spans
+            ]
+        })
+
     def test_date_and_location_keywords(self):
         from annotator.jvm_nlp_annotator import JVMNLPAnnotator
         from annotator.geoname_annotator import GeonameAnnotator
@@ -363,6 +373,26 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc("35 percent of cases")
         doc.add_tier(self.annotator)
         self.assertListEqual(doc.tiers['patientInfo'].spans, [])
+
+    def test_duplicate_counts(self):
+        doc = AnnoDoc("""
+        7 of the confirmed infections were identified in London with 4 cases reported from West Midlands,
+        3 cases the South East and one case each from Eastern and East Midlands regions.
+        Across the UK, Scotland reported one case linked to recent travel to Viet Nam
+        but there were no measles cases reported from Wales or Northern Ireland.
+        """)
+        doc.add_tier(self.annotator)
+        #print doc.tiers['patientInfo'].spans
+        self.assertEqual(len(doc.tiers['patientInfo'].spans), 5)
+
+    def test_pattern_parse_emoticon(self):
+        # Pattern parses ": 3" as a single word, I think because it thinks it is
+        # an emoticon. However doing so removes the space which can cause
+        # bugs.
+        doc = AnnoDoc("""
+        Number of new cases: 3
+        """)
+        doc.add_tier(self.annotator)
 
 if __name__ == '__main__':
     unittest.main()
