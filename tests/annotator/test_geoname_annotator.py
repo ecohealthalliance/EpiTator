@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Tests for the TokenAnnotator that annotates a sentence with tokens and their
-offsets."""
+"""Tests for the GeonameAnnotator that annotates a sentence with locations from
+the Geonames dataset."""
 
 import sys
 import os
