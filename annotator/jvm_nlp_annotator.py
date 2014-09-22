@@ -7,6 +7,7 @@ import dateutil.parser
 import requests
 
 from annotator import *
+from time_expressions import *
 
 class StanfordSpan(AnnoSpan):
     def __init__(self, span_dict, doc):
@@ -75,9 +76,26 @@ class JVMNLPAnnotator():
                 doc.date = return_date
 
         for tier in self.tiers:
-            doc.tiers[tier] = AnnoTier([
-                StanfordSpan(request_span, doc)
-                for request_span in return_json['tiers'][tier]['spans']
-            ])
+
+            spans = []
+
+            for request_span in return_json['tiers'][tier]['spans']:
+                span = StanfordSpan(request_span, doc)
+                if 'label' in request_span:
+                    span.label = request_span['label']
+                if 'type' in request_span:
+                    span.type = request_span['type']
+                if 'timePoint' in request_span:
+                    span.timePoint = TimePoint.from_json(request_span['timePoint'])
+                if 'timeRange' in request_span:
+                    span.timeRange = TimeRange.from_json(request_span['timeRange'])
+                if 'timeDuration' in request_span:
+                    span.timeDuration = TimeDuration.from_json(request_span['timeDuration'])
+                if 'timeSet' in request_span:
+                    span.timeSet = TimeSet.from_json(request_span['timeSet'])
+
+                spans.append(span)
+
+            doc.tiers[tier] = AnnoTier(spans)
 
         return doc

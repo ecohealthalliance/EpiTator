@@ -327,8 +327,6 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
 
         self.assertEqual(len(doc.tiers['times'].spans), 1)
 
-        print doc.tiers['times'].spans[0]
-
         self.assertEqual(doc.tiers['times'].spans[0].label, '2014 INTERSECT P3M')
         self.assertEqual(doc.tiers['times'].spans[0].text, 'three months of 2014')
         self.assertEqual(doc.tiers['times'].spans[0].start, 25)
