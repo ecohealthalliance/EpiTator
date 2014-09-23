@@ -9,6 +9,7 @@ from annotator import *
 from ngram_annotator import NgramAnnotator
 from ne_annotator import NEAnnotator
 from geopy.distance import great_circle
+from maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
 
 import datetime
 import logging
@@ -262,29 +263,18 @@ class GeonameAnnotator(Annotator):
                     span.start, span.end, doc, location
                 )
                 geo_spans.append(geo_span)
-
-        retained_spans = []
-        for geo_span_a in geo_spans:
-            retain_a_overlap = True
-            for geo_span_b in geo_spans:
-                if geo_span_a == geo_span_b: continue
-                if geo_span_a.overlaps(geo_span_b):
-                    if geo_span_b.size() > geo_span_a.size():
-                        # geo_span_a is probably a component of geospan b,
-                        # e.g. Washington in University of Washington
-                        # We use the longer span because it's usually correct.
-                        retain_a_overlap = False
-                        break
-                    elif geo_span_b.size() == geo_span_a.size():
-                        # Ambiguous name, use the scores to decide.
-                        # TODO: Recompute scores since they could have been
-                        # resolved in different rounds.
-                        if geo_span_a.geoname['score'] < geo_span_b.geoname['score']:
-                            retain_a_overlap = False
-                            break
-            if not retain_a_overlap:
-                continue
-            retained_spans.append(geo_span_a)
+        mwis = find_maximum_weight_interval_set([
+            Interval(
+                geo_span.start,
+                geo_span.end,
+                # If the size is equal the score is used as a tie breaker.
+                # This formula makes the score the last digit of the weight.
+                (geo_span.size() * 10 + (geo_span.geoname['score'] / 11)),
+                geo_span
+            )
+            for geo_span in geo_spans
+        ])
+        retained_spans = [interval.corresponding_object for interval in mwis]
         logger.info('overlapping geospans removed')
         # Remove unneeded properties:
         # Be careful if adding these back in, they might not be serializable

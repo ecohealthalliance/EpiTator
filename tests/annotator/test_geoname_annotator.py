@@ -112,5 +112,20 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(GeonameAnnotator())
         self.assertEqual(len(doc.tiers['geonames']), 1)
 
+    def test_for_duplicate_spans(self):
+        doc = AnnoDoc(u"""
+        Hidalgo in the Tezontle in Pachuca 3 in Tlaxcoapan, 4 in Mixquiahuala and 4 in Tetepango.
+        
+        175 cases of cholera were confirmed in La Huasteca (159 in Hidalgo, 14 in Veracruz, and 2 in San Luis Potosi) in La Huasteca area (http://en.wikipedia.org/wiki/La_Huasteca), a geographical and cultural region located in Mexico along the Gulf of Mexico that includes parts of the states of Tamaulipas, Veracruz, Puebla, Hidalgo, San Luis Potosi, Queretaro, and Guanajuato
+        """)
+        doc.add_tier(GeonameAnnotator())
+        duplicate_spans = []
+        span_starts = set()
+        for span in doc.tiers['geonames'].spans:
+            if span.start in span_starts:
+                duplicate_spans.append(span)
+            span_starts.add(span.start)
+        self.assertEqual([unicode(s) for s in duplicate_spans], [])
+
 if __name__ == '__main__':
     unittest.main()
