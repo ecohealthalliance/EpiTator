@@ -315,11 +315,12 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[0].type, 'SET')
         self.assertEqual(doc.tiers['times'].spans[0].timeSet.mod, None)
 
-    def test_first_three_months(self):
+
+    def test_first_since(self):
 
         annotator = JVMNLPAnnotator(['times'])
 
-        text = 'I arrived during the 1st three months of 2014, so yeah.'
+        text = 'In the 1st three months of 2014, that was it.'
         doc = AnnoDoc(text)
         doc.add_tier(annotator)
 
@@ -329,9 +330,10 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
 
         self.assertEqual(doc.tiers['times'].spans[0].label, '2014 INTERSECT P3M')
         self.assertEqual(doc.tiers['times'].spans[0].text, 'three months of 2014')
-        self.assertEqual(doc.tiers['times'].spans[0].start, 25)
-        self.assertEqual(doc.tiers['times'].spans[0].end, 45)
-        self.assertEqual(doc.tiers['times'].spans[0].type, 'DATE')
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timePoint'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeRange'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
 
 
 if __name__ == '__main__':
