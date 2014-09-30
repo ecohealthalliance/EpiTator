@@ -57,10 +57,10 @@ def location_contains(loc_outer, loc_inner):
     This is not guarenteed to be correct, it is based on my assumptions
     about the geonames heirarchy.
     """
-    if not loc_outer['feature class'].startswith('ADM'):
-        # I don't think admin codes are comparable in this case,
-        # so just use the country code.
-        return 1
+    # This doesn't work for every feature class
+    # ADM... or PPL... features are most likely to work.
+    # I'm not sure how to deal with RGN and CONT, the geonames website has
+    # a parent heirarchy in the UI but I'm not sure where the data comes from.
     props = [
         'country code',
         'admin1 code',
