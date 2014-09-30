@@ -52,14 +52,15 @@ def location_contains(loc_outer, loc_inner):
     Do a comparison to see if one geonames location contains another.
     It returns an integer to indicate how specific the containment is.
     USA contains Texas should be a smaller integer than WA contains Seattle.
-    0 indicates no containment.
+    0 indicates no containment. Siblings locations and identical locations
+    have 0 containment.
     This is not guarenteed to be correct, it is based on my assumptions
     about the geonames heirarchy.
     """
     if not loc_outer['feature class'].startswith('ADM'):
         # I don't think admin codes are comparable in this case,
         # so just use the country code.
-        return loc_outer['country code'] == loc_inner['country code']
+        return 1
     props = [
         'country code',
         'admin1 code',
@@ -69,10 +70,13 @@ def location_contains(loc_outer, loc_inner):
     ]
     for idx, prop in enumerate(props):
         if len(loc_outer[prop]) == 0:
-            return idx
+            if len(loc_inner[prop]) == 0:
+                return 0 # locations appear to be siblings/identical
+            else:
+                return idx
         if loc_outer[prop] != loc_inner[prop]:
             return 0
-    return len(props)
+    return 0 # locations appear to be siblings/identical
 
 class GeoSpan(AnnoSpan):
     def __init__(self, start, end, doc, geoname):
