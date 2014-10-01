@@ -82,6 +82,10 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(annotator)
 
     def test_slow_article(self):
+        """
+        Whether this tests succeed or fails depends greatly on the geonames database.
+        I find it often fails the first time it is run, then succeeds in later runs.
+        """
         from datetime import datetime, timedelta
         start = datetime.utcnow()
         doc = AnnoDoc(u"""
@@ -127,5 +131,28 @@ class GeonameAnnotatorTest(unittest.TestCase):
             span_starts.add(span.start)
         self.assertEqual([unicode(s) for s in duplicate_spans], [])
 
+    def test_parent_cycles(self):
+        doc = AnnoDoc(u"""
+        California National Primate Research Center (CNPRC).
+        (University of California, San Francisco)
+        Koch’s postulates
+        The University of California, Davis
+        and University of California, San Francisco
+        Sera from the Blood Systems Research Institute (San Francisco, CA)
+        in California (Blood Centers of the Pacific, San Francisco, CA), Nevada
+        (United Blood Service, Reno, NV),
+        and Wyoming (United Blood Services, Cheyenne, Wyoming)
+        The California National Primate Research Center (CNPRC)
+        personal protective equipment (PPE) policy
+        (Focus Diagnostics, Cypress, CA).
+        """)
+        doc.add_tier(GeonameAnnotator())
+        for span in doc.tiers['geonames'].spans:
+            if 'parentLocation' in span.geoname:
+                self.assertNotEqual(
+                    span.geoname['parentLocation'],
+                    span.geoname['parentLocation'].get('parentLocation',{}).get('parentLocation')
+                )
+        
 if __name__ == '__main__':
     unittest.main()
