@@ -34,7 +34,7 @@ class AnnoDoc(object):
         self.properties = {}
         self.pattern_tree = None
         self.date = date
-    
+
     def find_match_offsets(self, match):
         """
         Returns the byte offsets of a pattern lib match object.
@@ -61,7 +61,7 @@ class AnnoDoc(object):
                 start_word.abs_index:end_word.abs_index + 1
             ]
         )
-    
+
     def setup_pattern(self):
         """
         Parse the doc with pattern so we can use the pattern.search module on it
@@ -78,7 +78,7 @@ class AnnoDoc(object):
         )
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
         # see: https://github.com/clips/pattern/issues/84
-        # This code tags all the arabic numerals as CDs. It is a temporairy fix 
+        # This code tags all the arabic numerals as CDs. It is a temporairy fix
         # that should be discarded when issue is resulted in the pattern lib.
         for sent in self.pattern_tree:
             for word in sent.words:
@@ -110,7 +110,7 @@ class AnnoDoc(object):
                 if self.text[text_offset + match_offset] == word_char:
                     match_offset += 1
                 else:
-                    while self.text[text_offset + match_offset] == ' ':
+                    while re.match(r"\s", self.text[text_offset + match_offset]):
                         match_offset += 1
                     if self.text[text_offset + match_offset] == word_char:
                         match_offset += 1
@@ -145,7 +145,7 @@ class AnnoDoc(object):
                 prev_val = value
             else:
                 self.__offset_to_word[idx] = prev_val
-        
+
         def p_search(query):
             # Add offsets:
             results = pattern.search.search(
@@ -156,10 +156,10 @@ class AnnoDoc(object):
             # for r in results:
             #     r.sentence_idx = self.pattern_tree.sentences.index(r.words[0].sentence)
             return results
-                
-            
+
+
         self.p_search = p_search
-        
+
     def add_tier(self, annotator, **kwargs):
         annotator.annotate(self, **kwargs)
 
