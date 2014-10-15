@@ -335,6 +335,81 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), False)
         self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
 
+    def test_previously(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'We previously developed the Virochip (University of California, San Francisco) as a broad-spectrum surveillance assay for identifying viral causes of unknown acute and chronic illnesses.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'PAST_REF')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'previously')
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timePoint'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeRange'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
+
+    def test_future(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'Future large-scale studies of TMAdV seroepidemiology will be needed to better understand transmission of TMAdV between monkeys and humans.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'FUTURE_REF')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'Future')
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timePoint'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeRange'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
+
+    def test_inexact_range(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'From May to August of 2009 we languished there.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, 'XXXX-05/2009-08')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'From May to August of 2009')
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timePoint'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeRange'), True)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), True)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
+
+    def test_1950s(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'Adenoviruses, first isolated in the 1950s from explanted adenoid tissue.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, '195X')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'the 1950s')
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timePoint'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeRange'), True)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), False)
+        self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
 
 if __name__ == '__main__':
     unittest.main()
