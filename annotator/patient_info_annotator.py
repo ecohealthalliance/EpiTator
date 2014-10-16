@@ -117,11 +117,10 @@ class PatientInfoAnnotator(Annotator):
         keyword_attributes = []
         for cat, kws in keyword_categories.items():
             category_results = []
+            strings_to_match = []
             for kw in kws:
                 if isinstance(kw, basestring):
-                    for match in my_search(pattern.search.escape(kw)):
-                        match.keyword_object = kw
-                        category_results.append(match)
+                    strings_to_match.append(kw)
                 elif isinstance(kw, dict):
                     match = doc.byte_offsets_to_pattern_match(kw['offsets'][0])
                     match.keyword_object = kw
@@ -134,6 +133,18 @@ class PatientInfoAnnotator(Annotator):
                     raise Exception(
                         "Unknown keyword datatype for: " + str(kws[0])
                     )
+            if len(strings_to_match) > 0:
+                for m in re.finditer(
+                    re.compile(r'\b(' +
+                    r'|'.join(map(re.escape, strings_to_match)) +
+                    r')\b', re.I),
+                    doc.text
+                ):
+                    p_match = doc.byte_offsets_to_pattern_match(
+                        (m.start(), m.end())
+                    )
+                    p_match.keyword_object = m.group(0)
+                    category_results.append(p_match)
             keyword_attributes += [ra.label(cat, category_results)]
         quantity_modifiers = (
             ra.label('average', my_search('AVERAGE|MEAN')) +

@@ -48,7 +48,7 @@ class AnnoDoc(object):
         """
         Create a pattern lib match object from the given byte offsets.
         """
-        class ExtrnalMatch(pattern.search.Match):
+        class ExternalMatch(pattern.search.Match):
             """
             A sequence of words that implements the pattern match interface.
             """
@@ -56,7 +56,7 @@ class AnnoDoc(object):
                 self.words = words
         start_word = self.__offset_to_word[offsets[0]]
         end_word = self.__offset_to_word[offsets[-1] - 1]
-        return ExtrnalMatch(
+        return ExternalMatch(
             self.pattern_tree.all_words[
                 start_word.abs_index:end_word.abs_index + 1
             ]
