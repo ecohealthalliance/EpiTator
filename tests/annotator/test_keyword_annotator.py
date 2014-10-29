@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+"""Tests for the KeywordAnnotator that annotates a sentence with tokens and their
+offsets."""
+
+import sys
+import os
+import unittest
+
+sys.path = ['./'] + sys.path
+
+from annotator.annotator import AnnoDoc
+from annotator.keyword_annotator import KeywordAnnotator
+
+
+class KeywordAnnotatorTest(unittest.TestCase):
+
+    def test_diseases(self):
+
+        annotator = KeywordAnnotator()
+
+        text = 'I thought I had a spot of periodontitis but it turned out to be Endometrial Endometrioid Adenocarcinoma with squamous differentiation.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['diseases'].spans), 2)
+
+        self.assertEqual(doc.tiers['diseases'].spans[0].text, "periodontitis")
+        self.assertEqual(doc.tiers['diseases'].spans[0].label, "periodontitis")
+        self.assertEqual(doc.tiers['diseases'].spans[0].start, 26)
+        self.assertEqual(doc.tiers['diseases'].spans[0].end, 39)
+
+        self.assertEqual(doc.tiers['diseases'].spans[1].text, "Endometrial Endometrioid Adenocarcinoma with squamous differentiation")
+        self.assertEqual(doc.tiers['diseases'].spans[1].label, "endometrial endometrioid adenocarcinoma with squamous differentiation")
+        self.assertEqual(doc.tiers['diseases'].spans[1].start, 64)
+        self.assertEqual(doc.tiers['diseases'].spans[1].end, 133)
+
+    def test_hosts(self):
+
+        annotator = KeywordAnnotator()
+
+        text = 'I never should have let that silverfish sell me that FAWN.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['hosts'].spans), 2)
+
+        self.assertEqual(doc.tiers['hosts'].spans[0].text, "silverfish")
+        self.assertEqual(doc.tiers['hosts'].spans[0].label, "silverfish")
+        self.assertEqual(doc.tiers['hosts'].spans[0].start, 29)
+        self.assertEqual(doc.tiers['hosts'].spans[0].end, 39)
+
+        self.assertEqual(doc.tiers['hosts'].spans[1].text, "FAWN")
+        self.assertEqual(doc.tiers['hosts'].spans[1].label, "fawn")
+        self.assertEqual(doc.tiers['hosts'].spans[1].start, 53)
+        self.assertEqual(doc.tiers['hosts'].spans[1].end, 57)
+
+    def test_modes(self):
+
+        annotator = KeywordAnnotator()
+
+        text = 'Indirect physical contact with a sniveller is as dangerous as ingestion of food contaminated with feces.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['modes'].spans), 3)
+
+        self.assertEqual(doc.tiers['modes'].spans[0].text, "Indirect physical contact")
+        self.assertEqual(doc.tiers['modes'].spans[0].label, "indirect physical contact")
+        self.assertEqual(doc.tiers['modes'].spans[0].start, 0)
+        self.assertEqual(doc.tiers['modes'].spans[0].end, 25)
+
+        self.assertEqual(doc.tiers['modes'].spans[1].text, "sniveller")
+        self.assertEqual(doc.tiers['modes'].spans[1].label, "sniveller")
+        self.assertEqual(doc.tiers['modes'].spans[1].start, 33)
+        self.assertEqual(doc.tiers['modes'].spans[1].end, 42)
+
+    def test_pathogens(self):
+
+        annotator = KeywordAnnotator()
+
+        text = 'Look out for xanthoMONAD and the hepatitis e virus.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['pathogens'].spans), 2)
+
+        self.assertEqual(doc.tiers['pathogens'].spans[0].text, "xanthoMONAD")
+        self.assertEqual(doc.tiers['pathogens'].spans[0].label, "xanthomonad")
+        self.assertEqual(doc.tiers['pathogens'].spans[0].start, 13)
+        self.assertEqual(doc.tiers['pathogens'].spans[0].end, 24)
+
+        self.assertEqual(doc.tiers['pathogens'].spans[1].text, "hepatitis e virus")
+        self.assertEqual(doc.tiers['pathogens'].spans[1].label, "hepatitis e virus")
+        self.assertEqual(doc.tiers['pathogens'].spans[1].start, 33)
+        self.assertEqual(doc.tiers['pathogens'].spans[1].end, 50)
+
+    def test_symptoms(self):
+
+        annotator = KeywordAnnotator()
+
+        text = 'I feel weak, with some nausea and, oh god, the left lower quadrant abdominal SWELLING.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['symptoms'].spans), 3)
+
+        self.assertEqual(doc.tiers['symptoms'].spans[0].text, "weak")
+        self.assertEqual(doc.tiers['symptoms'].spans[0].label, "weak")
+        self.assertEqual(doc.tiers['symptoms'].spans[0].start, 7)
+        self.assertEqual(doc.tiers['symptoms'].spans[0].end, 11)
+
+        self.assertEqual(doc.tiers['symptoms'].spans[1].text, "nausea")
+        self.assertEqual(doc.tiers['symptoms'].spans[1].label, "nausea")
+        self.assertEqual(doc.tiers['symptoms'].spans[1].start, 23)
+        self.assertEqual(doc.tiers['symptoms'].spans[1].end, 29)
+
+        self.assertEqual(doc.tiers['symptoms'].spans[2].text, "left lower quadrant abdominal SWELLING")
+        self.assertEqual(doc.tiers['symptoms'].spans[2].label, "left lower quadrant abdominal swelling")
+        self.assertEqual(doc.tiers['symptoms'].spans[2].start, 47)
+        self.assertEqual(doc.tiers['symptoms'].spans[2].end, 85)
+
+
+if __name__ == '__main__':
+    unittest.main()

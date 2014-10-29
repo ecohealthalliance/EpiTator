@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Token Annotator"""
+"""Geoname Annotator"""
 import math
 import re
 import itertools
