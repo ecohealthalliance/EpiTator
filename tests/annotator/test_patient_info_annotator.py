@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf8
 import sys
 import unittest
 import test_utils
@@ -394,5 +395,17 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         """)
         doc.add_tier(self.annotator)
 
+    def test_match_long_ellipsis(self):
+        """
+        Checks for this exception:
+        Exception: Cannot match word [\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd] with text [..  \ufffd\ufffd\ufffd\ufffd\ufffd\ufffd]
+        """
+        # This is a snippit from the article I discovered the exception in.
+        # The character encoding turned out not to be related to the bug.
+        doc = AnnoDoc(u"""
+         ��� ����� ����������, �����-���� �������������� ������������� ����, ��� ������ ��� ���.....  ������ �������...
+        """)
+        doc.add_tier(self.annotator)
+        
 if __name__ == '__main__':
     unittest.main()

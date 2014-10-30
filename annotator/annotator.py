@@ -79,7 +79,7 @@ class AnnoDoc(object):
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
         # see: https://github.com/clips/pattern/issues/84
         # This code tags all the arabic numerals as CDs. It is a temporairy fix
-        # that should be discarded when issue is resulted in the pattern lib.
+        # that should be discarded when issue is resolved in the pattern lib.
         for sent in self.pattern_tree:
             for word in sent.words:
                 if utils.parse_number(word.string) is not None:
@@ -92,6 +92,7 @@ class AnnoDoc(object):
             for word in sent.words:
                 self.pattern_tree.all_words.append(word)
                 word.abs_index = abs_index
+                word.doc_word_array = self.pattern_tree.all_words
                 abs_index += 1
         # Create __offset_to_word array and add byte offsets to all the
         # words in the parse tree.
@@ -103,7 +104,10 @@ class AnnoDoc(object):
             word_offset < len(self.pattern_tree.all_words)
         ):
             word = self.pattern_tree.all_words[word_offset]
-            # Sometimes words remove spaces that were present in the original
+            # The match_offset is the number of chars after the text_offset
+            # that the match ends.
+            # It needs to be computed because sometimes pattern lib
+            # Words remove spaces that were present in the original text
             # e.g. :3 so we need to ignore spaces inside the original
             match_offset = 0
             for word_char in word.string:
@@ -117,6 +121,12 @@ class AnnoDoc(object):
                     else:
                         match_offset = -1
                         break
+            # Any number of periods is turned into a 3 period ellipsis,
+            # so we need to include the extras in the match.
+            if match_offset > 0 and word.string == '...':
+                while re.match(r"\.", self.text[text_offset + match_offset]):
+                    match_offset += 1
+            
             if (
                 word.string[0] == self.text[text_offset] and
                 match_offset > 0 and
@@ -136,7 +146,9 @@ class AnnoDoc(object):
             else:
                 raise Exception(
                     "Cannot match word [" + word.string +
-                    "] with text [" + self.text[text_offset:text_offset + 10] + "]"
+                    "] with text [" + self.text[text_offset:text_offset + 10] +
+                    "]" +
+                    " match_offset=" + unicode(match_offset)
                 )
         # Fill the empty offsets with their previous value
         prev_val = None
