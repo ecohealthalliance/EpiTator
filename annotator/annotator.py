@@ -3,6 +3,7 @@
 import json
 import re
 from lazy import lazy
+from collections import defaultdict
 
 from nltk import sent_tokenize
 
@@ -178,6 +179,49 @@ class AnnoDoc(object):
             json_obj['tiers'][name] = tier.to_json()
 
         return json.dumps(json_obj)
+
+    # TODO needs extensive testing
+    def filter_overlapping_spans(self, tier_names=None, decider=None):
+        """Remove any overlapping spans from indicated tiers by taking the
+        longest span"""
+
+        if not tier_names:
+            tiers = self.tiers.keys()
+
+        removed_spans_indexes = defaultdict(list)
+
+        tier_a_index = -1
+        for tier_name_a in tier_names:
+            tier_a = self.tiers[tier_name_a]
+            tier_a_index += 1
+            retained_spans = []
+            a_index = -1
+            for span_a in tier_a.spans:
+                a_index += 1
+                retain_a = True
+                tier_b_index = -1
+                for tier_name_b in tier_names:
+                    tier_b_index += 1
+                    tier_b = self.tiers[tier_name_b]
+                    b_index = -1
+                    for span_b in tier_b.spans:
+                        b_index += 1
+                        if ( (not b_index in removed_spans_indexes[tier_b_index]) and
+                             (not (tier_a_index == tier_b_index and a_index == b_index)) and
+                             ( (span_b.start in range(span_a.start, span_a.end)) or
+                               (span_a.start in range(span_b.start, span_b.end)) ) and
+                             (span_b.size() >= span_a.size())
+                            ):
+
+                            if not decider or decider(span_a, span_b) is False:
+                                retain_a = False
+                                removed_spans_indexes[tier_a_index].append(a_index)
+
+                if retain_a:
+                    retained_spans.append(span_a)
+
+            self.tiers[tier_name_a].spans = retained_spans
+
 
 class AnnoTier(object):
 
