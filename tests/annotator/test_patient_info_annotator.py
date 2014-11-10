@@ -406,6 +406,10 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
          ��� ����� ����������, �����-���� �������������� ������������� ����, ��� ������ ��� ���.....  ������ �������...
         """)
         doc.add_tier(self.annotator)
+    
+    def test_match_long_ellipsis2(self):
+        doc = AnnoDoc(u"""They will also be used to give the all-clear for Ebola patients who survive the disease...""")
+        doc.add_tier(self.annotator)
         
 if __name__ == '__main__':
     unittest.main()

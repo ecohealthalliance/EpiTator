@@ -123,9 +123,8 @@ class AnnoDoc(object):
                         break
             # Any number of periods is turned into a 3 period ellipsis,
             # so we need to include the extras in the match.
-            if match_offset > 0 and word.string == '...':
-                while re.match(r"\.", self.text[text_offset + match_offset]):
-                    match_offset += 1
+            if word.string == '...':
+                match_offset = re.match(r"^\.*", self.text[text_offset:]).end()
             
             if (
                 word.string[0] == self.text[text_offset] and
