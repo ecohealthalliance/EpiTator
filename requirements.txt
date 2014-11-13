@@ -4,3 +4,8 @@ pattern
 pymongo
 pyyaml
 unicodecsv
+lazy
+numpy
+geopy
+python-dateutil
+beautifulsoup
