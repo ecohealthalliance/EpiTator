@@ -5,9 +5,16 @@ Infrastructure to store linguistic annotations.
 # GeonameAnnotator
 
 The geoname annotator requires the geonames.org dataset to be downloaded and
-imported into a mongo database. Run `import_geonames.sh` to the do the import.
+imported into a Mongo database.
 Here are some [instructions](http://docs.mongodb.org/manual/tutorial/install-mongodb-on-linux/)
 for installing Mongo.
+Here are some commands that will download and import the geonames data:
+
+```bash
+wget http://download.geonames.org/export/dump/allCountries.zip
+unzip allCountries.zip
+python mongo_import_geonames.py
+```
 
 # JVM-NLP
 
