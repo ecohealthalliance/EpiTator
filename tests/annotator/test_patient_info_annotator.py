@@ -385,31 +385,6 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         #print doc.tiers['patientInfo'].spans
         self.assertEqual(len(doc.tiers['patientInfo'].spans), 5)
-
-    def test_pattern_parse_emoticon(self):
-        # Pattern parses ": 3" as a single word, I think because it thinks it is
-        # an emoticon. However doing so removes the space which can cause
-        # bugs.
-        doc = AnnoDoc("""
-        Number of new cases: 3
-        """)
-        doc.add_tier(self.annotator)
-
-    def test_match_long_ellipsis(self):
-        """
-        Checks for this exception:
-        Exception: Cannot match word [\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd] with text [..  \ufffd\ufffd\ufffd\ufffd\ufffd\ufffd]
-        """
-        # This is a snippit from the article I discovered the exception in.
-        # The character encoding turned out not to be related to the bug.
-        doc = AnnoDoc(u"""
-         ��� ����� ����������, �����-���� �������������� ������������� ����, ��� ������ ��� ���.....  ������ �������...
-        """)
-        doc.add_tier(self.annotator)
-    
-    def test_match_long_ellipsis2(self):
-        doc = AnnoDoc(u"""They will also be used to give the all-clear for Ebola patients who survive the disease...""")
-        doc.add_tier(self.annotator)
         
 if __name__ == '__main__':
     unittest.main()
