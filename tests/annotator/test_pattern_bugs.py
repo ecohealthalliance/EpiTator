@@ -7,6 +7,7 @@ sys.path = ['./'] + sys.path
 
 from annotator.annotator import AnnoDoc
 from annotator.patient_info_annotator import PatientInfoAnnotator
+from annotator.case_count_annotator import CaseCountAnnotator
 
 class PatternBugTests(unittest.TestCase):
 
@@ -51,6 +52,9 @@ class PatternBugTests(unittest.TestCase):
         doc = AnnoDoc(u"""ASIGNAN FONDO CONTINGENTE \u2028PARA AYUDAR A PRODUCTORES""")
         doc.add_tier(self.annotator)
         
+    def test_end(self):
+        doc = AnnoDoc(u"n ��i.\n \n")
+        doc.add_tier(CaseCountAnnotator())
         
 if __name__ == '__main__':
     unittest.main()

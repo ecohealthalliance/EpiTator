@@ -115,20 +115,25 @@ class AnnoDoc(object):
             # Words remove spaces that were present in the original text
             # e.g. :3 so we need to ignore spaces inside the original
             match_len = 0
-            for word_char in word.string:
+            char_idx = 0
+            while char_idx < len(word.string):
+                word_char = word.string[char_idx]
+                if text_offset + match_len >= len(self.text):
+                    match_len = -1
+                    break
                 if self.text[text_offset + match_len] == word_char:
                     match_len += 1
+                    char_idx += 1
                 else:
-                    while re.match(r"\s",
-                        self.text[text_offset + match_len],
+                    whitespace = re.search(r"^\s*",
+                        self.text[text_offset + match_len:],
                         re.UNICODE
-                    ):
-                        match_len += 1
-                    if self.text[text_offset + match_len] == word_char:
-                        match_len += 1
-                    else:
+                    ).end()
+                    if whitespace == 0:
                         match_len = -1
                         break
+                    else:
+                        match_len += whitespace
             # Any number of periods is turned into a 3 period ellipsis,
             # so we need to include the extras in the match.
             if word.string == '...':
