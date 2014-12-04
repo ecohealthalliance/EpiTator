@@ -10,6 +10,8 @@ from nltk import sent_tokenize
 import pattern
 import utils
 
+import maximum_weight_interval_set as mwis
+
 def tokenize(text):
     return sent_tokenize(text)
 
@@ -180,48 +182,25 @@ class AnnoDoc(object):
 
         return json.dumps(json_obj)
 
-    # TODO needs extensive testing
-    def filter_overlapping_spans(self, tier_names=None, decider=None):
-        """Remove any overlapping spans from indicated tiers by taking the
-        longest span"""
-
+    def filter_overlapping_spans(self, tier_names=None):
+        """Remove the smaller of any overlapping spans."""
         if not tier_names:
             tiers = self.tiers.keys()
-
-        removed_spans_indexes = defaultdict(list)
-
-        tier_a_index = -1
-        for tier_name_a in tier_names:
-            tier_a = self.tiers[tier_name_a]
-            tier_a_index += 1
-            retained_spans = []
-            a_index = -1
-            for span_a in tier_a.spans:
-                a_index += 1
-                retain_a = True
-                tier_b_index = -1
-                for tier_name_b in tier_names:
-                    tier_b_index += 1
-                    tier_b = self.tiers[tier_name_b]
-                    b_index = -1
-                    for span_b in tier_b.spans:
-                        b_index += 1
-                        if ( (not b_index in removed_spans_indexes[tier_b_index]) and
-                             (not (tier_a_index == tier_b_index and a_index == b_index)) and
-                             ( (span_b.start in range(span_a.start, span_a.end)) or
-                               (span_a.start in range(span_b.start, span_b.end)) ) and
-                             (span_b.size() >= span_a.size())
-                            ):
-
-                            if not decider or decider(span_a, span_b) is False:
-                                retain_a = False
-                                removed_spans_indexes[tier_a_index].append(a_index)
-
-                if retain_a:
-                    retained_spans.append(span_a)
-
-            self.tiers[tier_name_a].spans = retained_spans
-
+        for tier_name in tier_names:
+            tier = self.tiers[tier_name]
+            my_mwis = mwis.find_maximum_weight_interval_set([
+                mwis.Interval(
+                    start=span.start,
+                    end=span.end,
+                    weight=(span.end - span.start),
+                    corresponding_object=span
+                )
+                for span in tier.spans
+            ])
+            tier.spans =  [
+                interval.corresponding_object
+                for interval in my_mwis
+            ]
 
 class AnnoTier(object):
 
@@ -297,36 +276,21 @@ class AnnoTier(object):
 
         self.spans.sort(key=lambda span: span.start)
 
-    # TODO needs testing
-    def filter_overlapping_spans(self, decider=None):
-        """Remove the smaller of any overlapping spans. Takes an optional
-           decider function which takes two spans and returns False if span_a
-           should not be retained, True if span_a should be retained."""
-
-        retained_spans = []
-        removed_spans_indexes = []
-
-        a_index = -1
-        for span_a in self.spans:
-            a_index += 1
-            retain_a = True
-            b_index = -1
-            for span_b in self.spans:
-                b_index += 1
-                if (not b_index in removed_spans_indexes and
-                    a_index != b_index and
-                    ((span_b.start in range(span_a.start, span_a.end)) or
-                     (span_a.start in range(span_b.start, span_b.end))) and
-                     span_b.size() >= span_a.size()):
-
-                    if not decider or decider(span_a, span_b) is False:
-                        retain_a = False
-                        removed_spans_indexes.append(a_index)
-
-            if retain_a:
-                retained_spans.append(span_a)
-
-        self.spans = retained_spans
+    def filter_overlapping_spans(self, score_func=None):
+        """Remove the smaller of any overlapping spans."""
+        my_mwis = mwis.find_maximum_weight_interval_set([
+            mwis.Interval(
+                start=span.start,
+                end=span.end,
+                weight=score_func(span) if score_func else (span.end - span.start),
+                corresponding_object=span
+            )
+            for span in self.spans
+        ])
+        self.spans =  [
+            interval.corresponding_object
+            for interval in my_mwis
+        ]
 
 class AnnoSpan(object):
 
