@@ -14,9 +14,9 @@ class MetaMatch(pattern.search.Match):
     def __init__(self, matches, labels):
         self.matches = matches
         self.labels = labels
-        min_idx = min([m.words[0].index for m in matches])
-        max_idx = max([m.words[-1].index for m in matches])
-        self.words = matches[0].words[-1].sentence.words[min_idx:max_idx + 1]
+        min_idx = min([m.words[0].abs_index for m in matches])
+        max_idx = max([m.words[-1].abs_index for m in matches])
+        self.words = matches[0].words[0].doc_word_array[min_idx:max_idx + 1]
     def __repr__(self):
         return "MetaMatch(" + ", ".join(map(str, self.matches)) + ")"
     def groupdict(self):
@@ -117,10 +117,13 @@ def follows(results_lists, max_words_between=0, max_overlap=5):
     sequences = [[]]
     for results in results_lists:
         if isinstance(results, tuple):
+            # Tuples are syntactic sugar for labeled result lists.
             results = results[1]
         next_sequences = []
         for result in results:
             for sequence in sequences:
+                if len(result.words) == 0:
+                    raise Exception(str(result) + "," +  str(results))
                 if (
                     len(sequence) == 0 or
                     match_follows(

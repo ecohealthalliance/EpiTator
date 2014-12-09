@@ -82,7 +82,7 @@ class AnnoDoc(object):
         # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
         # see: https://github.com/clips/pattern/issues/84
         # This code tags all the arabic numerals as CDs. It is a temporairy fix
-        # that should be discarded when issue is resulted in the pattern lib.
+        # that should be discarded when issue is resolved in the pattern lib.
         for sent in self.pattern_tree:
             for word in sent.words:
                 if utils.parse_number(word.string) is not None:
@@ -93,9 +93,15 @@ class AnnoDoc(object):
         self.pattern_tree.all_words = []
         for sent in self.pattern_tree:
             for word in sent.words:
-                self.pattern_tree.all_words.append(word)
-                word.abs_index = abs_index
-                abs_index += 1
+                # Pattern probably shouldn't be creating zero length words.
+                # I've only encountered it happing with usual unicode chars
+                # like \u2028
+                # There might be other consequences when this happens.
+                if len(word.string) > 0:
+                    self.pattern_tree.all_words.append(word)
+                    word.abs_index = abs_index
+                    word.doc_word_array = self.pattern_tree.all_words
+                    abs_index += 1
         # Create __offset_to_word array and add byte offsets to all the
         # words in the parse tree.
         text_offset = 0
@@ -106,40 +112,58 @@ class AnnoDoc(object):
             word_offset < len(self.pattern_tree.all_words)
         ):
             word = self.pattern_tree.all_words[word_offset]
-            # Sometimes words remove spaces that were present in the original
+            # The match_len is the number of chars after the text_offset
+            # that the match ends.
+            # It needs to be computed because sometimes pattern lib
+            # Words remove spaces that were present in the original text
             # e.g. :3 so we need to ignore spaces inside the original
-            match_offset = 0
-            for word_char in word.string:
-                if self.text[text_offset + match_offset] == word_char:
-                    match_offset += 1
+            match_len = 0
+            char_idx = 0
+            while char_idx < len(word.string):
+                word_char = word.string[char_idx]
+                if text_offset + match_len >= len(self.text):
+                    match_len = -1
+                    break
+                if self.text[text_offset + match_len] == word_char:
+                    match_len += 1
+                    char_idx += 1
                 else:
-                    while re.match(r"\s", self.text[text_offset + match_offset]):
-                        match_offset += 1
-                    if self.text[text_offset + match_offset] == word_char:
-                        match_offset += 1
-                    else:
-                        match_offset = -1
+                    whitespace = re.search(r"^\s*",
+                        self.text[text_offset + match_len:],
+                        re.UNICODE
+                    ).end()
+                    if whitespace == 0:
+                        match_len = -1
                         break
+                    else:
+                        match_len += whitespace
+            # Any number of periods is turned into a 3 period ellipsis,
+            # so we need to include the extras in the match.
+            if word.string == '...':
+                match_len = re.match(r"^\.*", self.text[text_offset:]).end()
+            
             if (
                 word.string[0] == self.text[text_offset] and
-                match_offset > 0 and
-                word.string[-1] == self.text[text_offset + match_offset - 1]
+                match_len > 0 and
+                word.string[-1] == self.text[text_offset + match_len - 1]
             ):
-                word.byte_offsets = (text_offset, text_offset + match_offset)
+                word.byte_offsets = (text_offset, text_offset + match_len)
                 self.__offset_to_word[text_offset] = word
-                text_offset += match_offset
+                text_offset += match_len
                 word_offset += 1
             elif (
                 # Hyphens may be removed from the pattern text
                 # so they are treated as spaces and can be skipped when aligning
                 # the text.
-                re.match(r"\s|-$", self.text[text_offset])
+                re.match(r"^\s|-", self.text[text_offset], re.UNICODE)
             ):
                 text_offset += 1
             else:
                 raise Exception(
-                    "Cannot match word [" + word.string +
-                    "] with text [" + self.text[text_offset:text_offset + 10] + "]"
+                    u"Cannot match word [" + word.string +
+                    u"] with text [" + self.text[text_offset:text_offset + 10] +
+                    u"]" +
+                    u" match_len=" + unicode(match_len)
                 )
         # Fill the empty offsets with their previous value
         prev_val = None
