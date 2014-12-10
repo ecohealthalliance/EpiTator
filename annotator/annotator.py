@@ -211,6 +211,7 @@ class AnnoDoc(object):
         if not tier_names:
             tiers = self.tiers.keys()
         for tier_name in tier_names:
+            if tier_name not in self.tiers: continue
             tier = self.tiers[tier_name]
             my_mwis = mwis.find_maximum_weight_interval_set([
                 mwis.Interval(
