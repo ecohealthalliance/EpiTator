@@ -116,16 +116,16 @@ class CaseCountAnnotator(Annotator):
                 spans.append(span)
 
         doc.tiers['caseCounts'] = AnnoTier(spans)
-        def decider(span_a, span_b):
-            """Should span_a be retained if it overlaps with span_b? Yes, if it
-                is a hospitalization count or death count and span_b is a case
-                count, since the former are more specific than case counts."""
-            if (span_a.type is 'caseCount' or
-                span_b.type in ['hospitalizationCount', 'deathCount']):
-                return False
+        def span_score(span):
+            """
+            When spans overlap hospitalization counts and death counts
+            are retained over case counts becaues they are more specific.
+            """
+            if span.type in ['hospitalizationCount', 'deathCount']:
+                return 100 + span.end - span.start
             else:
-                return True
-        doc.tiers['caseCounts'].filter_overlapping_spans(decider=decider)
+                return span.end - span.start
+        doc.tiers['caseCounts'].filter_overlapping_spans(score_func=span_score)
         doc.tiers['caseCounts'].sort_spans()
 
         return doc
