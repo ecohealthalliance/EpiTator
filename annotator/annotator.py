@@ -125,7 +125,7 @@ class AnnoDoc(object):
             # so we need to include the extras in the match.
             if word.string == '...':
                 match_offset = re.match(r"^\.*", self.text[text_offset:]).end()
-            
+
             if (
                 word.string[0] == self.text[text_offset] and
                 match_offset > 0 and
