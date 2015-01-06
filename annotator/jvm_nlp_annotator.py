@@ -10,6 +10,7 @@ from annotator import *
 from time_expressions import *
 
 class StanfordSpan(AnnoSpan):
+
     def __init__(self, span_dict, doc):
         self.start = span_dict['start']
         self.end = span_dict['stop']
@@ -17,8 +18,11 @@ class StanfordSpan(AnnoSpan):
         self.span_dict = span_dict
         if 'label' in span_dict:
             self.label = span_dict['label']
+        else:
+            self.label = self.text
         if 'type' in span_dict:
             self.type = span_dict['type']
+
     def to_dict(self):
         result = super(StanfordSpan, self).to_dict()
         result.update(self.span_dict)
