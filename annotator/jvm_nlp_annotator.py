@@ -10,13 +10,19 @@ from annotator import *
 from time_expressions import *
 
 class StanfordSpan(AnnoSpan):
+
     def __init__(self, span_dict, doc):
         self.start = span_dict['start']
         self.end = span_dict['stop']
         self.doc = doc
         self.span_dict = span_dict
-        self.label = span_dict['label']
-        self.type = span_dict['type']
+        if 'label' in span_dict:
+            self.label = span_dict['label']
+        else:
+            self.label = self.text
+        if 'type' in span_dict:
+            self.type = span_dict['type']
+
     def to_dict(self):
         result = super(StanfordSpan, self).to_dict()
         result.update(self.span_dict)
@@ -81,10 +87,6 @@ class JVMNLPAnnotator():
 
             for request_span in return_json['tiers'][tier]['spans']:
                 span = StanfordSpan(request_span, doc)
-                if 'label' in request_span:
-                    span.label = request_span['label']
-                if 'type' in request_span:
-                    span.type = request_span['type']
                 if 'timePoint' in request_span:
                     span.timePoint = TimePoint.from_json(request_span['timePoint'])
                 if 'timeRange' in request_span:
