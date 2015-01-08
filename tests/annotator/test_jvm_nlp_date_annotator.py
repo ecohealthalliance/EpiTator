@@ -411,5 +411,23 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeDuration'), False)
         self.assertEqual(hasattr(doc.tiers['times'].spans[0], 'timeSet'), False)
 
+    def test_intersect(self):
+        """We see some labels like "OFFSET P-1D INTERSECT 2015-01-01" for phrases
+        like "yesterday, 1 Jan 2015." We want to make sure we take only the date
+        and not the "intersect" property."""
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'I went there yesterday, 1 Jan 2015.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, '2015-01-01')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'yesterday, 1 Jan 2015')
+
 if __name__ == '__main__':
     unittest.main()
