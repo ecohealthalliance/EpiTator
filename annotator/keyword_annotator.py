@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+    #!/usr/bin/env python
 """Keyword Annotator"""
 import math
 import re
@@ -20,7 +20,10 @@ class KeywordAnnotator(Annotator):
         self.keywords = {}
 
         for keyword_type in self.keyword_types:
-            self.keywords[keyword_type] = set( [ res['_id'] for res in db[keyword_type].find() ] )
+            self.keywords[keyword_type] = {
+                res['_id'].lower(): (res['_id'], res['case_sensitive'])
+                for res in db[keyword_type].find()
+            }
 
     def annotate(self, doc):
 
@@ -32,13 +35,23 @@ class KeywordAnnotator(Annotator):
 
         for ngram_span in doc.tiers['ngrams'].spans:
             ngram_spans_by_lowercase[ngram_span.text.lower()].append(ngram_span)
-        lowercase_ngrams = ngram_spans_by_lowercase.keys()
+
+        ngrams = ngram_spans_by_lowercase.keys()
 
         for keyword_type, keywords in self.keywords.iteritems():
+
             keyword_spans = []
-            for keyword in keywords.intersection(lowercase_ngrams):
+            for keyword in set(keywords.keys()).intersection(ngrams):
+                true_case = keywords[keyword][0]
+                case_sensitive = keywords[keyword][1]
                 for ngram_span in ngram_spans_by_lowercase[keyword]:
-                    keyword_spans.append(AnnoSpan(ngram_span.start, ngram_span.end, doc, label=keyword))
+                    if not case_sensitive or ngram_span.text == true_case:
+                        if case_sensitive:
+                            label = true_case
+                        else:
+                            label = keyword
+                        keyword_spans.append(AnnoSpan(ngram_span.start, ngram_span.end, doc, label=label))
+
             doc.tiers[keyword_type] = AnnoTier(keyword_spans)
             doc.tiers[keyword_type].filter_overlapping_spans()
             doc.tiers[keyword_type].sort_spans()

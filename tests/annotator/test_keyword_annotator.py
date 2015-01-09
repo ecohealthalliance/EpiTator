@@ -117,6 +117,32 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['symptoms'].spans[1].start, 23)
         self.assertEqual(doc.tiers['symptoms'].spans[1].end, 29)
 
+    def test_case_sensitivity(self):
+
+        annotator = KeywordAnnotator()
+
+        text = 'The word as should not be recognized as a disease.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['diseases'].spans), 0)
+
+        text = 'The word AS should be recognized as a disease.'
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['diseases'].spans), 1)
+        self.assertEqual(doc.tiers['diseases'].spans[0].text, "AS")
+        self.assertEqual(doc.tiers['diseases'].spans[0].label, "AS")
+        self.assertEqual(doc.tiers['diseases'].spans[0].start, 9)
+        self.assertEqual(doc.tiers['diseases'].spans[0].end, 11)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
