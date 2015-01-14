@@ -109,7 +109,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             }
         )
         self.assertEqual(len(doc.tiers['patientInfo']), 1)
-        
+
     def test_death_counts(self):
         """We want to make sure that 'death' is the type of the retained
            span here, as it is also a match for a 'caseCount' pattern."""
@@ -230,7 +230,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
                     'cumulative': True,
                     'case': True
                 },
-                
+
             }
         )
         test_utils.assertHasProps(
@@ -284,7 +284,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             }
         )
         self.assertEqual(len(doc.tiers['patientInfo']), 2)
-        
+
     def test_value_modifier(self):
         doc = AnnoDoc("The average number of cases reported annually is 600")
         doc.add_tier(self.annotator)
