@@ -34,7 +34,7 @@ class MetaMatch(pattern.search.Match):
                     out.update(match.groupdict())
         return out
 
-    def interate_matches(self):
+    def iterate_matches(self):
         """
         Iterate over all the plain match objects nested in MetaMatches
         """
@@ -51,7 +51,7 @@ class MetaMatch(pattern.search.Match):
         (which len() would return).
         """
         word_indices = {}
-        for match in self.interate_matches():
+        for match in self.iterate_matches():
             for word in match.words:
                 word_indices[word.index] = word_indices.get(word.index, 0) + 1
         if include_overlap:
@@ -156,7 +156,7 @@ def combine(
 
     if matches are within max_proximity of eachother they are considered
     overlapping
-    
+
     remove_conflicts removes all results that overlap rather than keeping one.
     """
     all_results = reduce(lambda sofar, k: sofar + k, results_lists, [])

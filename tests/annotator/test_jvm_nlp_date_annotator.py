@@ -429,5 +429,23 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['times'].spans[0].label, '2015-01-01')
         self.assertEqual(doc.tiers['times'].spans[0].text, 'yesterday, 1 Jan 2015')
 
+    def test_specificity(self):
+
+        annotator = JVMNLPAnnotator(['times'])
+
+        text = 'He said the strain detected in the Cloppenburg district [Lower Saxony state] was the same as that found at another farm in November [2014] in Schleswig-Holstein state.'
+
+        doc = AnnoDoc(text)
+        doc.add_tier(annotator)
+
+        self.assertEqual(doc.text, text)
+
+        self.assertEqual(len(doc.tiers['times'].spans), 2)
+
+        self.assertEqual(doc.tiers['times'].spans[0].label, '2014-11')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'November')
+        self.assertEqual(doc.tiers['times'].spans[1].label, '2014')
+        self.assertEqual(doc.tiers['times'].spans[1].text, '2014')
+
 if __name__ == '__main__':
     unittest.main()
