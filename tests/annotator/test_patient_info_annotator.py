@@ -59,9 +59,6 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
             }
         })
 
-        for span in doc.tiers['patientInfo'].spans:
-            print span.metadata
-
     def test_snippit2(self):
         # based on: http://www.promedmail.org/direct.php?id=2641341
         doc = AnnoDoc("""
@@ -275,7 +272,6 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
     def test_duplicate_counts(self):
         doc = AnnoDoc("""We saw an average of five cases per year.""")
         doc.add_tier(self.annotator)
-        print doc.tiers['patientInfo'].spans[0].metadata
         # self.assertEqual(len(doc.tiers['patientInfo'].spans), 5)
 
     # TODO
