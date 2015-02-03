@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf8
 """Annotator"""
 import json
 import re
@@ -75,7 +76,9 @@ class AnnoDoc(object):
         self.taxonomy = pattern.search.Taxonomy()
         self.taxonomy.append(pattern.search.WordNetClassifier())
         self.pattern_tree = pattern.en.parsetree(
-            utils.dehyphenate_numbers_and_ages(self.text),
+            # Replacing the unicode dashes is done to avoid this pattern bug:
+            # https://github.com/clips/pattern/issues/104
+            utils.dehyphenate_numbers_and_ages(self.text).replace(u"—", "-"),
             lemmata=True,
             relations=True
         )
