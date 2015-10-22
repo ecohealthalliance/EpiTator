@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Ngram Annotator"""
 
-import nltk
-
 from annotator import *
 from token_annotator import TokenAnnotator
 

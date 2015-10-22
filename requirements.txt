@@ -1,12 +1,12 @@
 --index-url https://pypi.python.org/simple/
-nltk>=3.0
+nltk==3.0.5
 requests
 pattern
-pymongo
+pymongo==2.7.2
 pyyaml
 unicodecsv
 lazy
-numpy
+numpy==1.10.0.post2
 geopy
 python-dateutil
 beautifulsoup
