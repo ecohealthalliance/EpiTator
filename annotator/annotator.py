@@ -28,12 +28,15 @@ class AnnoDoc(object):
     # stripped of tags? This will ruin offsets.
 
     def __init__(self, text=None, date=None):
-        if type(text) is unicode or text:
+        if type(text) is unicode:
             self.text = text
         elif type(text) is str:
             self.text = unicode(text, 'utf8')
         else:
             raise TypeError("text must be string or unicode")
+        # Replacing the unicode dashes is done to avoid this pattern bug:
+        # https://github.com/clips/pattern/issues/104
+        self.text = self.text.replace(u"—", "-")
         self.tiers = {}
         self.properties = {}
         self.pattern_tree = None
@@ -76,9 +79,7 @@ class AnnoDoc(object):
         self.taxonomy = pattern.search.Taxonomy()
         self.taxonomy.append(pattern.search.WordNetClassifier())
         self.pattern_tree = pattern.en.parsetree(
-            # Replacing the unicode dashes is done to avoid this pattern bug:
-            # https://github.com/clips/pattern/issues/104
-            utils.dehyphenate_numbers_and_ages(self.text).replace(u"—", "-"),
+            utils.dehyphenate_numbers_and_ages(self.text),
             lemmata=True,
             relations=True
         )
