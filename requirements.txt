@@ -2,7 +2,7 @@
 nltk==3.0.5
 requests
 pattern
-pymongo==2.7.2
+pymongo==3.2.2
 pyyaml
 unicodecsv
 lazy

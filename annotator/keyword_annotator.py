@@ -4,7 +4,8 @@ import math
 import re
 from collections import defaultdict
 
-import pymongo
+from pymongo import MongoClient
+import os
 
 from annotator import *
 from ngram_annotator import NgramAnnotator
@@ -15,7 +16,13 @@ class KeywordAnnotator(Annotator):
 
     def __init__(self, db=None):
         if not db:
-            db = pymongo.Connection('localhost', port=27017)['annotation']
+            if 'MONGO_URL' in os.environ:
+                mongo_url = os.environ['MONGO_URL']
+            else:
+                mongo_url = 'mongodb://localhost:27017'
+
+        client = MongoClient(mongo_url)
+        db = client.annotation
 
         self.keywords = {}
 
