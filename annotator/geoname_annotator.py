@@ -3,7 +3,8 @@
 import math
 import re
 import itertools
-import pymongo
+from pymongo import MongoClient
+import os
 
 from annotator import *
 from ngram_annotator import NgramAnnotator
@@ -94,7 +95,13 @@ class GeonameAnnotator(Annotator):
 
     def __init__(self, geonames_collection=None):
         if not geonames_collection:
-            db = pymongo.Connection('localhost', port=27017)['geonames']
+            if 'MONGO_URL' in os.environ:
+                mongo_url = os.environ['MONGO_URL']
+            else:
+                mongo_url = 'mongodb://localhost:27017'
+
+            client = MongoClient(mongo_url)
+            db = client.geonames
             geonames_collection = db.allCountries
         self.geonames_collection = geonames_collection
 
