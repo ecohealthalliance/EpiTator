@@ -9,7 +9,7 @@ http://download.geonames.org/export/dump/
 """
 import sys, csv
 import unicodecsv
-import pymongo
+from pymongo import MongoClient
 import time
 
 def parse_number(num, default):
@@ -73,7 +73,8 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     print "This takes me about a half hour to run on my machine..."
-    db = pymongo.Connection(args.mongo_url)[args.db_name]
+    client = MongoClient(args.mongo_url)
+    db = client[args.db_name]
     collection = db['allCountries']
     collection.drop()
     for i, geoname in enumerate(read_geonames_csv('allCountries.txt')):
