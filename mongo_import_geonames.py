@@ -20,7 +20,7 @@ def parse_number(num, default):
             return float(num)
         except ValueError:
             return default
-        
+
 def read_geonames_csv(file_path):
     geonames_fields=[
         'geonameid',
@@ -44,7 +44,7 @@ def read_geonames_csv(file_path):
         'modification date',
     ]
     #Loading geonames data may cause errors without this line:
-    csv.field_size_limit(2**32)
+    csv.field_size_limit(sys.maxint)
     with open(file_path, 'rb') as f:
         reader = unicodecsv.DictReader(f,
             fieldnames=geonames_fields,
@@ -61,7 +61,7 @@ def read_geonames_csv(file_path):
             else:
                 d['alternatenames'] = []
             yield d
-            
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
