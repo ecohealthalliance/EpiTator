@@ -62,8 +62,9 @@ if __name__ == '__main__':
         if keyword['category'] in category_labels:
             collection = category_labels[keyword['category']]
 
-            db[collection].insert(
-                { '_id': keyword['keyword'],
-                  'source': keyword['category'],
-                  'linked_keywords': keyword['linked_keywords'],
-                  'case_sensitive': keyword['case_sensitive']} )
+            db[collection].find_one_and_replace({'_id': keyword['keyword']}, {
+                '_id': keyword['keyword'],
+                'source': keyword['category'],
+                'linked_keywords': keyword['linked_keywords'],
+                'case_sensitive': keyword['case_sensitive']
+            }, upsert=True)
