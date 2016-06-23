@@ -103,6 +103,7 @@ class GeonameAnnotator(Annotator):
             client = MongoClient(mongo_url)
             db = client.geonames
             geonames_collection = db.allCountries
+        assert geonames_collection.count() > 0
         self.geonames_collection = geonames_collection
 
     # TODO text in this case means AnnoText, elswhere, it's raw text
