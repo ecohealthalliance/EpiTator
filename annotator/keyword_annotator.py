@@ -21,8 +21,8 @@ class KeywordAnnotator(Annotator):
             else:
                 mongo_url = 'mongodb://localhost:27017'
 
-        client = MongoClient(mongo_url)
-        db = client.annotation
+            client = MongoClient(mongo_url)
+            db = client.annotation
 
         self.keywords = {}
 
