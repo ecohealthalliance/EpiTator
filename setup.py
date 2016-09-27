@@ -6,5 +6,5 @@ except ImportError:
 setup(name='annie',
 	version='0.2.1',
 	packages=['annotator', ],
-	install_requires=['lazy', ]
+	install_requires=['lazy', 'nltk', 'pattern', ]
 )
