@@ -16,6 +16,7 @@ class MetaMatch(pattern.search.Match):
         self.labels = labels
         min_idx = min([m.words[0].abs_index for m in matches])
         max_idx = max([m.words[-1].abs_index for m in matches])
+        assert min_idx <= max_idx
         self.words = matches[0].words[0].doc_word_array[min_idx:max_idx + 1]
     def __repr__(self):
         return "MetaMatch(" + ", ".join(map(str, self.matches)) + ")"
@@ -46,9 +47,7 @@ class MetaMatch(pattern.search.Match):
                 yield match
     def match_length(self, include_overlap=False):
         """
-        Return the cumulative length of all the submatches rather than the
-        length of the meta match's span including space between submatches
-        (which len() would return).
+        Return the number of tokens in the match.
         """
         word_indices = {}
         for match in self.iterate_matches():
@@ -61,7 +60,7 @@ class MetaMatch(pattern.search.Match):
     def constituents(self):
         return self.words
 
-def near(results_lists, max_words_between=30):
+def near(results_lists, max_words_between=30, outer=True):
     """
     Returns matches from mulitple results lists that appear in the same sentence
     within the given proximity.
@@ -75,7 +74,7 @@ def near(results_lists, max_words_between=30):
         if (isinstance(rl, list) and len(rl) > 0) or
            (isinstance(rl, tuple) and len(rl[1]) > 0)
     ]
-    for i in range(2, len(non_empty_lists) + 1):
+    for i in range(2 if outer else len(non_empty_lists), len(non_empty_lists) + 1):
         for permutation in itertools.permutations(non_empty_lists, i):
             result += follows(permutation, max_words_between, max_overlap=10)
     return result

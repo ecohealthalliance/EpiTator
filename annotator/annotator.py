@@ -209,26 +209,32 @@ class AnnoDoc(object):
 
         return json.dumps(json_obj)
 
-    def filter_overlapping_spans(self, tier_names=None):
+    def filter_overlapping_spans(self, tiers=None, score_func=None):
         """Remove the smaller of any overlapping spans."""
-        if not tier_names:
+        if not tiers:
             tiers = self.tiers.keys()
-        for tier_name in tier_names:
-            if tier_name not in self.tiers: continue
-            tier = self.tiers[tier_name]
-            my_mwis = mwis.find_maximum_weight_interval_set([
+        intervals = []
+        for tier in tiers:
+            if isinstance(tier, basestring):
+                tier_name = tier
+                if tier_name not in self.tiers:
+                    print "Warning! Tier does not exist:", tier_name
+                    continue
+                tier = self.tiers[tier_name]
+            intervals.extend([
                 mwis.Interval(
                     start=span.start,
                     end=span.end,
-                    weight=(span.end - span.start),
-                    corresponding_object=span
+                    weight=score_func(span) if score_func else (span.end - span.start),
+                    corresponding_object=(tier, span)
                 )
                 for span in tier.spans
             ])
-            tier.spans =  [
-                interval.corresponding_object
-                for interval in my_mwis
-            ]
+            tier.spans = []
+        my_mwis = mwis.find_maximum_weight_interval_set(intervals)
+        for interval in my_mwis:
+            tier, span = interval.corresponding_object
+            tier.spans.append(span)
 
 class AnnoTier(object):
 

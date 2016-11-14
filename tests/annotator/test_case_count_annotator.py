@@ -145,21 +145,6 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             }
         )
 
-    # With the combined patient description / caseCount annotator the span of
-    # text no longer corresponds to the count.
-    # def test_numbers_last_pattern(self):
-    #     """Make sure we can get the proper offsets if we have a numeric portion
-    #       that comes at the end of the pattern."""
-
-    #     doc = AnnoDoc("The number of cases exceeds 30")
-    #     doc.add_tier(self.annotator)
-
-    #     self.assertEqual(len(doc.tiers['patientInfo']), 1)
-    #     self.assertEqual(doc.tiers['patientInfo'].spans[0].start, 28)
-    #     self.assertEqual(doc.tiers['patientInfo'].spans[0].end, 30)
-    #     self.assertEqual(doc.tiers['patientInfo'].spans[0].label, 30)
-    #     self.assertEqual(doc.tiers['patientInfo'].spans[0].type, 'caseCount')
-
     def test_misc(self):
         doc = AnnoDoc("1200 children between the ages of 2 and 5 are afflicted with a mystery illness")
         doc.add_tier(self.annotator)
@@ -177,7 +162,7 @@ class CaseCountAnnotatorTest(unittest.TestCase):
         )
 
     def test_misc2(self):
-        doc = AnnoDoc("These 2 new cases bring to 4 the number stricken in California this year [2012].")
+        doc = AnnoDoc("These 2 new cases bring to 4 the number stricken in California.")
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
             doc.tiers['patientInfo'].spans[0].metadata, {
@@ -324,7 +309,6 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             }
         )
     def test_hyphenated_numbers(self):
-
         doc = AnnoDoc("There have been nine hundred ninety-nine reported cases.")
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
@@ -335,38 +319,5 @@ class CaseCountAnnotatorTest(unittest.TestCase):
             }
         )
 
-
 if __name__ == '__main__':
     unittest.main()
-
-# TODO -- enable these once our aspirations have been achieved.
-
-"""
-
-    import os, sys; sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import unittest
-from diagnosis.feature_extractors import extract_counts
-
-class TestCountExtractorAspirations(unittest.TestCase):
-    def test_vague(self):
-        example = "Hundreds of people have possibly contracted the disease cholera over the past few days"
-        actual_count = 200
-        count_obj = next(extract_counts(example), {})
-        self.assertEqual(count_obj.get('type'), "caseCount")
-        self.assertEqual(count_obj.get('aproximate'), True)
-        self.assertEqual(count_obj.get('value'), actual_count)
-    def test_location_association(self):
-        example = "500 new MERS cases that Saudi Arabia has reported in the past 3 months appear to have occurred in hospitals"
-        actual_count = 500
-        count_obj = next(extract_counts(example), {})
-        self.assertEqual(count_obj.get('location'), "Saudi Arabia")
-        self.assertEqual(count_obj.get('value'), actual_count)
-    def test_time_association(self):
-        example = "Since 2001, the median annual number of cases in the U.S. was 60"
-        actual_count = 60
-        count_obj = next(extract_counts(example), {})
-        self.assertEqual(count_obj.get('time'), "2001")
-        self.assertEqual(count_obj.get('valueModifier'), "median")
-        self.assertEqual(count_obj.get('value'), actual_count)
-
-"""

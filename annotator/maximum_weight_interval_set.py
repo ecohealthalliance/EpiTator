@@ -4,7 +4,10 @@ class Interval():
         self.end = end
         self.weight = weight
         self.corresponding_object = corresponding_object
-        self.value = 0.0
+        # The combined weight of the MWIS prior to this interval.
+        self.__value__ = 0.0
+        # The previous inverval in the MWIS prior to this interval.
+        self.__previous__ = None
     def start_endpoint(self):
         return Endpoint(self, True)
     def end_endpoint(self):
@@ -21,47 +24,41 @@ class Endpoint():
     def __lt__(self, other):
         if self.get_idx() == other.get_idx():
             # This condition is used so the starting endpoints come first
-            # when iterating over the sorted endpoints. This is necessairy
-            # so that that starting interval scores won't include the
-            # score of the intervals that end at the same point they begin.
-            return self.is_start
+            # when iterating over the sorted endpoints.
+            # This is necessary for zero length intervals.
+            # However, it also adds the requirement that overlapping endpoints
+            # makes invervals overlap.
+            return self.is_start and not other.is_start
         else:
             return self.get_idx() < other.get_idx()
+
 def find_maximum_weight_interval_set(intervals):
     """
     Takes a list of weighted intervals and returns a non-overlapping set of them
-    with the maximum possible weight. Endpoints cannot overlap.
-    Currently interval weights must be sensitive to no more than 2 decimal places.
+    with the maximum possible weight.
+    If endpoints overlap, the intervals are considered to be overlapping.
     """
     endpoints = []
     for interval in intervals:
         endpoints.append(interval.start_endpoint())
         endpoints.append(interval.end_endpoint())
     sorted_endpoints = sorted(endpoints)
-    temp_max = 0.0
+    max_interval_sofar = None
     for endpoint in sorted_endpoints:
         if endpoint.is_start:
-            endpoint.interval.value = temp_max + endpoint.interval.weight
-        else:
-            if endpoint.interval.value > temp_max:
-                temp_max = endpoint.interval.value
-    # Now temp_max is the actual max weight.
-    # Do backtracking to determine the intervals in the
-    # maximum weighted interval set:
+            endpoint.interval.__value__ = endpoint.interval.weight
+            if max_interval_sofar:
+                endpoint.interval.__value__ += max_interval_sofar.__value__
+                endpoint.interval.__previous__ = max_interval_sofar
+        else: #endoint.is_end
+            if not max_interval_sofar:
+                max_interval_sofar = endpoint.interval
+            elif endpoint.interval.__value__ >= max_interval_sofar.__value__:
+                max_interval_sofar = endpoint.interval
     mwis = []
-    seek_idx = None
-    for endpoint in reversed(sorted_endpoints):
-        # Seek to endpoints before seek_idx
-        if seek_idx is not None:
-            if endpoint.get_idx() >= seek_idx:
-                continue
-        # Comparing values to identify intervals has the disadvantage that it
-        # it limits the precision of the intervals weights.
-        if (
-            not endpoint.is_start and
-            round(endpoint.interval.value, 3) == round(temp_max, 3)
-        ):
-            mwis.insert(0, endpoint.interval)
-            temp_max -= endpoint.interval.weight
-            seek_idx = endpoint.interval.start
+    while max_interval_sofar:
+        mwis.insert(0, max_interval_sofar)
+        max_interval_sofar = max_interval_sofar.__previous__
+    if len(intervals) >= 1:
+        assert len(mwis) >= 1
     return mwis
