@@ -57,7 +57,7 @@ class CountSpan(AnnoSpan):
             'attributes': sorted(list(attributes))
         }
     def to_dict(self):
-        result = super(KeypointSpan, self).to_dict()
+        result = super(CountSpan, self).to_dict()
         result.update(self.metadata)
         return result
 

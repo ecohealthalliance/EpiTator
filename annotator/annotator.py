@@ -209,8 +209,10 @@ class AnnoDoc(object):
 
         return json.dumps(json_obj)
 
-    def filter_overlapping_spans(self, tiers=None, score_func=None):
+    def filter_overlapping_spans(self, tiers=None, tier_names=None, score_func=None):
         """Remove the smaller of any overlapping spans."""
+        if not tiers:
+            tiers = tier_names
         if not tiers:
             tiers = self.tiers.keys()
         intervals = []
