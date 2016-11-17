@@ -135,7 +135,7 @@ def follows(results_lists, max_words_between=0, max_overlap=5):
         r[0] if isinstance(r, tuple) else None
         for r in results_lists
     ]
-    return [MetaMatch(seq, labels) for seq in sequences]
+    return [MetaMatch(seq, labels) for seq in sequences if len(seq) > 0]
 
 def label(label, results_list):
     """

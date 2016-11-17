@@ -18,6 +18,10 @@ class TestCountAnnotator(unittest.TestCase):
     def setUp(self):
         self.annotator = CountAnnotator()
 
+    def test_no_counts(self):
+        doc = AnnoDoc("Fever")
+        doc.add_tier(self.annotator)
+
     def test_verb_counts(self):
         examples = [
             ("it brings the number of cases reported to 28 in Jeddah since 27 Mar 2014", 28),
