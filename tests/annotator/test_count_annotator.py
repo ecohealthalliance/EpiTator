@@ -22,6 +22,16 @@ class TestCountAnnotator(unittest.TestCase):
         doc = AnnoDoc("Fever")
         doc.add_tier(self.annotator)
 
+    def test_false_positive_counts(self):
+        examples = [
+            "Measles - Democratic Republic of the Congo (Katanga) 2007.1775",
+            "Meningitis - Democratic Republic of Congo (02) 970814010223"
+        ]
+        for example in examples:
+            doc = AnnoDoc(example)
+            doc.add_tier(self.annotator)
+            self.assertEqual(len(doc.tiers['counts']), 0)
+
     def test_verb_counts(self):
         examples = [
             ("it brings the number of cases reported to 28 in Jeddah since 27 Mar 2014", 28),

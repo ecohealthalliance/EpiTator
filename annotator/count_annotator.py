@@ -69,16 +69,25 @@ class CountAnnotator(Annotator):
         doc.setup_pattern()
         my_search = doc.p_search
         counts = ra.label('count', my_search('{CD+ and? CD? CD?}'))
-        # Next cull the false-positive counts from ages and dates.
+        # Cull the false-positive counts
+        # Remove counts that have fractional values, begin with 0
+        # or are extremely large
+        def is_valid(count_string):
+            value = utils.parse_spelled_number(count_string)
+            if count.string[0] == '0': return False
+            if int(value) != value: return False
+            if value > 1000000000: return False
+            return True
         match_tier = AnnoTier([
             MatchSpan(count, doc)
-            for count in counts
+            for count in counts if is_valid(count.string)
         ])
         # Remove counts that overlap a time span.
         doc.filter_overlapping_spans(
             ['times', match_tier],
             score_func=lambda x: 0 if isinstance(x, MatchSpan) else 1)
         counts = [span.match for span in match_tier.spans]
+        # Remove counts that overlap an age
         counts = ra.combine([
             counts,
             ra.follows([my_search('AGE OF'), counts])
