@@ -77,7 +77,7 @@ class CountAnnotator(Annotator):
             if count.string[0] == '0': return False
             try:
                 if int(value) != value: return False
-            except ValueError:
+            except (TypeError, ValueError) as e:
                 print "Cannot parse count string: " + count_string
                 return False
             if value > 1000000000: return False
