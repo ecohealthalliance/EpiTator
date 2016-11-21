@@ -75,7 +75,11 @@ class CountAnnotator(Annotator):
         def is_valid(count_string):
             value = utils.parse_spelled_number(count_string)
             if count.string[0] == '0': return False
-            if int(value) != value: return False
+            try:
+                if int(value) != value: return False
+            except ValueError:
+                print "Cannot parse count string: " + count_string
+                return False
             if value > 1000000000: return False
             return True
         match_tier = AnnoTier([
