@@ -189,5 +189,17 @@ class TestCountAnnotator(unittest.TestCase):
             for actual, expected in zip(doc.tiers['counts'].spans, counts):
                 test_utils.assertHasProps(actual.metadata, expected)
 
+    def test_misc(self):
+        examples= [
+            ("A recent report of hundreds of new cases in Katanga Province", [])
+        ]
+        for example in examples:
+            sent, counts = example
+            doc = AnnoDoc(sent)
+            doc.add_tier(self.annotator)
+            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
+            for actual, expected in zip(doc.tiers['counts'].spans, counts):
+                test_utils.assertHasProps(actual.metadata, expected)
+
 if __name__ == '__main__':
     unittest.main()
