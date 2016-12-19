@@ -69,13 +69,8 @@ def near(results_lists, max_words_between=30, outer=True):
     n words away from all other elements in the tuple
     """
     result = []
-    non_empty_lists = [
-        rl for rl in results_lists
-        if (isinstance(rl, list) and len(rl) > 0) or
-           (isinstance(rl, tuple) and len(rl[1]) > 0)
-    ]
-    for i in range(2 if outer else len(non_empty_lists), len(non_empty_lists) + 1):
-        for permutation in itertools.permutations(non_empty_lists, i):
+    for i in range(2 if outer else len(results_lists), len(results_lists) + 1):
+        for permutation in itertools.permutations(results_lists, i):
             result += follows(permutation, max_words_between, max_overlap=10)
     return result
 
@@ -113,21 +108,23 @@ def follows(results_lists, max_words_between=0, max_overlap=5):
     contraint by adding sentence indecies to matches, but I don't think
     that would be very useful.
     """
-    sequences = [[]]
-    for results in results_lists:
+    sequences = []
+    for idx, results in enumerate(results_lists):
         if isinstance(results, tuple):
             # Tuples are syntactic sugar for labeled result lists.
             results = results[1]
+        if len(results) == 0:
+            return []
+        if idx == 0:
+            sequences = [[r] for r in results]
+            continue
         next_sequences = []
         for result in results:
             for sequence in sequences:
                 if len(result.words) == 0:
                     raise Exception(str(result) + "," +  str(results))
-                if (
-                    len(sequence) == 0 or
-                    match_follows(
-                        sequence[-1], result, max_words_between, max_overlap
-                    )
+                if match_follows(
+                    sequence[-1], result, max_words_between, max_overlap
                 ):
                     next_sequences.append(sequence + [result])
         sequences = next_sequences
@@ -135,7 +132,7 @@ def follows(results_lists, max_words_between=0, max_overlap=5):
         r[0] if isinstance(r, tuple) else None
         for r in results_lists
     ]
-    return [MetaMatch(seq, labels) for seq in sequences if len(seq) > 0]
+    return [MetaMatch(seq, labels) for seq in sequences]
 
 def label(label, results_list):
     """
