@@ -201,5 +201,18 @@ class TestCountAnnotator(unittest.TestCase):
             for actual, expected in zip(doc.tiers['counts'].spans, counts):
                 test_utils.assertHasProps(actual.metadata, expected)
 
+    def test_distance_and_percentage_filtering(self):
+        examples= [
+            ("48 percent of the cases occured in Seattle", []),
+            ("28 kilometers away [17.4 miles]", [])
+        ]
+        for example in examples:
+            sent, counts = example
+            doc = AnnoDoc(sent)
+            doc.add_tier(self.annotator)
+            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
+            for actual, expected in zip(doc.tiers['counts'].spans, counts):
+                test_utils.assertHasProps(actual.metadata, expected)
+
 if __name__ == '__main__':
     unittest.main()

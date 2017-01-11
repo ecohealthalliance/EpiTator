@@ -96,6 +96,16 @@ class CountAnnotator(Annotator):
             counts,
             ra.follows([my_search('AGE OF'), counts])
         ], remove_conflicts=True)
+        # Remove distances
+        counts = ra.combine([
+            counts,
+            ra.follows([counts, my_search('KILOMETERS|KM|MILES|MI')])
+        ], remove_conflicts=True)
+        # Remove percentages
+        counts = ra.combine([
+            counts,
+            ra.follows([counts, my_search('PERCENT|%')])
+        ], remove_conflicts=True)
         count_modifiers = ra.combine([
             ra.label('average', my_search('AVERAGE|MEAN')) +
             ra.label('annual', my_search('ANNUAL|ANNUALLY')) +
