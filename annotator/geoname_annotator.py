@@ -92,7 +92,7 @@ class GeonameRow(sqlite3.Row):
         self.score = None
     def add_spans(self, span_text_to_spans):
         for name in self['names_used'].split(';'):
-            for span in span_text_to_spans[name.lower()]:
+            for span in span_text_to_spans[name.lower().strip()]:
                 self.spans.add(span)
     def __hash__(self):
         return id(self)
