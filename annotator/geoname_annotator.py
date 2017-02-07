@@ -13,6 +13,8 @@ from geopy.distance import great_circle
 from maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
 
 from get_database_connection import get_database_connection
+import math
+from geoname_classifier import predict_proba
 
 import datetime
 import logging
@@ -122,56 +124,26 @@ class GeonameFeatures(object):
             for feature_name, feature_fun in GeonameFeatures.__dict__.items()
             if hasattr(feature_fun, "is_feature") }
     @feature
-    def population_score(self):
-        geoname = self.geoname
-        if geoname['population'] > 1000000:
-            return 100
-        elif geoname['population'] > 500000:
-            return 60
-        elif geoname['population'] > 300000:
-            return 40
-        elif geoname['population'] > 200000:
-            return 30
-        elif geoname['population'] > 100000:
-            return 20
-        elif geoname['population'] > 10000:
-            return 5
-        else:
-            return 0
+    def log_population(self):
+        return math.log(self.geoname['population'] + 1)
     @feature
-    def synonymity(self):
-        geoname = self.geoname
+    def name_count(self):
         # Geonames with lots of alternate names
         # tend to be the ones most commonly referred to.
-        if geoname['name_count'] > 8:
-            return 100
-        elif geoname['name_count'] > 4:
-            return 50
-        elif geoname['name_count'] > 0:
-            return 10
-        else:
-            return 0
+        return self.geoname['name_count']
     @feature
-    def num_spans_score(self):
-        geoname = self.geoname
-        return min(len(geoname.spans), 4) * 25
+    def num_spans(self):
+        return len(self.geoname.spans)
     @feature
-    def short_span_score(self):
-        geoname = self.geoname
+    def max_span_length(self):
         max_span_length = max([
-            len(span.text) for span in geoname.spans
+            len(span.text) for span in self.geoname.spans
         ])
-        if max_span_length < 4:
-            return 100
-        elif max_span_length < 5:
-            return 10
-        else:
-            return 0
+        return max_span_length
     @feature
     def cannonical_name_used(self):
-        geoname = self.geoname
-        return 100 if any([
-            span.text == geoname['name'] for span in geoname.spans
+        return 1 if any([
+            span.text == self.geoname['name'] for span in self.geoname.spans
         ]) else 0
     @feature
     def NEs_contained(self):
@@ -184,45 +156,26 @@ class GeonameFeatures(object):
             for ne_span in ne_spans:
                 if ne_span.label == 'GPE':
                     NE_overlap += len(ne_span.text)
-        return float(100 * NE_overlap) / total_len
+        return float(NE_overlap) / total_len
     @feature
-    def distinctness(self):
-        geoname = self.geoname
-        return 100 / float(len(geoname.alternate_locations) + 1)
+    def ambiguity(self):
+        return len(self.geoname.alternate_locations)
     @feature
-    def max_span_score(self):
-        geoname = self.geoname
-        max_span = max([
-            len(span.text) for span in geoname.spans
-        ])
-        if max_span < 5: return 0
-        elif max_span < 8: return 40
-        elif max_span < 10: return 60
-        elif max_span < 15: return 80
-        else: return 100
+    def PPL_feature_code(self):
+        return 1 if self.geoname['feature_code'].startswith('PPL') else 0
     @feature
-    def feature_code_score(self):
-        geoname = self.geoname
-        for code, score in list({
-            # Continent (need this bc Africa has 0 population)
-            'CONT' : 100,
-            'ADM' : 80,
-            'PPL' : 65,
-        }.items()):
-            if geoname['feature_code'].startswith(code):
-                return score
-        return 0
+    def ADM_feature_code_score(self):
+        return 1 if self.geoname['feature_code'].startswith('ADM') else 0
+    @feature
+    def CONT_feature_code(self):
+        return 1 if self.geoname['feature_code'].startswith('CONT') else 0
     def to_dict(self):
         return self.feature_dict
-    def score(self, feature_weights):
-        """
-        Return a score between 0 and 100
-        """
-        total_score = sum([
-            self.feature_dict[feature_name] * float(weight)
-            for feature_name, weight in list(feature_weights.items())
-        ]) / math.sqrt(sum([x**2 for x in list(feature_weights.values())]))
-        return total_score
+    def values(self):
+        result = []
+        for key in sorted(self.feature_dict.keys()):
+            result.append(self.feature_dict[key])
+        return result
 
 class GeonameAnnotator(Annotator):
     def __init__(self):
@@ -325,8 +278,7 @@ class GeonameAnnotator(Annotator):
                 geo_span.start,
                 geo_span.end,
                 # If the size is equal the score is used as a tie breaker.
-                # This formula makes the score the last digit of the weight.
-                (geo_span.size() * 10 + (geo_span.geoname['score'] / 11)),
+                geo_span.size() + geo_span.geoname['score'],
                 geo_span
             )
             for geo_span in geo_spans
@@ -338,22 +290,12 @@ class GeonameAnnotator(Annotator):
         logger.info('geoannotator started')
         candidate_locations = self.get_candidate_geonames(doc)
         features = self.extract_features(candidate_locations)
-        feature_weights = dict(
-            population_score=2.0,
-            synonymity=1.0,
-            num_spans_score=0.4,
-            short_span_score=(-5),
-            NEs_contained=1.2,
-            distinctness=1.0,
-            max_span_score=1.0,
-            cannonical_name_used=0.5,
-            feature_code_score=0.6,
-        )
         for location, feature in zip(candidate_locations, features):
-            location.score = feature.score(feature_weights)
+            location.score = predict_proba(
+                [feature.values()])[0][1]
         culled_locations = [location
             for location in candidate_locations
-            if location.score > 50]
+            if location.score > 0.2]
         geo_spans = []
         for location in culled_locations:
             for span in location.spans:
