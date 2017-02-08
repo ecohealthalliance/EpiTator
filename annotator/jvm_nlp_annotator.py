@@ -55,11 +55,19 @@ class JVMNLPAnnotator():
         # dates like "tomorrow." If we have a doc.date for this document,
         # send it along and the jvm-nlp will not attempt to find a reference
         # date in the beginning of the document.
-        # if doc.date:
-        #     data['referenceDate'] = doc.date.strftime('%Y-%m-%d')
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         request = requests.post(self.base_url + self.annotate_path,
-                                data=doc.to_json(),
+                                # Create a new annodoc so unnecessary tiers
+                                # are not serialized and parsed.
+                                data=AnnoDoc(
+                                    # Replace brackets with spaces bc they
+                                    # prevent dates like November [2020] from
+                                    # being parsed as a single entity.
+                                    # TODO: It would be better to make
+                                    # an algorithm that associates years with
+                                    # all months mentioned in the same sentence.
+                                    doc.text.replace('[', ' ').replace(']', ' '),
+                                    doc.date).to_json(),
                                 headers=headers)
 
         # Why aren't we using a swagger-generated client here? Because they
@@ -67,8 +75,8 @@ class JVMNLPAnnotator():
 
         return_json = request.json()
 
-        if doc.text != return_json['text']:
-            raise Exception("text changed after being sent back from jvm-nlp")
+        if len(doc.text) != len(return_json['text']):
+            raise Exception("text length changed after being sent back from jvm-nlp")
 
         # If we don't have a date already and one comes back from the jvm-nlp,
         # make that the new doc.date
