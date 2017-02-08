@@ -440,12 +440,10 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
 
         self.assertEqual(doc.text, text)
 
-        self.assertEqual(len(doc.tiers['times'].spans), 2)
+        self.assertEqual(len(doc.tiers['times'].spans), 1)
 
         self.assertEqual(doc.tiers['times'].spans[0].label, '2014-11')
-        self.assertEqual(doc.tiers['times'].spans[0].text, 'November')
-        self.assertEqual(doc.tiers['times'].spans[1].label, '2014')
-        self.assertEqual(doc.tiers['times'].spans[1].text, '2014')
+        self.assertEqual(doc.tiers['times'].spans[0].text, 'November [2014')
 
 if __name__ == '__main__':
     unittest.main()
