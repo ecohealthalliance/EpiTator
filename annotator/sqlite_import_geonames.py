@@ -7,7 +7,7 @@ import time
 from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
-from get_database_connection import ANNIE_DB_PATH
+from get_database_connection import ANNOTATOR_DB_PATH
 
 def parse_number(num, default):
     try:
@@ -77,10 +77,11 @@ def batched(array):
     yield batch
 
 def create_sqlite_db():
-    if os.path.exists(ANNIE_DB_PATH):
-        print "A database already exists at: " + ANNIE_DB_PATH
+    if os.path.exists(ANNOTATOR_DB_PATH):
+        print "A database already exists at: " + ANNOTATOR_DB_PATH
         return
-    connection = sqlite3.connect(ANNIE_DB_PATH)
+    print "Creating database at: " + ANNOTATOR_DB_PATH
+    connection = sqlite3.connect(ANNOTATOR_DB_PATH)
     cur = connection.cursor()
     # Create table
     cur.execute("CREATE TABLE geonames (" + ",".join([
@@ -112,6 +113,7 @@ def create_sqlite_db():
                     alternatename.lower().strip()))
         cur.executemany(geonames_insert_command, geoname_tuples)
         cur.executemany(alternatenames_insert_command, alternatename_tuples)
+    print "Creating indexes..."
     cur.execute('''
     CREATE INDEX alternatename_index
     ON alternatenames (alternatename_lemmatized);
