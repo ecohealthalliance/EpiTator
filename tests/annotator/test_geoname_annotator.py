@@ -129,11 +129,15 @@ class GeonameAnnotatorTest(unittest.TestCase):
         """)
         doc.add_tier(GeonameAnnotator())
         for span in doc.tiers['geonames'].spans:
-            if 'parentLocation' in span.geoname:
+            if 'parent_location' in span.geoname:
                 self.assertNotEqual(
-                    span.geoname['parentLocation'],
-                    span.geoname['parentLocation'].get('parentLocation',{}).get('parentLocation')
-                )
+                    span.geoname['parent_location'],
+                    span.geoname['parent_location']\
+                        .get('parent_location',{})\
+                        .get('parent_location'))
+            if span.geoname['name'] == 'Reno':
+                self.assertEqual(
+                    span.geoname['parent_location']['name'], 'Nevada')
 
 if __name__ == '__main__':
     unittest.main()
