@@ -291,8 +291,8 @@ class GeonameAnnotator(Annotator):
         candidate_locations = self.get_candidate_geonames(doc)
         features = self.extract_features(candidate_locations)
         for location, feature in zip(candidate_locations, features):
-            location.score = predict_proba(
-                [feature.values()])[0][1]
+            location.score = float(predict_proba(
+                [feature.values()])[0][1])
         culled_locations = [location
             for location in candidate_locations
             if location.score > 0.2]
