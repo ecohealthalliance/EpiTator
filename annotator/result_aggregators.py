@@ -7,6 +7,7 @@ pattern.search subqueries.
 import pattern, pattern.search
 import itertools
 import maximum_weight_interval_set as mwis
+
 class MetaMatch(pattern.search.Match):
     """
     A match composed of pattern Matches
@@ -224,13 +225,3 @@ def combine(
                     if overlap in remaining_results:
                         remaining_results.remove(overlap)
         return out_results
-
-class Chain():
-    def __init__(self, results_lists):
-        self.results_lists = results_lists
-    def follows(self, **kwargs):
-        self.results_lists = [follows(self.results_lists, **kwargs)]
-        return self
-    def combine(self, **kwargs):
-        self.results_lists = [combine(self.results_lists, **kwargs)]
-        return self

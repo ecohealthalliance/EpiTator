@@ -42,7 +42,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(annotator)
 
         self.assertEqual(doc.text, text)
-        #print doc.tiers['geonames'].spans
         self.assertEqual(len(doc.tiers['geonames'].spans), 1)
         self.assertEqual(doc.tiers['geonames'].spans[0].text, "Seattle, WA")
 
@@ -95,7 +94,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         https://radiotamazuj.org/en/article/south-sudan-100-total-cholera-deaths
         """)
         doc.add_tier(GeonameAnnotator())
-        print doc.tiers['geonames']
         self.assertEqual(len(doc.tiers['geonames']), 1)
 
     def test_for_duplicate_spans(self):

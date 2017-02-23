@@ -173,19 +173,3 @@ def find_all_match_offsets(text, match):
                 start_at = start_offset + 1
 
     return offsets
-import result_aggregators as ra
-def restrict_match(match):
-    """
-    Return a restricted version of a pattern Match object that only includes
-    the words in a chunk that don't violate their own constraint.
-    """
-    if isinstance(match, ra.MetaMatch):
-        return ra.MetaMatch(map(restrict_match, match.matches), match.labels)
-    return pattern.search.Match(
-        match.pattern,
-        words=filter(
-            lambda x : match.constraint(x).match(x),
-            match.words
-        ),
-        map=match._map1
-    )

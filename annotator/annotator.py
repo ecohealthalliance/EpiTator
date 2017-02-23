@@ -184,9 +184,19 @@ class AnnoDoc(object):
                 self.pattern_tree,
                 taxonomy=self.taxonomy
             )
-            # for r in results:
-            #     r.sentence_idx = self.pattern_tree.sentences.index(r.words[0].sentence)
-            return results
+            # Sometimes matches include surrounding words when a match is part
+            # of a larger chunk.
+            # This restricts the match to only the words that match
+            # the constraint.
+            return [pattern.search.Match(
+                match.pattern,
+                words=filter(
+                    lambda x : match.constraint(x).match(x),
+                    match.words
+                ),
+                map=match._map1)
+                for match in results
+            ]
 
 
         self.p_search = p_search

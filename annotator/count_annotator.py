@@ -118,7 +118,7 @@ class CountAnnotator(Annotator):
             ra.label('approximate', my_search('APPROXIMATELY|ABOUT|NEAR|AROUND')),
         ])
         count_descriptions = ra.near([count_modifiers, counts]) + counts
-        case_descriptions = map(utils.restrict_match, (
+        case_descriptions = (
             ra.label('death',
                 my_search('DIED|DEATH|FATALITIES|KILLED|CLAIMED')
             ) +
@@ -130,20 +130,20 @@ class CountAnnotator(Annotator):
                     'CASE|INFECTION|INFECT|STRICKEN'
                 )
             )
-        ))
-        case_statuses = map(utils.restrict_match, (
+        )
+        case_statuses = (
             ra.label('suspected',
                 my_search('SUSPECTED')
             ) +
             ra.label('confirmed',
                 my_search('CONFIRMED')
             )
-        ))
+        )
         case_descriptions = ra.combine([
             ra.follows([case_statuses, case_descriptions]),
             case_descriptions
         ])
-        person_descriptions = map(utils.restrict_match, my_search('PERSON|CHILD|ADULT|ELDER|PATIENT|LIFE'))
+        person_descriptions = my_search('PERSON|CHILD|ADULT|ELDER|PATIENT|LIFE')
         person_counts = ra.follows([
             count_descriptions,
             ra.label('case', person_descriptions)
