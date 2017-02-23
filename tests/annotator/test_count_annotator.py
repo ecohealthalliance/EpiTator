@@ -214,5 +214,18 @@ class TestCountAnnotator(unittest.TestCase):
             for actual, expected in zip(doc.tiers['counts'].spans, counts):
                 test_utils.assertHasProps(actual.metadata, expected)
 
+    def test_pattern(self):
+        """
+        The problem is that a series of underscores is treated as a really long
+        inner token.
+        """
+        doc = AnnoDoc("""
+(MAIN OFFICE)
+08-FEB-17 12:00
+_______________________________________________________________________
+ADDITIONAL INFORMATION
+""")
+        doc.add_tier(self.annotator)
+
 if __name__ == '__main__':
     unittest.main()

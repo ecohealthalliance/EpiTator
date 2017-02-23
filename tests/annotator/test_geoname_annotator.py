@@ -90,11 +90,12 @@ class GeonameAnnotatorTest(unittest.TestCase):
     def test_url_names(self):
         doc = AnnoDoc(u"""
         [1] Cholera - South Sudan
-        Date: Sat 19 Jul 2014
+        Date: 19 Jul 2014
         Source: Radio Tamazuj [edited]
         https://radiotamazuj.org/en/article/south-sudan-100-total-cholera-deaths
         """)
         doc.add_tier(GeonameAnnotator())
+        print doc.tiers['geonames']
         self.assertEqual(len(doc.tiers['geonames']), 1)
 
     def test_for_duplicate_spans(self):

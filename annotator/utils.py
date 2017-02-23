@@ -60,6 +60,12 @@ def dehyphenate_numbers_and_ages(text):
     outtext += text[last:]
     return outtext
 
+def collapse_linebreaks(text):
+    """
+    Turn a series of 3 or more linebreaks into a series of just 3 linebreaks.
+    """
+    return re.sub(r"_{3,}", "___", text)
+
 def parse_number(num):
     try:
         return int(num)

@@ -152,7 +152,7 @@ class PatientInfoAnnotatorTest(unittest.TestCase):
                 'year_units': True
             },
             'location': {
-                'name' : 'Tbilisi'
+                'label' : 'Tbilisi'
             },
             'female': True,
         })

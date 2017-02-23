@@ -79,7 +79,8 @@ class AnnoDoc(object):
         self.taxonomy = pattern.search.Taxonomy()
         self.taxonomy.append(pattern.search.WordNetClassifier())
         self.pattern_tree = pattern.en.parsetree(
-            utils.dehyphenate_numbers_and_ages(self.text),
+            # Long series of linebreaks can cause major slowdowns for pattern lib.
+            utils.collapse_linebreaks(utils.dehyphenate_numbers_and_ages(self.text)),
             lemmata=True,
             relations=True
         )
@@ -155,10 +156,10 @@ class AnnoDoc(object):
                 text_offset += match_len
                 word_offset += 1
             elif (
-                # Hyphens may be removed from the pattern text
+                # Hyphens and underscores may be removed from the pattern text
                 # so they are treated as spaces and can be skipped when aligning
                 # the text.
-                re.match(r"^\s|-", self.text[text_offset], re.UNICODE)
+                re.match(r"^\s|-|_", self.text[text_offset], re.UNICODE)
             ):
                 text_offset += 1
             else:
