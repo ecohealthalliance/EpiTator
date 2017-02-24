@@ -35,7 +35,6 @@ class MetaMatch(pattern.search.Match):
                 else:
                     out.update(match.groupdict())
         return out
-
     def iterate_matches(self):
         """
         Iterate over all the plain match objects nested in MetaMatches

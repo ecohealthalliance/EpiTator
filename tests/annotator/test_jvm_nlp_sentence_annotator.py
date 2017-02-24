@@ -20,29 +20,29 @@ class SentenceAnnotatorTest(unittest.TestCase):
         self.doc = AnnoDoc("Hi Joe.")
         sentence = self.annotator.annotate(self.doc)
 
-        self.assertEqual(len(self.doc.tiers['sentences'].spans), 1)
+        self.assertEqual(len(self.doc.tiers['stanford.sentences'].spans), 1)
 
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].text, 'Hi Joe.')
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].label, 'Hi Joe.')
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].start, 0)
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].end, 7)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].text, 'Hi Joe.')
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].label, 'Hi Joe.')
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].start, 0)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].end, 7)
 
     def test_two_sentences(self):
 
         self.doc = AnnoDoc("Hi Joe. It's me, Jane.")
         sentence = self.annotator.annotate(self.doc)
 
-        self.assertEqual(len(self.doc.tiers['sentences'].spans), 2)
+        self.assertEqual(len(self.doc.tiers['stanford.sentences'].spans), 2)
 
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].text, 'Hi Joe.')
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].label, 'Hi Joe.')
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].start, 0)
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].end, 7)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].text, 'Hi Joe.')
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].label, 'Hi Joe.')
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].start, 0)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].end, 7)
 
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].text, "It's me, Jane.")
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].label, "It's me, Jane.")
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].start, 8)
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].end, 22)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].text, "It's me, Jane.")
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].label, "It's me, Jane.")
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].start, 8)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].end, 22)
 
     # This differs from NLTK sentence tokenization in that trailing leading white
     # space is not considered to be part of the sentence.
@@ -51,17 +51,17 @@ class SentenceAnnotatorTest(unittest.TestCase):
         self.doc = AnnoDoc("  \t      Hi Joe      .   \n \n \n \t  It's me, Jane   \t  .   \t  ")
         sentence = self.annotator.annotate(self.doc)
 
-        self.assertEqual(len(self.doc.tiers['sentences'].spans), 2)
+        self.assertEqual(len(self.doc.tiers['stanford.sentences'].spans), 2)
 
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].text, 'Hi Joe      .')
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].label, 'Hi Joe      .')
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].start, 9)
-        self.assertEqual(self.doc.tiers['sentences'].spans[0].end, 22)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].text, 'Hi Joe      .')
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].label, 'Hi Joe      .')
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].start, 9)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[0].end, 22)
 
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].text, "It's me, Jane   \t  .")
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].label, "It's me, Jane   \t  .")
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].start, 34)
-        self.assertEqual(self.doc.tiers['sentences'].spans[1].end, 54)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].text, "It's me, Jane   \t  .")
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].label, "It's me, Jane   \t  .")
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].start, 34)
+        self.assertEqual(self.doc.tiers['stanford.sentences'].spans[1].end, 54)
 
 
 if __name__ == '__main__':
