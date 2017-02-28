@@ -7,7 +7,7 @@ import time
 from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
-from get_database_connection import ANNOTATOR_DB_PATH
+from get_database_connection import get_database_connection
 
 def parse_number(num, default):
     try:
@@ -76,13 +76,20 @@ def batched(array):
             batch = []
     yield batch
 
-def create_sqlite_db():
-    if os.path.exists(ANNOTATOR_DB_PATH):
-        print "A database already exists at: " + ANNOTATOR_DB_PATH
-        return
-    print "Creating database at: " + ANNOTATOR_DB_PATH
-    connection = sqlite3.connect(ANNOTATOR_DB_PATH)
+def import_geonames(drop_previous=False):
+    connection = get_database_connection(create_database=True)
     cur = connection.cursor()
+    if drop_previous:
+        print "Dropping geonames data..."
+        cur.execute("""DROP TABLE IF EXISTS 'geonames'""")
+        cur.execute("""DROP TABLE IF EXISTS 'alternatenames'""")
+        cur.execute("""DROP TABLE IF EXISTS 'alternatename_counts'""")
+        cur.execute("""DROP INDEX IF EXISTS 'alternatename_index'""")
+    table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
+        WHERE type='table' AND name='geonames'"""))) > 0
+    if table_exists:
+        print "The geonames table already exists. Run this again with --drop-previous to recreate it."
+        return
     # Create table
     cur.execute("CREATE TABLE geonames (" + ",".join([
         '"' + k + '" ' + sqltype
@@ -132,4 +139,9 @@ def create_sqlite_db():
 
 if __name__ == '__main__':
     import argparse
-    create_sqlite_db()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--drop-previous", dest='drop_previous', action='store_true')
+    parser.set_defaults(drop_previous=False)
+    args = parser.parse_args()
+    import_geonames(args.drop_previous)
