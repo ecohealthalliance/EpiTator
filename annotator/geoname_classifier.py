@@ -4,27 +4,45 @@
 
 import numpy as np
 from numpy import array, int32
-classifier = {'C': 1.0,
+base_classifier = {'C': 1.0,
  'class_weight': None,
  'classes_': array([False,  True], dtype=bool),
- 'coef_': array([[-0.52642077, -0.30970635,  1.09902798, -0.59476067, -0.00259168,
-         0.53278785,  0.36725038,  0.28014772,  0.00772882, -0.01897592]]),
+ 'coef_': array([[ 0.36945422,  0.00772058, -0.01685772,  0.29789672,  0.49661641,
+         1.02399792, -0.00263311, -0.57737336, -0.55397937, -0.28253114,
+         0.        ,  0.        ,  0.        ,  0.        ]]),
  'dual': False,
  'fit_intercept': True,
- 'intercept_': array([-8.23952128]),
+ 'intercept_': array([-8.37127102]),
  'intercept_scaling': 1,
  'max_iter': 100,
  'multi_class': 'ovr',
- 'n_iter_': array([38], dtype=int32),
- 'n_jobs': 1,
+ 'n_iter_': 31,
  'penalty': 'l2',
  'random_state': None,
  'solver': 'liblinear',
  'tol': 0.0001,
- 'verbose': 0,
- 'warm_start': False}
+ 'verbose': 0}
+HIGH_CONFIDENCE_THRESHOLD = 0.5
+contextual_classifier = {'C': 1.0,
+ 'class_weight': None,
+ 'classes_': array([False,  True], dtype=bool),
+ 'coef_': array([[ 0.26324799,  0.01014031, -0.3141562 ,  0.14609665,  0.17965277,
+         0.17883378, -0.00197824, -0.66465653, -0.74837896,  0.15867841,
+         0.05042013,  0.01074976,  1.4701958 ,  1.34093115]]),
+ 'dual': False,
+ 'fit_intercept': True,
+ 'intercept_': array([-6.77340006]),
+ 'intercept_scaling': 1,
+ 'max_iter': 100,
+ 'multi_class': 'ovr',
+ 'n_iter_': 42,
+ 'penalty': 'l2',
+ 'random_state': None,
+ 'solver': 'liblinear',
+ 'tol': 0.0001,
+ 'verbose': 0}
 # Logistic regression code from scipy
-def predict_proba(X):
+def predict_proba(X, classifier):
     """Probability estimation for OvR logistic regression.
     Positive class probabilities are computed as
     1. / (1. + np.exp(-classifier.decision_function(X)));
@@ -42,3 +60,7 @@ def predict_proba(X):
         # OvR normalization, like LibLinear's predict_probability
         prob /= prob.sum(axis=1).reshape((prob.shape[0], -1))
         return prob
+def predict_proba_base(X):
+    return predict_proba(X, base_classifier)
+def predict_proba_contextual(X):
+    return predict_proba(X, contextual_classifier)
