@@ -13,6 +13,17 @@ import utils
 
 import maximum_weight_interval_set as mwis
 
+def pairs(li):
+    """
+    Iterate over the list returning each item along with the next item
+    in the list if there is a next item.
+    """
+    prev = None
+    for item in li:
+        if prev:
+            yield prev, item
+        prev = item
+
 def tokenize(text):
     return sent_tokenize(text)
 
@@ -79,7 +90,8 @@ class AnnoDoc(object):
         self.taxonomy = pattern.search.Taxonomy()
         self.taxonomy.append(pattern.search.WordNetClassifier())
         self.pattern_tree = pattern.en.parsetree(
-            utils.dehyphenate_numbers_and_ages(self.text),
+            # Long series of linebreaks can cause major slowdowns for pattern lib.
+            utils.collapse_linebreaks(utils.dehyphenate_numbers_and_ages(self.text)),
             lemmata=True,
             relations=True
         )
@@ -155,10 +167,10 @@ class AnnoDoc(object):
                 text_offset += match_len
                 word_offset += 1
             elif (
-                # Hyphens may be removed from the pattern text
+                # Hyphens and underscores may be removed from the pattern text
                 # so they are treated as spaces and can be skipped when aligning
                 # the text.
-                re.match(r"^\s|-", self.text[text_offset], re.UNICODE)
+                re.match(r"^\s|-|_", self.text[text_offset], re.UNICODE)
             ):
                 text_offset += 1
             else:
@@ -183,9 +195,19 @@ class AnnoDoc(object):
                 self.pattern_tree,
                 taxonomy=self.taxonomy
             )
-            # for r in results:
-            #     r.sentence_idx = self.pattern_tree.sentences.index(r.words[0].sentence)
-            return results
+            # Sometimes matches include surrounding words when a match is part
+            # of a larger chunk.
+            # This restricts the match to only the words that match
+            # the constraint.
+            return [pattern.search.Match(
+                match.pattern,
+                words=filter(
+                    lambda x : match.constraint(x).match(x),
+                    match.words
+                ),
+                map=match._map1)
+                for match in results
+            ]
 
 
         self.p_search = p_search
@@ -261,6 +283,31 @@ class AnnoTier(object):
             docless_spans.append(span_dict)
 
         return json.dumps(docless_spans)
+
+    def group_spans_by_containing_span(self, other_tier):
+        for span, next_span in pairs(self.spans):
+            if span.end > next_span.start:
+                raise Exception("Spans must be sorted and non-overlapping")
+        for span, next_span in pairs(other_tier.spans):
+            if span.end > next_span.start:
+                raise Exception("Spans must be sorted and non-overlapping")
+        other_spans = iter(other_tier.spans)
+        other_span = next(other_spans, None)
+        for span in self.spans:
+            span_group = []
+            while True:
+                if other_span is None:
+                    break
+                if span.overlaps(other_span):
+                    if span.contains(other_span):
+                        span_group.append(other_span)
+                    else:
+                        print span, other_span
+                        raise Exception("Partial overlaps are not allowed")
+                elif other_span.end > span.end:
+                    break
+                other_span = next(other_spans, None)
+            yield span, span_group
 
     def next_span(self, span):
         """Get the next span after this one"""
@@ -345,9 +392,12 @@ class AnnoSpan(object):
 
     def overlaps(self, other_span):
         return (
-            (self.start >= other_span.start and self.start <= other_span.end) or
-            (other_span.start >= self.start and other_span.start <= self.end)
+            (self.start >= other_span.start and self.start < other_span.end) or
+            (other_span.start >= self.start and other_span.start < self.end)
         )
+
+    def contains(self, other_span):
+        return self.start <= other_span.start and self.end >= other_span.end
 
     def adjacent_to(self, other_span, max_dist=0):
         return (

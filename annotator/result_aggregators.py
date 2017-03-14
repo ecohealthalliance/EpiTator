@@ -7,6 +7,7 @@ pattern.search subqueries.
 import pattern, pattern.search
 import itertools
 import maximum_weight_interval_set as mwis
+
 class MetaMatch(pattern.search.Match):
     """
     A match composed of pattern Matches
@@ -34,7 +35,6 @@ class MetaMatch(pattern.search.Match):
                 else:
                     out.update(match.groupdict())
         return out
-
     def iterate_matches(self):
         """
         Iterate over all the plain match objects nested in MetaMatches
@@ -52,7 +52,7 @@ class MetaMatch(pattern.search.Match):
         word_indices = {}
         for match in self.iterate_matches():
             for word in match.words:
-                word_indices[word.index] = word_indices.get(word.index, 0) + 1
+                word_indices[word.abs_index] = word_indices.get(word.abs_index, 0) + 1
         if include_overlap:
             return sum(word_indices.values())
         else:
@@ -83,10 +83,10 @@ def match_follows(match_a, match_b, max_words_between, max_overlap):
     """
     if match_a.words[-1].sentence != match_b.words[0].sentence:
         return False
-    match_a_start = match_a.words[0].index
-    match_a_end = match_a.words[-1].index
-    match_b_start = match_b.words[0].index
-    match_b_end = match_b.words[-1].index
+    match_a_start = match_a.words[0].abs_index
+    match_a_end = match_a.words[-1].abs_index
+    match_b_start = match_b.words[0].abs_index
+    match_b_end = match_b.words[-1].abs_index
     if match_b_end < match_a_start:
         return False
     words_between = match_b_start - match_a_end - 1
@@ -205,8 +205,8 @@ def combine(
             overlaps = []
             for match_b in remaining_results:
                 if match_a.words[0].sentence != match_b.words[0].sentence: continue
-                a_start, a_end = match_a.words[0].index, match_a.words[-1].index
-                b_start, b_end = match_b.words[0].index, match_b.words[-1].index
+                a_start, a_end = match_a.words[0].abs_index, match_a.words[-1].abs_index
+                b_start, b_end = match_b.words[0].abs_index, match_b.words[-1].abs_index
                 if (
                     (
                         a_start + max_proximity >= b_start and
@@ -224,13 +224,3 @@ def combine(
                     if overlap in remaining_results:
                         remaining_results.remove(overlap)
         return out_results
-
-class Chain():
-    def __init__(self, results_lists):
-        self.results_lists = results_lists
-    def follows(self, **kwargs):
-        self.results_lists = [follows(self.results_lists, **kwargs)]
-        return self
-    def combine(self, **kwargs):
-        self.results_lists = [combine(self.results_lists, **kwargs)]
-        return self

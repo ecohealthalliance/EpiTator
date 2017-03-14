@@ -42,7 +42,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(annotator)
 
         self.assertEqual(doc.text, text)
-        #print doc.tiers['geonames'].spans
         self.assertEqual(len(doc.tiers['geonames'].spans), 1)
         self.assertEqual(doc.tiers['geonames'].spans[0].text, "Seattle, WA")
 
@@ -90,7 +89,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
     def test_url_names(self):
         doc = AnnoDoc(u"""
         [1] Cholera - South Sudan
-        Date: Sat 19 Jul 2014
+        Date: 19 Jul 2014
         Source: Radio Tamazuj [edited]
         https://radiotamazuj.org/en/article/south-sudan-100-total-cholera-deaths
         """)

@@ -106,6 +106,9 @@ class JVMNLPAnnotator():
 
                 spans.append(span)
 
-            doc.tiers[tier] = AnnoTier(spans)
+            doc.tiers['stanford.' + tier] = AnnoTier(spans)
+            if tier == 'times':
+                # Add alias for times tier
+                doc.tiers['times'] = doc.tiers['stanford.times']
 
         return doc

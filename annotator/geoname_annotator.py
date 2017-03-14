@@ -278,7 +278,7 @@ class GeonameAnnotator(Annotator):
                 geo_span.start,
                 geo_span.end,
                 # If the size is equal the score is used as a tie breaker.
-                geo_span.size() + geo_span.geoname['score'],
+                geo_span.size() + geo_span.geoname.score,
                 geo_span
             )
             for geo_span in geo_spans
@@ -300,7 +300,7 @@ class GeonameAnnotator(Annotator):
         for location in culled_locations:
             for span in location.spans:
                 geo_span = GeoSpan(
-                    span.start, span.end, doc, location.to_dict()
+                    span.start, span.end, doc, location
                 )
                 geo_spans.append(geo_span)
         culled_geospans = self.cull_geospans(geo_spans)

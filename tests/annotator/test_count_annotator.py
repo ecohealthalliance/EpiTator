@@ -25,7 +25,7 @@ class TestCountAnnotator(unittest.TestCase):
     def test_false_positive_counts(self):
         examples = [
             "Measles - Democratic Republic of the Congo (Katanga) 2007.1775",
-            "Meningitis - Democratic Republic of Congo (02) 970814010223"
+            "Meningitis - Democratic Republic of Congo [02] 970814010223"
         ]
         for example in examples:
             doc = AnnoDoc(example)
@@ -154,8 +154,8 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_cumulative(self):
         examples = [
-            ("In total nationwide, 2613 cases of the disease have been reported as of 2 Jul 2014, with 63 deaths", [
-                {'count': 2613, 'attributes': ['case', 'cumulative']},
+            ("In total nationwide, 613 cases of the disease have been reported as of 2 Jul 2014, with 63 deaths", [
+                {'count': 613, 'attributes': ['case', 'cumulative']},
                 {'count': 63, 'attributes': ['case', 'death']}
             ]), 
             ("it has already claimed about 455 lives in Guinea", [
@@ -191,7 +191,8 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_misc(self):
         examples= [
-            ("A recent report of hundreds of new cases in Katanga Province", [])
+            ("""How many cases occured with 3.2 miles of Katanga Province?
+                Three fatalities have been reported.""", [{'count': 3}])
         ]
         for example in examples:
             sent, counts = example
@@ -213,6 +214,24 @@ class TestCountAnnotator(unittest.TestCase):
             self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
             for actual, expected in zip(doc.tiers['counts'].spans, counts):
                 test_utils.assertHasProps(actual.metadata, expected)
+
+    def test_tokenization_edge_cases(self):
+        """
+        These examples triggered some bugs with word token alignment in the past.
+        """
+        examples= [
+            ("These numbers include laboratory-confirmed, probable, and suspect cases and deaths of EVD.", []),
+            ("""22 new cases of EVD, including 14 deaths, were reported as follows:
+        Guinea, 3 new cases and 5 deaths; Liberia, 8 new cases with 7 deaths; and Sierra Leone 11 new cases and 2 deaths.
+        """, [{'count':22},{'count':14},{'count':3},{'count':5},{'count':8},{'count':7},{'count':11},{'count':2}])]
+        for example in examples:
+            sent, counts = example
+            doc = AnnoDoc(sent)
+            doc.add_tier(self.annotator)
+            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
+            for actual, expected in zip(doc.tiers['counts'].spans, counts):
+                test_utils.assertHasProps(actual.metadata, expected)
+        doc.add_tier(self.annotator)
 
 if __name__ == '__main__':
     unittest.main()

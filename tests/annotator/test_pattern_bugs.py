@@ -6,13 +6,12 @@ import test_utils
 sys.path = ['./'] + sys.path
 
 from annotator.annotator import AnnoDoc
-from annotator.patient_info_annotator import PatientInfoAnnotator
-from annotator.case_count_annotator import CaseCountAnnotator
+from annotator.count_annotator import CountAnnotator
 
 class PatternBugTests(unittest.TestCase):
 
     def setUp(self):
-        self.annotator = PatientInfoAnnotator()
+        self.annotator = CountAnnotator()
 
     def test_parse_emoticon(self):
         # Pattern parses ": 3" as a single word, I think because it thinks it is
@@ -29,7 +28,24 @@ class PatternBugTests(unittest.TestCase):
 
     def test_end(self):
         doc = AnnoDoc(u"n ��i.\n \n")
-        doc.add_tier(CaseCountAnnotator())
+        doc.add_tier(self.annotator)
+
+
+    def test_slow_underscores(self):
+        """
+        Pattern lib takes an extremely long time to process this string.
+        There is a code that replaces some of the underscores to avoid the
+        slow-down. I think the problem is related to pattern tagging
+        all the underscores as inner tokens.
+        """
+        doc = AnnoDoc("""
+(MAIN OFFICE)
+08-FEB-17 12:00
+_______________________________________________________________________
+ADDITIONAL INFORMATION
+""")
+        doc.add_tier(self.annotator)
+
 
 if __name__ == '__main__':
     unittest.main()
