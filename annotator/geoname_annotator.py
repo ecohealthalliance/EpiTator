@@ -143,7 +143,10 @@ class GeonameFeatures(object):
         # This is inverted so a zero from undefined contextual features
         # doesn't boost the score.
         'inv_closest_location_distance_km',
-        # This indicates if the base features
+        # high_confidence indicates the base feature set received a high score.
+        # It is an useful feature for preventing high confidence geonames
+        # from receiving low final scores when they lack contextual cues -
+        # for example, when they are the only location mentioned.
         'high_confidence',
     ]
     def __init__(self, geoname):
