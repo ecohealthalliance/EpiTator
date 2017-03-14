@@ -4,7 +4,7 @@ Annotators for extracting epidemiologic information from text.
 
 ## Architecture
 
-Annie provides the following classes for dealing with annotations.
+Annie provides the following classes for organizing annotations.
 
 AnnoDoc - The document being annotated. The AnnoDoc links to the tiers of annotations applied to it.
 
@@ -19,11 +19,14 @@ AnnoSpan - A span of text with an annotation applied to it.
 The geoname annotator uses the geonames.org dataset to resolve mentions of geonames.
 A classifier is used to disambiguate geonames and rule out false positives.
 
-To use the geoname annotator run the following command to import geonames.org data into an embedded sqlite3 database:
+To use the geoname annotator run the following command to import geonames.org
+data into an embedded sqlite3 database:
 
 ```
 python -m annotator.sqlite_import_geonames
 ```
+
+This annotator also requires installing the nltk name entitiy extractor.
 
 ### Resolved Keyword Annotator
 
@@ -41,7 +44,7 @@ python -m annotator.sqlite_import_disease_ontology
 
 The count annotator identifies counts, and case counts in particular.
 The count's value is extracted and parsed. Attributes such as whether the count
-refers to cases or deaths, or whether the value is approximate, are also extracted.
+refers to cases or deaths, or whether the value is approximate are also extracted.
 
 ### JVM-NLP Annotator
 
