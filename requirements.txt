@@ -10,3 +10,4 @@ numpy==1.10.0.post2
 geopy
 python-dateutil
 beautifulsoup
+rdflib
