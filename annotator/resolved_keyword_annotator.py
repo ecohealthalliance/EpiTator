@@ -10,14 +10,20 @@ import sqlite3
 class ResolvedKeywordSpan(AnnoSpan):
     def __init__(self, span, resolved_keywords):
         self.__dict__ = dict(span.__dict__)
+        self.resolutions = []
         self.uris = []
         for keyword in sorted(resolved_keywords, key=lambda k: k['weight']):
             if keyword['uri'] not in self.uris:
                 self.uris.append(keyword['uri'])
+                self.resolutions.append(dict(
+                    uri=keyword['uri'],
+                    weight=keyword['weight'],
+                    label=keyword['label']))
     def __repr__(self):
         return super(ResolvedKeywordSpan, self).__repr__() + str(self.uris)
     def to_dict(self):
         result = super(ResolvedKeywordSpan, self).to_dict()
+        result['resolutions'] = list(self.resolutions)
         result['uris'] = list(self.uris)
         return result
 
@@ -43,6 +49,7 @@ class ResolvedKeywordAnnotator(Annotator):
         results  = cursor.execute('''
         SELECT *
         FROM synonyms
+        JOIN entity_labels USING ( uri )
         WHERE synonym IN (''' +
         ','.join('?' for x in ngrams) +
         ')', ngrams)

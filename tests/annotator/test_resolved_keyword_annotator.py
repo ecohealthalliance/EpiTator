@@ -31,9 +31,14 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             'http://purl.obolibrary.org/obo/DOID_10264',
             'http://purl.obolibrary.org/obo/DOID_10264']
         for span, expected_uri in zip(doc.tiers['resolved_keywords'].spans, expected_uris):
-            self.assertEqual(span.uris[0], expected_uri)
+            self.assertEqual(span.resolutions[0]['uri'], expected_uri)
     def test_acroynms(self):
         doc = AnnoDoc("Ebola Virus disease is EVD")
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(
+            doc.tiers['resolved_keywords'].spans[-1].to_dict(), dict(
+                dict(textOffsets=[[23,26]],
+                uris=["http://purl.obolibrary.org/obo/DOID_4325"])))
         doc = AnnoDoc('AIDS as in the disease, not as in "he aids his boss"')
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(

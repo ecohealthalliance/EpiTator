@@ -25,6 +25,7 @@ def import_disease_ontology(drop_previous=False):
         print "Dropping previous database..."
         cur.execute("DROP TABLE IF EXISTS 'synonyms'")
         cur.execute("DROP TABLE IF EXISTS 'synonyms_init'")
+        cur.execute("DROP TABLE IF EXISTS 'entity_labels'")
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='synonyms'"""))) > 0
     if table_exists:
@@ -118,6 +119,21 @@ def import_disease_ontology(drop_previous=False):
     FROM synonyms_init
     GROUP BY synonym, uri
     ''')
+    disease_labels = disease_ontology.query("""
+    SELECT ?entity ?label
+    WHERE {
+        # only include diseases by infectious agent
+        ?entity rdfs:subClassOf* obo:DOID_0050117
+        ; rdfs:label ?label
+    }
+    """)
+    cur.execute("""
+    CREATE TABLE entity_labels (
+        uri text, label text
+    )""")
+    cur.executemany("INSERT INTO entity_labels VALUES (?, ?)", [
+        (str(result[0]), str(result[1]))
+        for result in disease_labels])
     cur.execute("DROP TABLE IF EXISTS 'synonyms_init'")
     print "Creating indexes..."
     cur.execute('''
