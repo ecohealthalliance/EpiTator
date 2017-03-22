@@ -407,6 +407,9 @@ class GeonameAnnotator(Annotator):
         logger.info('geoannotator started')
         candidate_geonames = self.get_candidate_geonames(doc)
         features = self.extract_features(candidate_geonames)
+        if len(features) == 0:
+            doc.tiers['geonames'] = AnnoTier([])
+            return doc
         scores = self.geoname_classifier.predict_proba_base([
             f.values() for f in features])
         for geoname, feature, score in zip(candidate_geonames, features, scores):

@@ -136,5 +136,9 @@ class GeonameAnnotatorTest(unittest.TestCase):
                 self.assertEqual(
                     span.geoname.parent_location['name'], 'Nevada')
 
+    def test_no_geonames(self):
+        doc = AnnoDoc("ebola influenza glanders dermatitis")
+        doc.add_tier(GeonameAnnotator())
+
 if __name__ == '__main__':
     unittest.main()
