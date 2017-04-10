@@ -24,21 +24,18 @@ class TokenAnnotator(Annotator):
 
         spans = []
         index = 0
-        tail = doc.text
 
         for token in tokens:
 
-            while not tail.startswith(token):
+            while not doc.text[index:index+500].startswith(token):
                 # TODO make this safer. There are certain characters
                 # that we should be willing to consume, but not all. There should
                 # be an error raised if we find non-word-breaking characters
                 # where we expected the next token.
                 index += 1
-                tail = tail[1:]
 
             spans.append(AnnoSpan(index, index + len(token), doc, label=token))
             index += len(token)
-            tail = tail.replace(token, '', True)
 
         doc.tiers['tokens'] = AnnoTier(spans)
 

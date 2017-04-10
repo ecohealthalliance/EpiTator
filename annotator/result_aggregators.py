@@ -37,11 +37,11 @@ class MetaMatch(pattern.search.Match):
         return out
     def iterate_matches(self):
         """
-        Iterate over all the plain match objects nested in MetaMatches
+        Iterate over all the matchs nested in MetaMatches
         """
         for match in self.matches:
             if isinstance(match, MetaMatch):
-                for match2 in match.matches:
+                for match2 in match.iterate_matches():
                     yield match2
             else:
                 yield match

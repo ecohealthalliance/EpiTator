@@ -233,5 +233,15 @@ class TestCountAnnotator(unittest.TestCase):
                 test_utils.assertHasProps(actual.metadata, expected)
         doc.add_tier(self.annotator)
 
+    # def test_year_count(self):
+    #     doc = AnnoDoc("""As of [Sun 19 Mar 2017] (epidemiological week 11),
+    #     a total of 1407 suspected cases of meningitis have been reported.""")
+    #     doc.add_tier(self.annotator)
+    #     self.assertEqual(len(doc.tiers['counts']), 1)
+    #     test_utils.assertHasProps(
+    #         doc.tiers['counts'].spans[0].metadata, {
+    #             'count': 1407
+    #         })
+
 if __name__ == '__main__':
     unittest.main()

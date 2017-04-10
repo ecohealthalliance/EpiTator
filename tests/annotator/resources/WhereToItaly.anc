@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cesHeader xmlns="http://www.xces.org/ns/GrAF/1.0/" creator="KBS" date.created="2005-08-29"
+           version="1.0.4">
+    <fileDesc>
+        <titleStmt>
+            <title>Italy</title>
+        </titleStmt>
+        <extent wordCount="41363"/>
+        <sourceDesc>
+            <title>Italy</title>
+            <publisher>Langenscheidt</publisher>
+            <pubPlace>USA</pubPlace>
+        </sourceDesc>
+    </fileDesc>
+    <profileDesc>
+        <textClass catRef="WR TG">
+            <domain>Leisure</domain>
+            <subdomain>Travel</subdomain>
+            <subject>Places to see</subject>
+            <audience>Adult</audience>
+            <medium>Book</medium>
+        </textClass>
+        <primaryData loc="WhereToItaly.txt" medium="text"/>
+        <annotations>
+            <annotation ann.loc="WhereToItaly.txt" type="content">Text content</annotation>
+            <annotation ann.loc="WhereToItaly-logical.xml" type="logical">Logical structure</annotation>
+            <annotation ann.loc="WhereToItaly-s.xml" type="s">Sentence boundaries</annotation>
+            <annotation ann.loc="WhereToItaly-hepple.xml" type="hepple">Hepple part of speech tags</annotation>
+            <annotation ann.loc="WhereToItaly-vp.xml" type="vp">Verb chunks</annotation>
+            <annotation ann.loc="WhereToItaly-np.xml" type="np">Noun chunks</annotation>
+        </annotations>
+    </profileDesc>
+    <revisionDesc>
+        <change>
+            <changeDate>2005-08-29</changeDate>
+            <respName>Keith Suderman</respName>
+            <item>Updated to v1.0.4 with complete standoff markup</item>
+            <item>Added Brill part of speech tags</item>
+            <item>Fixed sentence boundaries</item>
+        </change>
+    </revisionDesc>
+</cesHeader>

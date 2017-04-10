@@ -6,9 +6,12 @@ from annotator import *
 from ngram_annotator import NgramAnnotator
 from get_database_connection import get_database_connection
 import sqlite3
+import logging
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
+logger = logging.getLogger(__name__)
 
 class ResolvedKeywordSpan(AnnoSpan):
-    def __init__(self, span, resolved_keywords):
+    def __init__(self, span, resolved_keywords, uris_to_labels):
         self.__dict__ = dict(span.__dict__)
         self.resolutions = []
         self.uris = []
@@ -18,7 +21,7 @@ class ResolvedKeywordSpan(AnnoSpan):
                 self.resolutions.append(dict(
                     uri=keyword['uri'],
                     weight=keyword['weight'],
-                    label=keyword['label']))
+                    label=uris_to_labels[keyword['uri']]))
     def __repr__(self):
         return super(ResolvedKeywordSpan, self).__repr__() + str(self.uris)
     def to_dict(self):
@@ -36,7 +39,7 @@ class ResolvedKeywordAnnotator(Annotator):
         if 'ngrams' not in doc.tiers:
             ngram_annotator = NgramAnnotator()
             doc.add_tier(ngram_annotator)
-
+            logger.info('ngrams')
         span_text_to_spans = defaultdict(list)
         for ngram_span in doc.tiers['ngrams'].spans:
             span_text = ngram_span.text
@@ -46,21 +49,36 @@ class ResolvedKeywordAnnotator(Annotator):
 
         ngrams = list(set(span_text_to_spans.keys()))
         cursor = self.connection.cursor()
-        results  = cursor.execute('''
-        SELECT *
-        FROM synonyms
-        JOIN entity_labels USING ( uri )
-        WHERE synonym IN (''' +
-        ','.join('?' for x in ngrams) +
-        ')', ngrams)
 
         spans_to_resolved_keywords = defaultdict(list)
+        uris = set()
+        ordered_ngram_iter = iter(sorted(ngrams))
+        try:
+            ngram = next(ordered_ngram_iter)
+            for result in cursor.execute('SELECT * FROM synonyms ORDER BY synonym'):
+                while ngram < result['synonym']:
+                    ngram = next(ordered_ngram_iter)
+                if ngram == result['synonym']:
+                    for span in span_text_to_spans[ngram]:
+                        spans_to_resolved_keywords[span].append(result)
+                        uris.add(result['uri'])
+        except StopIteration:
+            pass
+
+        logger.info('%s uris resolved' % len(uris))
+
+        results  = cursor.execute('''
+        SELECT *
+        FROM entity_labels
+        WHERE uri IN (''' +
+        ','.join('?' for x in uris) +
+        ')', list(uris))
+        uris_to_labels = defaultdict(list)
         for result in results:
-            for span in span_text_to_spans[result['synonym']]:
-                spans_to_resolved_keywords[span].append(result)
+            uris_to_labels[result['uri']].append(result['label'])
 
         doc.tiers['resolved_keywords'] = AnnoTier([
-            ResolvedKeywordSpan(span, resolved_keywords)
+            ResolvedKeywordSpan(span, resolved_keywords, uris_to_labels)
             for span, resolved_keywords in spans_to_resolved_keywords.items()])
         doc.tiers['resolved_keywords'].filter_overlapping_spans()
         doc.tiers['resolved_keywords'].sort_spans()

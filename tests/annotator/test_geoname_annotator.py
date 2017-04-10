@@ -140,5 +140,13 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc("ebola influenza glanders dermatitis")
         doc.add_tier(GeonameAnnotator())
 
+    # def test_very_long_article(self):
+    #     import logging
+    #     logger = logging.getLogger('annotator')
+    #     logger.setLevel(logging.INFO)
+    #     with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+    #         doc = AnnoDoc(file.read())
+    #         doc.add_tier(GeonameAnnotator())
+
 if __name__ == '__main__':
     unittest.main()
