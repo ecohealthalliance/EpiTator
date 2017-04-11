@@ -11,3 +11,5 @@ geopy
 python-dateutil
 beautifulsoup
 rdflib
+spacy==1.7.2
+https://github.com/explosion/spacy-models/releases/download/en_depent_web_md-1.2.1/en_depent_web_md-1.2.1.tar.gz

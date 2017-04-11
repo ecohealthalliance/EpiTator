@@ -139,14 +139,27 @@ class GeonameAnnotatorTest(unittest.TestCase):
     def test_no_geonames(self):
         doc = AnnoDoc("ebola influenza glanders dermatitis")
         doc.add_tier(GeonameAnnotator())
+        self.assertEqual(len(doc.tiers['geonames'].spans), 0)
 
-    # def test_very_long_article(self):
-    #     import logging
-    #     logger = logging.getLogger('annotator')
-    #     logger.setLevel(logging.INFO)
-    #     with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
-    #         doc = AnnoDoc(file.read())
-    #         doc.add_tier(GeonameAnnotator())
+    def test_very_long_article(self):
+        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+            doc = AnnoDoc(file.read())
+            doc.add_tier(GeonameAnnotator())
+
+    def test_combined_span(self):
+        doc = AnnoDoc("in Tonosi district [Los Santos Province, Panama]")
+        annotator = GeonameAnnotator()
+        candidates = annotator.get_candidate_geonames(doc)
+        combined_span_found = False
+        for geoname in candidates:
+            self.assertTrue(geoname not in geoname.alternate_locations)
+            for alternate in geoname.alternate_locations:
+                self.assertTrue(
+                    len(set(alternate.spans).intersection(geoname.spans)) > 0)
+            for span in geoname.spans:
+                if span.start == 3 and span.end == 39:
+                    combined_span_found = True
+        self.assertTrue(combined_span_found)
 
 if __name__ == '__main__':
     unittest.main()

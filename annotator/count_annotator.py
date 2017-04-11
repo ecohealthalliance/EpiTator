@@ -204,5 +204,4 @@ class CountAnnotator(Annotator):
             CountSpan(count, doc)
             for count in annotated_counts
         ])
-        doc.tiers['counts'].sort_spans()
         return doc

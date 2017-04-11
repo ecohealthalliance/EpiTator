@@ -7,7 +7,7 @@ import sqlite3
 from collections import defaultdict
 from lazy import lazy
 
-from annotator import *
+from annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
 from ngram_annotator import NgramAnnotator
 from ne_annotator import NEAnnotator
 from geopy.distance import great_circle
@@ -131,7 +131,8 @@ class GeonameFeatures(object):
         'num_spans',
         'max_span_length',
         'cannonical_name_used',
-        'NEs_contained',
+        'loc_NE_portion',
+        'other_NE_portion',
         'ambiguity',
         'PPL_feature_code',
         'ADM_feature_code_score',
@@ -149,7 +150,7 @@ class GeonameFeatures(object):
         # for example, when they are the only location mentioned.
         'high_confidence',
     ]
-    def __init__(self, geoname):
+    def __init__(self, geoname, spans_to_nes):
         self.geoname = geoname
         # The set of geonames that are mentioned in proximity to the spans
         # corresponding to this feature.
@@ -166,15 +167,17 @@ class GeonameFeatures(object):
         d['cannonical_name_used'] = 1 if any([
             span.text == geoname['name'] for span in geoname.spans
         ]) else 0
-        NE_overlap = 0
-        total_len = 0
+        loc_NEs_overlap = 0
+        other_NEs_overlap = 0
+        total_len = len(geoname.spans)
         for span in geoname.spans:
-            ne_spans = span.doc.tiers['nes'].spans_in_span(span)
-            total_len += len(span.text)
-            for ne_span in ne_spans:
-                if ne_span.label == 'GPE':
-                    NE_overlap += len(ne_span.text)
-        d['NEs_contained'] = float(NE_overlap) / total_len
+            for ne_span in spans_to_nes[span]:
+                if ne_span.label == 'GPE' or ne_span.label == 'LOC':
+                    loc_NEs_overlap += 1
+                else:
+                    other_NEs_overlap += 1
+        d['loc_NE_portion'] = float(loc_NEs_overlap) / total_len
+        d['other_NE_portion'] = float(other_NEs_overlap) / total_len
         d['ambiguity'] = len(geoname.alternate_locations)
         feature_code = geoname['feature_code']
         d['PPL_feature_code'] = 1 if feature_code.startswith('PPL') else 0
@@ -275,61 +278,72 @@ class GeonameAnnotator(Annotator):
         # Associate spans with the geonames.
         # This is done up front so span information can be used in the scoring
         # function
-        span_text_to_spans = {
-            span.text.lower() : []
-            for span in doc.tiers['ngrams'].spans
-        }
+        span_text_to_spans = defaultdict(list)
         for span in doc.tiers['ngrams'].spans:
             span_text_to_spans[span.text.lower()].append(span)
-        candidate_locations = []
+        candidate_geonames = []
         for geoname in geoname_results:
             geoname.add_spans(span_text_to_spans)
-            candidate_locations.append(geoname)
+            candidate_geonames.append(geoname)
         # Add combined spans to locations that are adjacent to a span linked to
         # an administrative division. e.g. Seattle, WA
-        span_to_locations = {}
-        for location in candidate_locations:
-            for span in location.spans:
-                span_to_locations[span] =\
-                    span_to_locations.get(span, []) + [location]
-        for span_a, span_b in itertools.permutations(
-            list(span_to_locations.keys()), 2
-        ):
-            if not span_a.comes_before(span_b, max_dist=4): continue
-            if (
-                len(
-                    set(span_a.doc.text[span_a.end:span_b.start]) - set(", ")
-                ) > 1
-            ): continue
-            combined_span = span_a.extended_through(span_b)
-            possible_locations = []
-            for loc_a, loc_b in itertools.product(
-                span_to_locations[span_a],
-                span_to_locations[span_b],
-            ):
-                if(
-                    loc_b['feature_code'].startswith('ADM') and
-                    loc_a['feature_code'] != loc_b['feature_code']
-                ):
+        span_to_geonames = defaultdict(list)
+        for geoname in candidate_geonames:
+            for span in geoname.spans:
+                span_to_geonames[span].append(geoname)
+        geoname_spans = sorted(span_to_geonames.keys())
+        for span_a_idx, span_a in enumerate(geoname_spans):
+            span_b_idx = span_a_idx
+            # There could be multiple overlapping spans that come after
+            # this span. This loop will add combined spans for all of them.
+            while True:
+                # skip spans that overlap the first span
+                while span_b_idx < len(geoname_spans) and geoname_spans[span_b_idx].start < span_a.end:
+                    span_b_idx += 1
+                if span_b_idx >= len(geoname_spans):
+                    break
+                span_b = geoname_spans[span_b_idx]
+                span_b_idx += 1
+                if not span_a.comes_before(span_b, max_dist=4):
+                    break
+                # If is more than one non-space/comma character between
+                # the spans do not combine them.
+                if (len(
+                        set(span_a.doc.text[span_a.end:span_b.start]) - set(", ")
+                    ) > 1): break
+                combined_span = span_a.extended_through(span_b)
+                for loc_a, loc_b in itertools.product(
+                    span_to_geonames[span_a],
+                    span_to_geonames[span_b]):
                     if location_contains(loc_b, loc_a) > 0:
                         loc_a.spans.add(combined_span)
+                        span_to_geonames[combined_span].append(loc_a)
+                        # TODO: Different parents could be used. Remove this property?
                         loc_a.parent_location = loc_b
+        logger.info('%s combined spans added' % (
+            len(span_to_geonames) - len(geoname_spans)))
         # Find locations with overlapping spans
-        for idx, location_a in enumerate(candidate_locations):
-            a_spans = location_a.spans
-            for location_b in candidate_locations[idx + 1:]:
-                b_spans = location_b.spans
-                if len(a_spans & b_spans) > 0:
-                    # Note that is is possible for two valid locations to have
-                    # overlapping names. For example, Harare Province has
-                    # Harare as an alternate name, so the city Harare is very
-                    # to be an alternate location that competes with it.
-                    location_a.alternate_locations.add(location_b)
-                    location_b.alternate_locations.add(location_a)
-        logger.info('%s candidate locations prepared' % len(candidate_locations))
-        return candidate_locations
-    def extract_features(self, locations):
-        return [GeonameFeatures(location) for location in locations]
+        # Note that is is possible for two valid locations to have
+        # overlapping names. For example, Harare Province has
+        # Harare as an alternate name, so the city Harare is very
+        # likely to be an alternate location that competes with it.
+        for span, geonames in span_to_geonames.items():
+            geoname_set = set(geonames)
+            for geoname in geonames:
+                geoname.alternate_locations |= geoname_set
+        for geoname in candidate_geonames:
+            geoname.alternate_locations -= set([geoname])
+        logger.info('%s alternative locations found' % sum([
+            len(geoname.alternate_locations) for geoname in candidate_geonames]))
+        logger.info('%s candidate locations prepared' % len(candidate_geonames))
+        return candidate_geonames
+    def extract_features(self, geonames, doc):
+        spans_to_nes = {}
+        geospan_tier = AnnoTier(set([span for geoname in geonames for span in geoname.spans]))
+        for span, ne_spans in geospan_tier.group_spans_by_containing_span(
+            doc.tiers['nes'], allow_partial_containment=True):
+            spans_to_nes[span] = ne_spans
+        return [GeonameFeatures(geoname, spans_to_nes) for geoname in geonames]
     def add_contextual_features(self, features):
         """
         Extend a list of features with values that are based on the geonames
@@ -341,7 +355,6 @@ class GeonameAnnotator(Annotator):
             for span in feature.geoname.spans:
                 span_to_features[span].append(feature)
         geoname_span_tier = AnnoTier(span_to_features.keys())
-        geoname_span_tier.sort_spans()
         def feature_generator(filter_fun=lambda x:True):
             for span in geoname_span_tier.spans:
                 for feature in span_to_features[span]:
@@ -406,7 +419,7 @@ class GeonameAnnotator(Annotator):
     def annotate(self, doc):
         logger.info('geoannotator started')
         candidate_geonames = self.get_candidate_geonames(doc)
-        features = self.extract_features(candidate_geonames)
+        features = self.extract_features(candidate_geonames, doc)
         if len(features) == 0:
             doc.tiers['geonames'] = AnnoTier([])
             return doc

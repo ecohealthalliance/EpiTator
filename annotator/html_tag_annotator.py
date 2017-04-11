@@ -90,6 +90,4 @@ class HTMLTagAnnotator:
         doc.tiers['html'] = AnnoTier(spans)
         doc.text = parser.text
 
-        doc.tiers['html'].sort_spans()
-
         return doc

@@ -47,13 +47,13 @@ class NEAnnotatorTest(unittest.TestCase):
         self.assertEqual(self.doc.tiers['nes'].spans[1].end, 37)
 
         self.assertEqual(self.doc.tiers['nes'].spans[2].label, 'GPE')
-        self.assertEqual(self.doc.tiers['nes'].spans[2].text, 'United States')
-        self.assertEqual(self.doc.tiers['nes'].spans[2].start, 54)
+        self.assertEqual(self.doc.tiers['nes'].spans[2].text, 'the United States')
+        self.assertEqual(self.doc.tiers['nes'].spans[2].start, 50)
         self.assertEqual(self.doc.tiers['nes'].spans[2].end, 67)
 
-        self.assertEqual(self.doc.tiers['nes'].spans[3].label, 'ORGANIZATION')
-        self.assertEqual(self.doc.tiers['nes'].spans[3].text, 'Raytheon Corporation')
-        self.assertEqual(self.doc.tiers['nes'].spans[3].start, 86)
+        self.assertEqual(self.doc.tiers['nes'].spans[3].label, 'ORG')
+        self.assertEqual(self.doc.tiers['nes'].spans[3].text, 'the Raytheon Corporation')
+        self.assertEqual(self.doc.tiers['nes'].spans[3].start, 82)
         self.assertEqual(self.doc.tiers['nes'].spans[3].end, 106)
 
 
