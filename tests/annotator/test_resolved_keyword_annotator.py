@@ -45,6 +45,10 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             doc.tiers['resolved_keywords'].spans[-1].to_dict(), dict(
                 dict(textOffsets=[[0,4]],
                 uris=["http://purl.obolibrary.org/obo/DOID_635"])))
+    def test_very_long_article(self):
+        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+            doc = AnnoDoc(file.read())
+            doc.add_tier(self.annotator)
 
 if __name__ == '__main__':
     unittest.main()

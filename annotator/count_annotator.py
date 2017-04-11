@@ -9,6 +9,9 @@ from annotator import Annotator, AnnoTier, AnnoSpan
 from jvm_nlp_annotator import JVMNLPAnnotator
 import result_aggregators as ra
 import utils
+import logging
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
+logger = logging.getLogger(__name__)
 
 class CountSpan(AnnoSpan):
     attributes = [
@@ -94,7 +97,7 @@ def is_valid_count(count_string):
     try:
         if int(value) != value: return False
     except (TypeError, ValueError) as e:
-        print "Cannot parse count string: " + count_string
+        logger.info("Cannot parse count string: " + count_string)
         return False
     if value > 1000000000: return False
     return True
@@ -117,7 +120,7 @@ class CountAnnotator(Annotator):
                 count_matches.append(MatchSpan(ne_span, word_spans))
         counts = ra.label('count', count_matches)
         def search_regex(regex_term):
-            regex = re.compile(r"^"+regex_term+r"$", re.I)
+            regex = re.compile(r"^" + regex_term + r"$", re.I)
             match_spans = []
             for word_span in word_tier.spans:
                 if regex.match(word_span.text):
