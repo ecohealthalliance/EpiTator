@@ -29,7 +29,7 @@ blocklist = [
     'North', 'East', 'West', 'South',
     'Northeast', 'Southeast', 'Northwest', 'Southwest',
     'Eastern', 'Western', 'Southern', 'Northern',
-    'About', 'Many', 'See', 'As', 'About', 'Health',
+    'About', 'Many', 'See', 'Also', 'As', 'About', 'Health',
     'International', 'City', 'World', 'Federal', 'Federal District',
     'British', 'Russian',
     'Valley', 'University', 'Center', 'Central',
@@ -137,6 +137,7 @@ class GeonameFeatures(object):
         'PPL_feature_code',
         'ADM_feature_code_score',
         'CONT_feature_code',
+        'other_feature_code',
         # contextual features
         'close_locations',
         'containing_locations',
@@ -180,9 +181,14 @@ class GeonameFeatures(object):
         d['other_NE_portion'] = float(other_NEs_overlap) / total_len
         d['ambiguity'] = len(geoname.alternate_locations)
         feature_code = geoname['feature_code']
-        d['PPL_feature_code'] = 1 if feature_code.startswith('PPL') else 0
-        d['ADM_feature_code_score'] = 1 if feature_code.startswith('ADM') else 0
-        d['CONT_feature_code'] = 1 if feature_code.startswith('CONT') else 0
+        if feature_code.startswith('PPL'):
+            d['PPL_feature_code'] = 1
+        elif feature_code.startswith('ADM'):
+            d['ADM_feature_code_score'] = 1
+        elif feature_code.startswith('CONT'):
+            d['CONT_feature_code'] = 1
+        else:
+            d['other_feature_code'] = 1
         self._values = [0] * len(self.feature_names)
         self.set_values(d)
     def set_value(self, feature_name, value):

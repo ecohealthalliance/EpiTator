@@ -2,8 +2,8 @@
 """Create annotation tiers using spacy"""
 from annotator import Annotator, AnnoSpan, AnnoTier
 import re
-import en_depent_web_md
-spacy_nlp = en_depent_web_md.load()
+import en_core_web_sm as spacy_model
+spacy_nlp = spacy_model.load()
 
 class SpacyAnnotator(Annotator):
     def annotate(self, doc):
