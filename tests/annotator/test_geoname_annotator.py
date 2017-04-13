@@ -77,6 +77,12 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertEqual(doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'PA')
 
+    def test_adjacent_state_name_2(self):
+        doc = AnnoDoc("In the city of Springfield, IL.")
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['geonameid'], '4250542')
+        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'IL')
+
     def test_url_names(self):
         doc = AnnoDoc(u"""
         [1] Cholera - South Sudan
@@ -119,13 +125,11 @@ class GeonameAnnotatorTest(unittest.TestCase):
         """)
         doc.add_tier(self.annotator)
         for span in doc.tiers['geonames'].spans:
-            if span.geoname.parent_location:
-                self.assertNotEqual(
-                    span.geoname.parent_location,
-                    span.geoname.parent_location.parent_location)
+            for parent in span.geoname.parents:
+                self.assertTrue(parent not in parent.parents)
             if span.geoname['name'] == 'Reno':
                 self.assertEqual(
-                    span.geoname.parent_location['name'], 'Nevada')
+                    next(iter(span.geoname.parents))['name'], 'Nevada')
 
     def test_no_geonames(self):
         doc = AnnoDoc("ebola influenza glanders dermatitis")
@@ -151,25 +155,19 @@ class GeonameAnnotatorTest(unittest.TestCase):
                     combined_span_found = True
         self.assertTrue(combined_span_found)
 
-    def test_Estellencs(self):
-        doc = AnnoDoc("""
-If possible, make the trip early in the morning,
-or you’ll be part of a procession from one parking spot to the next.
-The Miradorde Ricardo Roca provides enticing views of the coast
-looking north, but save some film, because they’re even better a bit
-farther on.
-Four km (21/2 miles) from the Roca lookout, Estellencs is a
-pretty, ancient town amid terraces and orange groves.
-""")
+    def test_vietnamese(self):
+        # Normally this should be spelled Cao Bằng, but I want to test
+        # that the ascii version works.
+        doc = AnnoDoc(u"At Cao Bang, Vietnam 5 cases were recorded.")
         candidates = self.annotator.get_candidate_geonames(doc)
         gn_features = self.annotator.extract_features(candidates, doc)
-        print doc.tiers['spacy.nes']
-        for geoname, f in zip(candidates, gn_features):
-            if geoname.to_dict()['name'].startswith("E"):
-                print geoname.to_dict()['name'], f.to_dict()
+        #print doc.tiers['spacy.nes']
+        # for geoname, f in zip(candidates, gn_features):
+        #     if geoname.to_dict()['name'].startswith("C"):
+        #         print geoname.to_dict()['name'], f.to_dict()
         doc.add_tier(self.annotator)
-        print doc.tiers['geonames'].spans
-        self.assertEqual(len(doc.tiers['geonames'].spans), 0)
+        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
+
 
 if __name__ == '__main__':
     unittest.main()

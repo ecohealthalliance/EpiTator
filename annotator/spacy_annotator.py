@@ -5,6 +5,14 @@ import re
 import en_core_web_sm as spacy_model
 spacy_nlp = spacy_model.load()
 
+class TokenSpan(AnnoSpan):
+    def __init__(self, token, doc):
+        self.doc = doc
+        self.start = token.idx
+        self.end = token.idx + len(token)
+        self.label = token.text
+        self.token = token
+
 class SpacyAnnotator(Annotator):
     def annotate(self, doc):
         ne_spans = []
@@ -13,11 +21,11 @@ class SpacyAnnotator(Annotator):
         ne_chunk_end = None
         ne_chunk_type = None
         for token in spacy_nlp(doc.text):
+            start = token.idx
+            end = token.idx + len(token)
             # White-space tokens are skipped.
             if not re.match(r"^\s", token.text):
-                token_spans.append(
-                    AnnoSpan(token.idx, token.idx + len(token),
-                        doc, label=token.text))
+                token_spans.append(TokenSpan(token, doc))
             if ne_chunk_start != None and token.ent_iob_ != "I":
                 ne_spans.append(AnnoSpan(ne_chunk_start, ne_chunk_end,
                     doc, label=ne_chunk_type))
@@ -26,13 +34,13 @@ class SpacyAnnotator(Annotator):
                 ne_chunk_type = None
             if token.ent_type_:
                 if token.ent_iob_ == "B":
-                    ne_chunk_start = token.idx
-                    ne_chunk_end = token.idx + len(token)
+                    ne_chunk_start = start
+                    ne_chunk_end = end
                     ne_chunk_type = token.ent_type_
                 elif token.ent_iob_ == "I":
-                    ne_chunk_end = token.idx + len(token)
+                    ne_chunk_end = end
                 elif token.ent_iob_ == "O":
-                    ne_spans.append(AnnoSpan(token.idx, token.idx + len(token),
+                    ne_spans.append(AnnoSpan(start, end,
                         doc, label=token.ent_type_))
         if ne_chunk_start != None:
             ne_spans.append(AnnoSpan(ne_chunk_start, ne_chunk_end,
