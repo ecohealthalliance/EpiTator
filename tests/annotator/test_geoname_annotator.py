@@ -161,13 +161,19 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc(u"At Cao Bang, Vietnam 5 cases were recorded.")
         candidates = self.annotator.get_candidate_geonames(doc)
         gn_features = self.annotator.extract_features(candidates, doc)
-        #print doc.tiers['spacy.nes']
-        # for geoname, f in zip(candidates, gn_features):
-        #     if geoname.to_dict()['name'].startswith("C"):
-        #         print geoname.to_dict()['name'], f.to_dict()
         doc.add_tier(self.annotator)
         self.assertEqual(doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
 
+    def test_ne_overlap(self):
+        doc = AnnoDoc("""
+Some journals published in the United States are available in Chevy Chase, Maryland.
+More specialized journals are available only in Moscow and perhaps St. Petersburg.""")
+        doc.add_tier(self.annotator)
+        for span, ne_spans in doc.tiers['geonames'].group_spans_by_containing_span(
+            doc.tiers['nes'], allow_partial_containment=True):
+            self.assertTrue(len(ne_spans) > 0)
+            for ne_span in ne_spans:
+                self.assertTrue(ne_span.overlaps(span))
 
 if __name__ == '__main__':
     unittest.main()

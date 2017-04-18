@@ -29,8 +29,8 @@ blocklist = set([
     'North', 'East', 'West', 'South',
     'Northeast', 'Southeast', 'Northwest', 'Southwest',
     'Eastern', 'Western', 'Southern', 'Northern',
-    'About', 'Many', 'See', 'Also', 'As', 'In', 'About', 'Health',
-    'International', 'City', 'World', 'Federal', 'Federal District',
+    'About', 'Many', 'See', 'Also', 'As', 'In', 'About', 'Health', 'Some',
+    'International', 'City', 'World', 'Federal', 'Federal District', 'The city',
     'British', 'Russian',
     'Valley', 'University', 'Center', 'Central',
     # These locations could be legitimate,
@@ -137,12 +137,13 @@ class GeonameFeatures(object):
         'num_tokens',
         'ambiguity',
         'PPL_feature_code',
-        'ADM_feature_code_score',
+        'ADM_feature_code',
         'CONT_feature_code',
         'other_feature_code',
         'min_token_prob',
         # contextual features
         'close_locations',
+        'very_close_locations',
         'containing_locations',
         'max_containment_level',
         # high_confidence indicates the base feature set received a high score.
@@ -203,7 +204,7 @@ class GeonameFeatures(object):
         if feature_code.startswith('PPL'):
             d['PPL_feature_code'] = 1
         elif feature_code.startswith('ADM'):
-            d['ADM_feature_code_score'] = 1
+            d['ADM_feature_code'] = 1
         elif feature_code.startswith('CONT'):
             d['CONT_feature_code'] = 1
         else:
@@ -224,6 +225,7 @@ class GeonameFeatures(object):
         """
         geoname = self.geoname
         close_locations = 0
+        very_close_locations = 0
         containing_locations = 0
         max_containment_level = 0
         for recently_mentioned_geoname in self.nearby_mentions:
@@ -239,10 +241,13 @@ class GeonameFeatures(object):
             distance = great_circle(
                 recently_mentioned_geoname.lat_long, geoname.lat_long
             ).kilometers
-            if distance < 500:
+            if distance < 400:
                 close_locations += 1
+            if distance < 100:
+                very_close_locations += 1
         self.set_values(dict(
             close_locations=close_locations,
+            very_close_locations=very_close_locations,
             containing_locations=containing_locations,
             max_containment_level=max_containment_level))
     def to_dict(self):
@@ -272,11 +277,16 @@ class GeonameAnnotator(Annotator):
             ne_annotator = NEAnnotator()
             doc.add_tier(ne_annotator)
         logger.info('Named entities annotated')
+        def is_possible_geoname(text):
+            if text in blocklist: return False
+            # We can rule out a few FPs and make the query much faster
+            # by only looking at capitalized names.
+            if text[0] != text[0].upper(): return False
+            if len(text) < 3 and text != text.upper(): return False
+            return True
         all_ngrams = list(set([span.text.lower()
             for span in doc.tiers['ngrams'].spans
-            if span.text not in blocklist and
-            # We can rule out a few FPs by only looking at capitalized names.
-            span.text[0] == span.text[0].upper()
+            if is_possible_geoname(span.text)
         ]))
         logger.info('%s ngrams extracted' % len(all_ngrams))
         cursor = self.connection.cursor()
@@ -297,7 +307,8 @@ class GeonameAnnotator(Annotator):
         # function
         span_text_to_spans = defaultdict(list)
         for span in doc.tiers['ngrams'].spans:
-            span_text_to_spans[span.text.lower()].append(span)
+            if is_possible_geoname(span.text):
+                span_text_to_spans[span.text.lower()].append(span)
         candidate_geonames = []
         for geoname in geoname_results:
             geoname.add_spans(span_text_to_spans)
