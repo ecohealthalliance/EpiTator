@@ -81,6 +81,5 @@ class ResolvedKeywordAnnotator(Annotator):
             ResolvedKeywordSpan(span, resolved_keywords, uris_to_labels)
             for span, resolved_keywords in spans_to_resolved_keywords.items()])
         doc.tiers['resolved_keywords'].filter_overlapping_spans()
-        doc.tiers['resolved_keywords'].sort_spans()
 
         return doc

@@ -61,7 +61,6 @@ class KeywordAnnotator(Annotator):
 
             doc.tiers[keyword_type] = AnnoTier(keyword_spans)
             doc.tiers[keyword_type].filter_overlapping_spans()
-            doc.tiers[keyword_type].sort_spans()
 
         return doc
 

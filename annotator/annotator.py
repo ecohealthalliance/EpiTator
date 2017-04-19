@@ -6,26 +6,10 @@ import re
 from lazy import lazy
 from collections import defaultdict
 
-from nltk import sent_tokenize
-
 import pattern
 import utils
 
 import maximum_weight_interval_set as mwis
-
-def pairs(li):
-    """
-    Iterate over the list returning each item along with the next item
-    in the list if there is a next item.
-    """
-    prev = None
-    for item in li:
-        if prev:
-            yield prev, item
-        prev = item
-
-def tokenize(text):
-    return sent_tokenize(text)
 
 class Annotator(object):
 
@@ -34,9 +18,6 @@ class Annotator(object):
         raise NotImplementedError("annotate method must be implemented in child")
 
 class AnnoDoc(object):
-
-    # TODO what if the original text needs to be later transformed, e.g.
-    # stripped of tags? This will ruin offsets.
 
     def __init__(self, text=None, date=None):
         if type(text) is unicode:
@@ -266,7 +247,7 @@ class AnnoTier(object):
         if spans is None:
             self.spans = []
         else:
-            self.spans = spans
+            self.spans = sorted(spans)
 
     def __repr__(self):
         return unicode([unicode(span) for span in self.spans])
@@ -275,7 +256,6 @@ class AnnoTier(object):
         return len(self.spans)
 
     def to_json(self):
-
         docless_spans = []
         for span in self.spans:
             span_dict = span.__dict__.copy()
@@ -284,29 +264,36 @@ class AnnoTier(object):
 
         return json.dumps(docless_spans)
 
-    def group_spans_by_containing_span(self, other_tier):
-        for span, next_span in pairs(self.spans):
-            if span.end > next_span.start:
-                raise Exception("Spans must be sorted and non-overlapping")
-        for span, next_span in pairs(other_tier.spans):
-            if span.end > next_span.start:
-                raise Exception("Spans must be sorted and non-overlapping")
-        other_spans = iter(other_tier.spans)
-        other_span = next(other_spans, None)
+    def group_spans_by_containing_span(self, other_tier, allow_partial_containment=False):
+        """
+        Group spans in the other tier by the spans that contain them.
+        """
+        other_spans = other_tier.spans
+        other_spans_idx = 0
         for span in self.spans:
             span_group = []
-            while True:
-                if other_span is None:
+            # iterate over the other spans that come before this span.
+            while other_spans_idx < len(other_spans):
+                if allow_partial_containment:
+                    if other_spans[other_spans_idx].end > span.start:
+                        break
+                else:
+                    if other_spans[other_spans_idx].start >= span.start:
+                        break
+                other_spans_idx += 1
+            other_span_idx_2 = other_spans_idx
+            while other_span_idx_2 < len(other_spans):
+                if other_spans[other_span_idx_2].start >= span.end:
                     break
-                if span.overlaps(other_span):
-                    if span.contains(other_span):
-                        span_group.append(other_span)
-                    else:
-                        print span, other_span
-                        raise Exception("Partial overlaps are not allowed")
-                elif other_span.end > span.end:
-                    break
-                other_span = next(other_spans, None)
+                if not allow_partial_containment:
+                    # Skip the other span if it is not contained by this span.
+                    # It is possible there is another shorter span that starts
+                    # after it and is fully contained by this span.
+                    if other_spans[other_span_idx_2].end > span.end:
+                        other_span_idx_2 += 1
+                        continue
+                span_group.append(other_spans[other_span_idx_2])
+                other_span_idx_2 += 1
             yield span, span_group
 
     def next_span(self, span):
@@ -326,8 +313,7 @@ class AnnoTier(object):
 
     def spans_in(self, start, end):
         """Get all spans which are contained in a range"""
-        return filter(lambda span: span.start >= start and span.end <= end,
-                      self.spans)
+        return filter(lambda span: span.start >= start and span.end <= end, self.spans)
 
     def spans_at(self, start, end):
         """Get all spans with certain start and end positions"""
@@ -356,8 +342,7 @@ class AnnoTier(object):
 
     def sort_spans(self):
         """Sort spans by order of start"""
-
-        self.spans.sort(key=lambda span: span.start)
+        print "sort_spans is deprecated. AnnoTier spans are now always sorted."
 
     def filter_overlapping_spans(self, score_func=None):
         """Remove the smaller of any overlapping spans."""
@@ -390,6 +375,12 @@ class AnnoSpan(object):
         else:
             self.label = label
 
+    def __lt__(self, other):
+        return self.start < other.start
+
+    def __len__(self):
+        return len(self.text)
+
     def overlaps(self, other_span):
         return (
             (self.start >= other_span.start and self.start < other_span.end) or
@@ -410,7 +401,7 @@ class AnnoSpan(object):
         # span must end before the other one starts.
         return (
             self.end >= other_span.start - max_dist - 1 and
-            self.end < other_span.start
+            self.end <= other_span.start
         )
 
     def extended_through(self, other_span):
