@@ -4,33 +4,45 @@ import math
 import re
 from collections import defaultdict
 
-from pymongo import MongoClient
-import os
-
 from annotator import *
 from ngram_annotator import NgramAnnotator
+
+import os
+import pickle
 
 class KeywordAnnotator(Annotator):
 
     keyword_types = ['diseases', 'hosts', 'modes', 'pathogens', 'symptoms']
 
+    keyword_type_map = {
+        'doid/diseases': 'diseases',
+        'eha/disease': 'diseases',
+        'pm/disease':  'diseases',
+        'hm/disease': 'diseases',
+        'biocaster/diseases': 'diseases',
+        'eha/symptom': 'symptoms',
+        'biocaster/symptoms': 'symptoms',
+        'doid/has_symptom': 'symptoms',
+        'pm/symptom': 'symptoms',
+        'symp/symptoms': 'symptoms',
+        'wordnet/hosts': 'hosts',
+        'eha/vector': 'hosts',
+        'wordnet/pathogens': 'pathogens',
+        'biocaster/pathogens': 'pathogens',
+        'pm/mode of transmission': 'modes',
+        'doid/transmitted_by': 'modes',
+        'eha/mode of transmission': 'modes'
+    }
+
     def __init__(self, db=None):
-        if not db:
-            if 'MONGO_URL' in os.environ:
-                mongo_url = os.environ['MONGO_URL']
-            else:
-                mongo_url = 'mongodb://localhost:27017'
-
-            client = MongoClient(mongo_url)
-            db = client.annotation
-
-        self.keywords = {}
-
-        for keyword_type in self.keyword_types:
-            self.keywords[keyword_type] = {
-                res['_id'].lower(): (res['_id'], res['case_sensitive'])
-                for res in db[keyword_type].find()
-            }
+        with open(os.environ.get('KEYWORD_PICKLE_PATH') or 'current_classifier/keyword_array.p') as f:
+            keyword_array = pickle.load(f)
+        self.keywords = defaultdict(dict)
+        for keyword in keyword_array:
+            if keyword['category'] in self.keyword_type_map:
+                keyword_type = self.keyword_type_map[keyword['category']]
+                self.keywords[keyword_type][keyword['keyword'].lower()] = [
+                    keyword['keyword'], keyword['case_sensitive']]
 
     def annotate(self, doc):
 

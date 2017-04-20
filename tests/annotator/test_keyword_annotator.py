@@ -14,13 +14,13 @@ from annotator.keyword_annotator import KeywordAnnotator
 
 class KeywordAnnotatorTest(unittest.TestCase):
 
+    def setUp(self):
+        self.annotator = KeywordAnnotator()
+
     def test_diseases(self):
-
-        annotator = KeywordAnnotator()
-
         text = 'I thought I had a spot of periodontitis but it turned out to be Endometrial Endometrioid Adenocarcinoma with squamous differentiation.'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
@@ -37,12 +37,9 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['diseases'].spans[1].end, 133)
 
     def test_hosts(self):
-
-        annotator = KeywordAnnotator()
-
         text = 'I never should have let that silverfish sell me that FAWN.'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
@@ -59,12 +56,9 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['hosts'].spans[1].end, 57)
 
     def test_modes(self):
-
-        annotator = KeywordAnnotator()
-
         text = 'Indirect physical contact'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
@@ -74,12 +68,9 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['modes'].spans[0].end, 25)
 
     def test_pathogens(self):
-
-        annotator = KeywordAnnotator()
-
         text = 'Look out for xanthoMONAD and the hepatitis e virus.'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
@@ -96,12 +87,9 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['pathogens'].spans[1].end, 50)
 
     def test_symptoms(self):
-
-        annotator = KeywordAnnotator()
-
         text = 'I feel weak, with some nausea.'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
@@ -118,12 +106,9 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['symptoms'].spans[1].end, 29)
 
     def test_case_sensitivity(self):
-
-        annotator = KeywordAnnotator()
-
         text = 'The word as should not be recognized as a disease.'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
@@ -131,7 +116,7 @@ class KeywordAnnotatorTest(unittest.TestCase):
 
         text = 'The word AS should be recognized as a disease.'
         doc = AnnoDoc(text)
-        doc.add_tier(annotator)
+        doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
 
