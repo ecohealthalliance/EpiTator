@@ -73,9 +73,9 @@ class ResolvedKeywordAnnotator(Annotator):
         WHERE uri IN (''' +
         ','.join('?' for x in uris) +
         ')', list(uris))
-        uris_to_labels = defaultdict(list)
+        uris_to_labels = {}
         for result in results:
-            uris_to_labels[result['uri']].append(result['label'])
+            uris_to_labels[result['uri']] = result['label']
 
         doc.tiers['resolved_keywords'] = AnnoTier([
             ResolvedKeywordSpan(span, resolved_keywords, uris_to_labels)

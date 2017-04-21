@@ -35,16 +35,18 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
     def test_acroynms(self):
         doc = AnnoDoc("Ebola Virus disease is EVD")
         doc.add_tier(self.annotator)
-        test_utils.assertHasProps(
-            doc.tiers['resolved_keywords'].spans[-1].to_dict(), dict(
-                dict(textOffsets=[[23,26]],
-                uris=["http://purl.obolibrary.org/obo/DOID_4325"])))
+        resolved_keyword = doc.tiers['resolved_keywords'].spans[-1].to_dict()
+        test_utils.assertHasProps(resolved_keyword, {'textOffsets': [[23,26]]})
+        test_utils.assertHasProps(resolved_keyword['resolutions'][0], {
+            'label': 'Ebola hemorrhagic fever',
+            'uri': 'http://purl.obolibrary.org/obo/DOID_4325'
+        })
         doc = AnnoDoc('AIDS as in the disease, not as in "he aids his boss"')
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
             doc.tiers['resolved_keywords'].spans[-1].to_dict(), dict(
-                dict(textOffsets=[[0,4]],
-                uris=["http://purl.obolibrary.org/obo/DOID_635"])))
+                textOffsets=[[0,4]],
+                uris=["http://purl.obolibrary.org/obo/DOID_635"]))
     def test_very_long_article(self):
         with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
             doc = AnnoDoc(file.read())
