@@ -8,15 +8,7 @@ from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
 from get_database_connection import get_database_connection
-
-def parse_number(num, default):
-    try:
-        return int(num)
-    except ValueError:
-        try:
-            return float(num)
-        except ValueError:
-            return default
+from utils import parse_number
 
 GEONAMES_ZIP_URL = "http://download.geonames.org/export/dump/allCountries.zip"
 

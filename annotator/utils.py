@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import re
-import pattern
 
-numbers = {
+NUMBERS = {
     'zero':0,
     'half': 1.0/2.0,
     'one':1,
@@ -32,6 +31,8 @@ numbers = {
     'seventy':70,
     'eighty':80,
     'ninety':90,
+}
+ORDERS = {
     'hundred':100,
     'thousand':1000,
     'million': 1000000,
@@ -40,136 +41,48 @@ numbers = {
     'gillion' :1000000000,
 }
 
-def dehyphenate_numbers_and_ages(text):
-    dehyphenateable_string_set = set(numbers.keys()) | set([
-        "year",
-        "old"
-    ])
-    outtext = ""
-    last = 0
-    for match in re.finditer("\S+", text):
-        outtext += text[last:match.start()]
-        if(
-            '-' in match.string and len(match.string) > 1 and
-            len(set(match.string.split('-')) & dehyphenateable_string_set) > 0
-        ):
-            outtext += re.sub("-", " ", text[match.start():match.end()])
-        else:
-            outtext += text[match.start():match.end()]
-        last = match.end()
-    outtext += text[last:]
-    return outtext
-
-def collapse_linebreaks(text):
-    """
-    Turn a series of 3 or more linebreaks into a series of just 3 linebreaks.
-    """
-    return re.sub(r"_{3,}", "___", text)
-
-def parse_number(num):
+def parse_number(num, default=None):
     try:
         return int(num)
     except ValueError:
         try:
             return float(num)
         except ValueError:
-            return None
+            return default
 
-def parse_spelled_number(tokens_or_str):
-    """
-    This uses the number() function in pattern.en to do most of the parsing.
-    Instead of returning zero when the number can't be parsed it returns None
-    and it can handle numbers delimited with spaces.
-    """
-    if isinstance(tokens_or_str, basestring):
-        tokens = []
-        for word in tokens_or_str.split(' '):
-            if len(word) > 0:
-                tokens.extend(word.split('-'))
-    else:
-        tokens = tokens_or_str
-    if re.match('^\d+$', ''.join(tokens)):
-        value = pattern.en.number(''.join(tokens))
-    else:
-        value = pattern.en.number(' '.join(tokens))
-    if value == 0 and tokens[0] not in ['0', 'zero']:
+def parse_spelled_number(num_str):
+    """Parse spelled out whole numbers."""
+    tokens = []
+    for t in num_str.split(' '):
+        if len(t) > 0:
+            tokens.extend(t.split('-'))
+    punctuation = re.compile(r'[\,\(\)]')
+    affix = re.compile(r'(\d+)(st|nd|rd|th)')
+    cleaned_tokens = []
+    for t in tokens:
+        if t == 'and': continue
+        t = punctuation.sub('', t)
+        t = affix.sub(r'\1', t)
+        cleaned_tokens.append(t.lower())
+    if len(cleaned_tokens) == 0:
         return None
-    else:
-        return value
-    
-def find_nearby_matches(text, start_offset, stop_offset, pattern):
-    region_start = text[:start_offset].rfind(".")
-    region_start = 0 if region_start < 0 else region_start
-    region_end = text[stop_offset:].find(".")
-    region_end = len(text) if region_end < 0 else stop_offset + region_end
-    region = text[region_start:region_end]
-    match_list = [region[m.start():m.end()].lower() for m in pattern.finditer(region)]
-    return list(set(match_list))
-    
-def find_all_match_offsets(text, match):
-    """Find all occurrences of the match constituents in the target string,
-       returning the offsets in the string for the full match as well as the
-       numeric portion of the match.
-
-       This is not straightforward because we don't know exactly how pattern
-       has tokenized the input text, so a match on:
-            Deaths: 900
-       might have three tokens:
-            'Deaths', ':', and '900',
-       and when it's put back together as a string, it's:
-            Deaths : 900
-       Therefore we have to allow for spaces to exist or not exist separating
-       match constituents that aren't strictly alphabetic."""
-
-    def match_constituents(text, constituents, start_at=0):
-        """Return None if all constituents cannot be found in sequence at the
-           start of the string, otherwise, return the stop_offset of the
-           last constituent."""
-
-        if len(constituents) == 0:
-            return start_at
-        elif text[start_at:].startswith(constituents[0].string):
-            return match_constituents(
-                text,
-                constituents[1:],
-                start_at + len(constituents[0].string))
-        elif (
-            len(text) > start_at + 1 and
-            # Hyphens may be removed from the pattern text
-            # so they are treated as spaces and can be skipped when aligning
-            # the text.
-            re.match(r"\s|-$", text[start_at])
-        ):
-            return match_constituents(
-                text,
-                constituents,
-                start_at + 1)
+    totals = [0]
+    for t in cleaned_tokens:
+        number = parse_number(t)
+        if number is not None:
+            totals[-1] = number
+        elif t in NUMBERS:
+            # Ex: twenty one
+            totals[-1] += NUMBERS[t]
+        elif t in ORDERS:
+            # if order is greater than previous order it should be combined.
+            # Ex: five hundrend three thousand
+            if len(totals) > 1 and ORDERS[t] > totals[-2]:
+                totals[-2] = sum(totals[-2:]) * ORDERS[t]
+                totals[-1] = 0
+            else:
+                totals[-1] *= ORDERS[t]
+                totals.append(0)
         else:
             return None
-
-
-    start_offset = 0
-    offsets = []
-
-    start_at = 0
-    while start_offset > -1:
-
-        first_constituent = match.constituents()[0].string
-        start_offset = text.find(first_constituent, start_at)
-
-        if start_offset > -1:
-            stop_offset = match_constituents(
-                text, match.constituents()[1:],
-                start_offset + len(first_constituent)
-            )
-            if stop_offset is not None:
-                start_at = stop_offset
-                offsets.append({
-                    'fullMatch': (start_offset, stop_offset)
-                })
-            else:
-                # If we didn't find a stop offset, start looking again after
-                # this match.
-                start_at = start_offset + 1
-
-    return offsets
+    return sum(totals)

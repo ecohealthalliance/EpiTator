@@ -75,15 +75,21 @@ class TestCountAnnotator(unittest.TestCase):
         )
 
     def test_written_numbers(self):
-        doc = AnnoDoc("two hundred and twenty two patients were admitted to hospitals")
+        doc = AnnoDoc("""
+            Two hundred and twenty two patients were admitted to hospitals.
+            In total, there were five million three hundred and forty eight thousand new cases last year.""")
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['counts']), 1)
+        self.assertEqual(len(doc.tiers['counts']), 2)
         test_utils.assertHasProps(
             doc.tiers['counts'].spans[0].metadata, {
                 'count': 222
             }
         )
-
+        test_utils.assertHasProps(
+            doc.tiers['counts'].spans[1].metadata, {
+                'count': 5348000
+            }
+        )
     def test_hospitalization_counts1(self):
         examples = [("33 were hospitalized", 33),
                     ("222 were admitted to hospitals with symptoms of diarrhea", 222)]
@@ -97,10 +103,7 @@ class TestCountAnnotator(unittest.TestCase):
                     'attributes': ['hospitalization']
                 })
 
-    def test_death_counts_pattern_problem(self):
-        """The issue here is that CLIPS pattern library will tokenize colons
-           separately from the preceding word."""
-
+    def test_colon_delimited_counts(self):
         doc = AnnoDoc("Deaths: 2")
         doc.add_tier(self.annotator)
 
@@ -231,8 +234,27 @@ class TestCountAnnotator(unittest.TestCase):
             self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
             for actual, expected in zip(doc.tiers['counts'].spans, counts):
                 test_utils.assertHasProps(actual.metadata, expected)
-        doc.add_tier(self.annotator)
 
+    def test_internals(self):
+        from annotator.count_annotator import search_spans_for_regex
+        import annotator.result_aggregators as ra
+        doc = AnnoDoc("Deaths: 2")
+        doc.add_tier(self.annotator)
+        ra.follows([
+            search_spans_for_regex('deaths(\s?:)?', doc.tiers['spacy.tokens'].spans),
+            search_spans_for_regex('\d+', doc.tiers['spacy.tokens'].spans)])
+
+    def test_singular_cases(self):
+        examples= [
+            ("The index case occured on January 22.", [{'count': 1}]),
+            ("A lassa fever case was reported in Hawaii", [{'count':1}])]
+        for example in examples:
+            sent, counts = example
+            doc = AnnoDoc(sent)
+            doc.add_tier(self.annotator)
+            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
+            for actual, expected in zip(doc.tiers['counts'].spans, counts):
+                test_utils.assertHasProps(actual.metadata, expected)
     # def test_year_count(self):
     #     doc = AnnoDoc("""As of [Sun 19 Mar 2017] (epidemiological week 11),
     #     a total of 1407 suspected cases of meningitis have been reported.""")

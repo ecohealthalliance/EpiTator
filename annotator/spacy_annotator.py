@@ -13,6 +13,14 @@ class TokenSpan(AnnoSpan):
         self.label = token.text
         self.token = token
 
+class SentSpan(AnnoSpan):
+    def __init__(self, span, doc):
+        self.doc = doc
+        self.start = span.start_char
+        self.end = span.end_char
+        self.label = span.text
+        self.span = span
+
 class SpacyAnnotator(Annotator):
     def annotate(self, doc):
         ne_spans = []
@@ -20,7 +28,10 @@ class SpacyAnnotator(Annotator):
         ne_chunk_start = None
         ne_chunk_end = None
         ne_chunk_type = None
-        for token in spacy_nlp(doc.text):
+        spacy_doc = spacy_nlp(doc.text)
+        doc.tiers['spacy.sents'] = AnnoTier([
+            SentSpan(sent, doc) for sent in spacy_doc.sents])
+        for token in spacy_doc:
             start = token.idx
             end = token.idx + len(token)
             # White-space tokens are skipped.
