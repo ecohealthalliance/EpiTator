@@ -244,6 +244,58 @@ class TestCountAnnotator(unittest.TestCase):
             search_spans_for_regex('deaths(\s?:)?', doc.tiers['spacy.tokens'].spans),
             search_spans_for_regex('\d+', doc.tiers['spacy.tokens'].spans)])
 
+    def test_full_article(self):
+        """
+        Tests a full length article
+        """
+
+        example = """
+        Last week an outbreak of the plague was reported by two different HHS departments in California.  
+        The first case involved a 72 year old man with 3 brothers 1 sister and 49 grand children.  He had visited between 2 and 4
+        different countries in the last year.  On 1/2/2017 he traveled to Zambia stopping at the 
+        lat/long: 121.125123, -90.234512 for a total of 7 days.  When asked what his favorite number was he responded, "883814019938"
+        though there has been heavy speculation that the actual favorite is 7003.3383.
+
+        When searching within a 7 mile radius of the epicenter there were: 
+            5 cases in Allaghaney resulting in 2 deaths
+            19 cases in The Little Town of Washington causing 8 deaths
+            2 cases in North San Juan which resulted in the spontanious existance of 1 supernatural being
+
+        Health professionals have said that there is only a 12 percent chance these are accurate.  The directory of Nevada County HHS was quoted 
+        as saying, "fifty thousand and twelve, four hundred and twelve, seventy three, one thousand, two hundred and sixteen".  
+        Concerned citizens have said, "50,012, 412, 73, 200 and 16"
+        """
+
+        expectedCounts = [
+            2,
+            1,
+            3,
+            1,
+            49,
+            4,
+            7,
+            5,
+            2,
+            19,
+            8,
+            2,
+            1,
+            50012,
+            412,
+            73,
+            1216,
+            50012,
+            412,
+            73,
+            200,
+            16
+        ]
+        doc = AnnoDoc(example)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['counts'].spans), len(expectedCounts))
+        for actual, expected in zip(doc.tiers['counts'].spans, expectedCounts):
+            self.assertEqual(actual.metadata['count'], expected)  
+
     def test_singular_cases(self):
         examples= [
             ("The index case occured on January 22.", [{'count': 1}]),
