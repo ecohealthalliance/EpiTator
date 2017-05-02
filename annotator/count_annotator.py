@@ -166,7 +166,8 @@ class CountAnnotator(Annotator):
             if len(group) > 0:
                 singular_case_descriptions.append(count_description)
 
-        annotated_counts = ra.combine([
+        # remove counts that span multiple sentences
+        all_potential_counts = reduce(lambda a, b: a + b, [
             case_descriptions_with_counts,
             #Ex: Deaths: 13
             ra.follows([
@@ -174,8 +175,13 @@ class CountAnnotator(Annotator):
                 counts]),
             person_counts,
             count_descriptions,
-            singular_case_descriptions
-        ], prefer='num_spans')
+            singular_case_descriptions])
+
+        single_sentence_counts = []
+        for sentence, group in doc.tiers['spacy.sentences'].group_spans_by_containing_span(all_potential_counts):
+            single_sentence_counts += group
+
+        annotated_counts = ra.combine([single_sentence_counts], prefer='num_spans')
 
         doc.tiers['counts'] = AnnoTier([
             CountSpan(count)

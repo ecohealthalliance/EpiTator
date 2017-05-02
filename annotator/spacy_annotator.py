@@ -29,7 +29,7 @@ class SpacyAnnotator(Annotator):
         ne_chunk_end = None
         ne_chunk_type = None
         spacy_doc = spacy_nlp(doc.text)
-        doc.tiers['spacy.sents'] = AnnoTier([
+        doc.tiers['spacy.sentences'] = AnnoTier([
             SentSpan(sent, doc) for sent in spacy_doc.sents])
         for token in spacy_doc:
             start = token.idx
