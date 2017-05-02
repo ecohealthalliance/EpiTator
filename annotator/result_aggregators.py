@@ -3,6 +3,7 @@ import itertools
 import maximum_weight_interval_set as mwis
 from annotator import AnnoSpan
 
+
 class MatchSpan(AnnoSpan):
     def __init__(self, base_spans, match_name=None):
         if isinstance(base_spans, AnnoSpan):
@@ -14,11 +15,13 @@ class MatchSpan(AnnoSpan):
         self.doc = base_spans[0].doc
         self.label = self.text
         self.match_name = match_name
+
     def __repr__(self):
         match_name = ""
         if self.match_name:
             match_name = self.match_name + ", "
         return "MatchSpan(" + match_name + ", ".join(map(str, self.base_spans)) + ")"
+
     def groupdict(self):
         """
         Return a dict with all the labeled matches.
@@ -30,6 +33,7 @@ class MatchSpan(AnnoSpan):
         if self.match_name:
             out[self.match_name] = self
         return out
+
     def iterate_base_spans(self):
         """
         Recursively iterate over all base_spans including base_spans of child MatchSpans.
@@ -48,6 +52,7 @@ class MatchSpan(AnnoSpan):
             if not isinstance(span, MatchSpan):
                 yield span
 
+
 def near(results_lists, max_dist=100, allow_overlap=True):
     """
     Returns matches from mulitple results lists that appear within the given proximity.
@@ -56,6 +61,7 @@ def near(results_lists, max_dist=100, allow_overlap=True):
     for permutation in itertools.permutations(results_lists):
         result += follows(permutation, max_dist, allow_overlap)
     return result
+
 
 def follows(results_lists, max_dist=100, allow_overlap=False):
     """
@@ -73,10 +79,11 @@ def follows(results_lists, max_dist=100, allow_overlap=False):
         for result in results:
             for sequence in sequences:
                 if sequence[-1].comes_before(result,
-                    max_dist=max_dist, allow_overlap=allow_overlap):
+                                             max_dist=max_dist, allow_overlap=allow_overlap):
                     next_sequences.append(sequence + [result])
         sequences = next_sequences
     return [MatchSpan(seq) for seq in sequences]
+
 
 def label(label, results_list):
     """
@@ -84,22 +91,26 @@ def label(label, results_list):
     """
     return [MatchSpan(match, label) for match in results_list]
 
+
 def combine(results_lists, prefer="first"):
     """
     Combine the results_lists while removing overlapping matches.
     """
     all_results = reduce(lambda sofar, k: sofar + k, results_lists, [])
+
     def first(x):
         """
         Perfers the matches that appear first in the first result list.
         """
         return len(all_results) - all_results.index(x)
+
     def text_length(x):
         """
         Prefers the match with the longest span of text that contains all the
         matching content.
         """
         return len(x)
+
     def num_spans(x):
         """
         Prefers the match with the most distinct base spans.
@@ -129,6 +140,7 @@ def combine(results_lists, prefer="first"):
         interval.corresponding_object
         for interval in my_mwis
     ]
+
 
 def remove_overlaps(list_a, list_b):
     """

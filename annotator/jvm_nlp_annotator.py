@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """Annotator to add NLP annotations from REST calls to a webservice"""
 
-import json
 import dateutil.parser
 
 import requests
 
-from annotator import *
+from annotator import AnnoDoc, Annotator, AnnoTier, AnnoSpan
 from time_expressions import *
+
 
 class StanfordSpan(AnnoSpan):
 
@@ -29,6 +29,7 @@ class StanfordSpan(AnnoSpan):
         del result['start']
         del result['stop']
         return result
+
 
 class JVMNLPAnnotator():
 
@@ -65,8 +66,10 @@ class JVMNLPAnnotator():
                                     # being parsed as a single entity.
                                     # TODO: It would be better to make
                                     # an algorithm that associates years with
-                                    # all months mentioned in the same sentence.
-                                    doc.text.replace('[', ' ').replace(']', ' '),
+                                    # all months mentioned in the same
+                                    # sentence.
+                                    doc.text.replace(
+                                        '[', ' ').replace(']', ' '),
                                     doc.date).to_json(),
                                 headers=headers)
 
@@ -76,7 +79,8 @@ class JVMNLPAnnotator():
         return_json = request.json()
 
         if len(doc.text) != len(return_json['text']):
-            raise Exception("text length changed after being sent back from jvm-nlp")
+            raise Exception(
+                "text length changed after being sent back from jvm-nlp")
 
         # If we don't have a date already and one comes back from the jvm-nlp,
         # make that the new doc.date
@@ -96,11 +100,14 @@ class JVMNLPAnnotator():
             for request_span in return_json['tiers'][tier]['spans']:
                 span = StanfordSpan(request_span, doc)
                 if 'timePoint' in request_span:
-                    span.timePoint = TimePoint.from_json(request_span['timePoint'])
+                    span.timePoint = TimePoint.from_json(
+                        request_span['timePoint'])
                 if 'timeRange' in request_span:
-                    span.timeRange = TimeRange.from_json(request_span['timeRange'])
+                    span.timeRange = TimeRange.from_json(
+                        request_span['timeRange'])
                 if 'timeDuration' in request_span:
-                    span.timeDuration = TimeDuration.from_json(request_span['timeDuration'])
+                    span.timeDuration = TimeDuration.from_json(
+                        request_span['timeDuration'])
                 if 'timeSet' in request_span:
                     span.timeSet = TimeSet.from_json(request_span['timeSet'])
 

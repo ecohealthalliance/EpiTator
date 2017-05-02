@@ -2,19 +2,17 @@
 # coding=utf8
 """Annotator"""
 import json
-import re
 from lazy import lazy
-from collections import defaultdict
-
-import utils
-
 import maximum_weight_interval_set as mwis
+
 
 class Annotator(object):
 
     def annotate():
         """Take an AnnoDoc and produce a new annotation tier"""
-        raise NotImplementedError("annotate method must be implemented in child")
+        raise NotImplementedError(
+            "annotate method must be implemented in child")
+
 
 class AnnoDoc(object):
 
@@ -66,7 +64,8 @@ class AnnoDoc(object):
                 mwis.Interval(
                     start=span.start,
                     end=span.end,
-                    weight=score_func(span) if score_func else (span.end - span.start),
+                    weight=score_func(span) if score_func else (
+                        span.end - span.start),
                     corresponding_object=(tier, span)
                 )
                 for span in tier.spans
@@ -76,6 +75,7 @@ class AnnoDoc(object):
         for interval in my_mwis:
             tier, span = interval.corresponding_object
             tier.spans.append(span)
+
 
 class AnnoTier(object):
 
@@ -144,7 +144,8 @@ class AnnoTier(object):
 
     def spans_over(self, start, end=None):
         """Get all spans which overlap a position or range"""
-        if not end: end = start + 1
+        if not end:
+            end = start + 1
         return filter(lambda span: len(set(range(span.start, span.end)).
                                        intersection(range(start, end))) > 0,
                       self.spans)
@@ -188,15 +189,17 @@ class AnnoTier(object):
             mwis.Interval(
                 start=span.start,
                 end=span.end,
-                weight=score_func(span) if score_func else (span.end - span.start),
+                weight=score_func(span) if score_func else (
+                    span.end - span.start),
                 corresponding_object=span
             )
             for span in self.spans
         ])
-        self.spans =  [
+        self.spans = [
             interval.corresponding_object
             for interval in my_mwis
         ]
+
 
 class AnnoSpan(object):
 
@@ -208,7 +211,7 @@ class AnnoSpan(object):
         self.end = end
         self.doc = doc
 
-        if label == None:
+        if label is None:
             self.label = self.text
         else:
             self.label = label

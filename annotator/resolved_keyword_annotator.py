@@ -1,14 +1,14 @@
-    #!/usr/bin/env python
+#!/usr/bin/env python
 """Keyword Annotator"""
-import re
 from collections import defaultdict
-from annotator import *
+from annotator import Annotator, AnnoSpan, AnnoTier
 from ngram_annotator import NgramAnnotator
 from get_database_connection import get_database_connection
 import sqlite3
 import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class ResolvedKeywordSpan(AnnoSpan):
     def __init__(self, span, resolved_keywords, uris_to_labels):
@@ -22,13 +22,16 @@ class ResolvedKeywordSpan(AnnoSpan):
                     uri=keyword['uri'],
                     weight=keyword['weight'],
                     label=uris_to_labels[keyword['uri']]))
+
     def __repr__(self):
         return super(ResolvedKeywordSpan, self).__repr__() + str(self.uris)
+
     def to_dict(self):
         result = super(ResolvedKeywordSpan, self).to_dict()
         result['resolutions'] = list(self.resolutions)
         result['uris'] = list(self.uris)
         return result
+
 
 class ResolvedKeywordAnnotator(Annotator):
     def __init__(self):
@@ -67,12 +70,12 @@ class ResolvedKeywordAnnotator(Annotator):
 
         logger.info('%s uris resolved' % len(uris))
 
-        results  = cursor.execute('''
-        SELECT *
-        FROM entity_labels
-        WHERE uri IN (''' +
-        ','.join('?' for x in uris) +
-        ')', list(uris))
+        results = cursor.execute('''
+                                 SELECT *
+                                 FROM entity_labels
+                                 WHERE uri IN (''' +
+                                 ','.join('?' for x in uris) +
+                                 ')', list(uris))
         uris_to_labels = {}
         for result in results:
             uris_to_labels[result['uri']] = result['label']

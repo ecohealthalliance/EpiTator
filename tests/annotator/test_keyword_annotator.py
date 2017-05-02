@@ -31,8 +31,10 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['diseases'].spans[0].start, 26)
         self.assertEqual(doc.tiers['diseases'].spans[0].end, 39)
 
-        self.assertEqual(doc.tiers['diseases'].spans[1].text, "Endometrial Endometrioid Adenocarcinoma with squamous differentiation")
-        self.assertEqual(doc.tiers['diseases'].spans[1].label, "endometrial endometrioid adenocarcinoma with squamous differentiation")
+        self.assertEqual(doc.tiers['diseases'].spans[1].text,
+                         "Endometrial Endometrioid Adenocarcinoma with squamous differentiation")
+        self.assertEqual(doc.tiers['diseases'].spans[1].label,
+                         "endometrial endometrioid adenocarcinoma with squamous differentiation")
         self.assertEqual(doc.tiers['diseases'].spans[1].start, 64)
         self.assertEqual(doc.tiers['diseases'].spans[1].end, 133)
 
@@ -81,8 +83,10 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['pathogens'].spans[0].start, 13)
         self.assertEqual(doc.tiers['pathogens'].spans[0].end, 24)
 
-        self.assertEqual(doc.tiers['pathogens'].spans[1].text, "hepatitis e virus")
-        self.assertEqual(doc.tiers['pathogens'].spans[1].label, "hepatitis e virus")
+        self.assertEqual(
+            doc.tiers['pathogens'].spans[1].text, "hepatitis e virus")
+        self.assertEqual(
+            doc.tiers['pathogens'].spans[1].label, "hepatitis e virus")
         self.assertEqual(doc.tiers['pathogens'].spans[1].start, 33)
         self.assertEqual(doc.tiers['pathogens'].spans[1].end, 50)
 
@@ -125,8 +129,6 @@ class KeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['diseases'].spans[0].label, "AS")
         self.assertEqual(doc.tiers['diseases'].spans[0].start, 9)
         self.assertEqual(doc.tiers['diseases'].spans[0].end, 11)
-
-
 
 
 if __name__ == '__main__':

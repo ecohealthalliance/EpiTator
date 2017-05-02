@@ -6,6 +6,7 @@ import nltk
 from annotator import *
 from token_annotator import TokenAnnotator
 
+
 class POSAnnotator(Annotator):
 
     def __init__(self, tag=nltk.pos_tag):

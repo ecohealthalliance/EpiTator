@@ -1,0 +1,18 @@
+language: python
+
+sudo: false
+dist: trusty
+group: edge
+
+python:
+   - "2.7"
+os:
+  - linux
+
+before_install:
+  - "pip install -r requirements.txt"
+  - "pip install flake8"
+
+script:
+  - "flake8 annotator tests"
+  - "python -m unittest discover -p 'test_token_annotator.py'"

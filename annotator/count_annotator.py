@@ -4,7 +4,6 @@ Annotates counts with the following attributes:
 cumulative, case, death, age, hospitalization, approximate, min, max
 """
 import re
-from collections import defaultdict
 from annotator import Annotator, AnnoTier, AnnoSpan
 from jvm_nlp_annotator import JVMNLPAnnotator
 from spacy_annotator import SpacyAnnotator
@@ -14,6 +13,7 @@ import utils
 import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class CountSpan(AnnoSpan):
     attributes = [
@@ -32,6 +32,7 @@ class CountSpan(AnnoSpan):
         "suspected",
         "weekly",
     ]
+
     def __init__(self, match_span):
         self.start = match_span.start
         self.end = match_span.end
@@ -56,10 +57,12 @@ class CountSpan(AnnoSpan):
             'count': count,
             'attributes': sorted(list(attributes))
         }
+
     def to_dict(self):
         result = super(CountSpan, self).to_dict()
         result.update(self.metadata)
         return result
+
 
 def is_valid_count(count_string):
     """
@@ -68,14 +71,18 @@ def is_valid_count(count_string):
     or are extremely large
     """
     value = utils.parse_spelled_number(count_string)
-    if count_string[0] == '0': return False
+    if count_string[0] == '0':
+        return False
     try:
-        if int(value) != value: return False
+        if int(value) != value:
+            return False
     except (TypeError, ValueError) as e:
         logger.info("Cannot parse count string: " + count_string)
         return False
-    if value > 1000000000: return False
+    if value > 1000000000:
+        return False
     return True
+
 
 def search_spans_for_regex(regex_term, spans, match_name=None):
     regex = re.compile(r"^" + regex_term + r"$", re.I)
@@ -84,6 +91,7 @@ def search_spans_for_regex(regex_term, spans, match_name=None):
         if regex.match(span.text):
             match_spans.append(MatchSpan(span, match_name))
     return match_spans
+
 
 class CountAnnotator(Annotator):
     def annotate(self, doc):
@@ -96,15 +104,16 @@ class CountAnnotator(Annotator):
         for ne_span in doc.tiers['stanford.nes'].spans:
             if ne_span.type == 'NUMBER' and is_valid_count(ne_span.text):
                 counts.append(MatchSpan(ne_span, 'count'))
+
         def search_regex(regex_term, match_name=None):
             return search_spans_for_regex(
                 regex_term, doc.tiers['spacy.tokens'].spans, match_name)
         # Remove counts that overlap an age
         counts = ra.remove_overlaps(counts,
-            ra.follows([search_regex('age'), search_regex('of'), counts]))
+                                    ra.follows([search_regex('age'), search_regex('of'), counts]))
         # Remove distances
         counts = ra.remove_overlaps(counts,
-            ra.follows([counts, search_regex('kilometers|km|miles|mi')]))
+                                    ra.follows([counts, search_regex('kilometers|km|miles|mi')]))
         count_modifiers = ra.combine([
             search_regex('average|mean', 'average') +
             search_regex('annual(ly)?', 'annual') +
@@ -118,19 +127,19 @@ class CountAnnotator(Annotator):
         count_descriptions = ra.near([count_modifiers, counts]) + counts
         case_descriptions = (
             ra.label('death',
-                search_regex(r'died|killed|claimed|fatalities|fatality') +
-                search_regex(r'deaths?')) +
+                     search_regex(r'died|killed|claimed|fatalities|fatality') +
+                     search_regex(r'deaths?')) +
             ra.label('hospitalization',
-                #Ex: admitted to hospitals
-                search_regex(r'hospitals?') +
-                search_regex(r'hospitaliz(ations?|ed|es?|ing)')) +
+                     # Ex: admitted to hospitals
+                     search_regex(r'hospitals?') +
+                     search_regex(r'hospitaliz(ations?|ed|es?|ing)')) +
             ra.label('case',
-                search_regex(r'cases?') +
-                search_regex(r'infections?|infect(ed|ing|s)?') +
-                search_regex(r'stricken')))
+                     search_regex(r'cases?') +
+                     search_regex(r'infections?|infect(ed|ing|s)?') +
+                     search_regex(r'stricken')))
         case_statuses = (
-                search_regex(r'suspect(ed|s|ing)?', 'suspected') +
-                search_regex(r'confirmed', 'confirmed'))
+            search_regex(r'suspect(ed|s|ing)?', 'suspected') +
+            search_regex(r'confirmed', 'confirmed'))
         case_descriptions = ra.combine([
             ra.follows([case_statuses, case_descriptions]),
             case_descriptions])
@@ -156,20 +165,20 @@ class CountAnnotator(Annotator):
             if token.tag_ != 'NN':
                 continue
             if not set(['a', 'an', 'the']).intersection([
-                c.lower_ for c in token.children]): 
+                    c.lower_ for c in token.children]):
                 continue
             singular_case_spans.append(t_span)
 
         singular_case_descriptions = []
         for count_description, group in AnnoTier(case_descriptions).group_spans_by_containing_span(
-            singular_case_spans, allow_partial_containment=True):
+                singular_case_spans, allow_partial_containment=True):
             if len(group) > 0:
                 singular_case_descriptions.append(count_description)
 
         # remove counts that span multiple sentences
         all_potential_counts = reduce(lambda a, b: a + b, [
             case_descriptions_with_counts,
-            #Ex: Deaths: 13
+            # Ex: Deaths: 13
             ra.follows([
                 search_regex('deaths(\s?:)?', 'death'),
                 counts]),
@@ -181,7 +190,8 @@ class CountAnnotator(Annotator):
         for sentence, group in doc.tiers['spacy.sentences'].group_spans_by_containing_span(all_potential_counts):
             single_sentence_counts += group
 
-        annotated_counts = ra.combine([single_sentence_counts], prefer='num_spans')
+        annotated_counts = ra.combine(
+            [single_sentence_counts], prefer='num_spans')
 
         doc.tiers['counts'] = AnnoTier([
             CountSpan(count)

@@ -36,7 +36,6 @@ class NgramAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['ngrams'].spans[1].text, 'Hi there')
         self.assertEqual(doc.tiers['ngrams'].spans[2].text, 'there')
 
-
     def test_three_word_sentence_with_period(self):
 
         doc = AnnoDoc("Bears eat tacos.")
@@ -54,6 +53,7 @@ class NgramAnnotatorTest(unittest.TestCase):
         self.assertEqual(next(span_iter).text, 'tacos')
         self.assertEqual(next(span_iter).text, 'tacos.')
         self.assertEqual(next(span_iter).text, '.')
+
 
 if __name__ == '__main__':
     unittest.main()

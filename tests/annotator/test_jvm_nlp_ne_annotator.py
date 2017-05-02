@@ -73,5 +73,6 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(nes[1].type, 'LOCATION')
         self.assertEqual(nes[1].label, 'Eastasia')
 
+
 if __name__ == '__main__':
     unittest.main()

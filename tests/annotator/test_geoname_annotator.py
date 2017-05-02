@@ -11,9 +11,9 @@ sys.path = ['./'] + sys.path
 
 from annotator.annotator import AnnoDoc
 from annotator.geoname_annotator import GeonameAnnotator
-from annotator.loader import HealthMapFileLoader
 import logging
 logging.getLogger('annotator.geoname_annotator').setLevel(logging.ERROR)
+
 
 class GeonameAnnotatorTest(unittest.TestCase):
 
@@ -69,19 +69,24 @@ class GeonameAnnotatorTest(unittest.TestCase):
          """)
         doc.add_tier(self.annotator)
         self.assertTrue(
-            'Northeast' not in [span.text for span in doc.tiers['geonames'].spans]
+            'Northeast' not in [
+                span.text for span in doc.tiers['geonames'].spans]
         )
 
     def test_adjacent_state_name(self):
-        doc = AnnoDoc("""3 at Washington County [Pennsylvania] Shelter Treated For Rabies Exposure""")
+        doc = AnnoDoc(
+            """3 at Washington County [Pennsylvania] Shelter Treated For Rabies Exposure""")
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'PA')
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'PA')
 
     def test_adjacent_state_name_2(self):
         doc = AnnoDoc("In the city of Springfield, IL.")
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['geonameid'], '4250542')
-        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'IL')
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '4250542')
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'IL')
 
     def test_url_names(self):
         doc = AnnoDoc(u"""
@@ -162,7 +167,8 @@ class GeonameAnnotatorTest(unittest.TestCase):
         candidates = self.annotator.get_candidate_geonames(doc)
         gn_features = self.annotator.extract_features(candidates, doc)
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
 
     def test_ne_overlap(self):
         doc = AnnoDoc("""
@@ -170,10 +176,11 @@ Some journals published in the United States are available in Chevy Chase, Maryl
 More specialized journals are available only in Moscow and perhaps St. Petersburg.""")
         doc.add_tier(self.annotator)
         for span, ne_spans in doc.tiers['geonames'].group_spans_by_containing_span(
-            doc.tiers['nes'], allow_partial_containment=True):
+                doc.tiers['nes'], allow_partial_containment=True):
             self.assertTrue(len(ne_spans) > 0)
             for ne_span in ne_spans:
                 self.assertTrue(ne_span.overlaps(span))
+
 
 if __name__ == '__main__':
     unittest.main()

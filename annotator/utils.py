@@ -2,44 +2,45 @@
 import re
 
 NUMBERS = {
-    'zero':0,
-    'half': 1.0/2.0,
-    'one':1,
-    'two':2,
-    'three':3,
-    'four':4,
-    'five':5,
-    'six':6,
-    'seven':7,
-    'eight':8,
-    'nine':9,
-    'ten':10,
-    'eleven':11,
-    'twelve':12,
-    'thirteen':13,
-    'fourteen':14,
-    'fifteen':15,
-    'sixteen':16,
-    'seventeen':17,
-    'eighteen':18,
-    'nineteen':19,
-    'twenty':20,
-    'thirty':30,
-    'forty':40,
-    'fifty':50,
-    'sixty':60,
-    'seventy':70,
-    'eighty':80,
-    'ninety':90,
+    'zero': 0,
+    'half': 1.0 / 2.0,
+    'one': 1,
+    'two': 2,
+    'three': 3,
+    'four': 4,
+    'five': 5,
+    'six': 6,
+    'seven': 7,
+    'eight': 8,
+    'nine': 9,
+    'ten': 10,
+    'eleven': 11,
+    'twelve': 12,
+    'thirteen': 13,
+    'fourteen': 14,
+    'fifteen': 15,
+    'sixteen': 16,
+    'seventeen': 17,
+    'eighteen': 18,
+    'nineteen': 19,
+    'twenty': 20,
+    'thirty': 30,
+    'forty': 40,
+    'fifty': 50,
+    'sixty': 60,
+    'seventy': 70,
+    'eighty': 80,
+    'ninety': 90,
 }
 ORDERS = {
-    'hundred':100,
-    'thousand':1000,
+    'hundred': 100,
+    'thousand': 1000,
     'million': 1000000,
     'billion': 1000000000,
-    'trillion':1000000000000,
-    'gillion' :1000000000,
+    'trillion': 1000000000000,
+    'gillion': 1000000000,
 }
+
 
 def parse_number(num, default=None):
     try:
@@ -49,6 +50,7 @@ def parse_number(num, default=None):
             return float(num)
         except ValueError:
             return default
+
 
 def parse_spelled_number(num_str):
     """Parse spelled out whole numbers."""
@@ -60,7 +62,8 @@ def parse_spelled_number(num_str):
     affix = re.compile(r'(\d+)(st|nd|rd|th)')
     cleaned_tokens = []
     for t in tokens:
-        if t == 'and': continue
+        if t == 'and':
+            continue
         t = punctuation.sub('', t)
         t = affix.sub(r'\1', t)
         cleaned_tokens.append(t.lower())

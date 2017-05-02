@@ -14,10 +14,8 @@ from geopy.distance import great_circle
 from maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
 
 from get_database_connection import get_database_connection
-import math
 import geoname_classifier
 
-import datetime
 import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -40,6 +38,7 @@ blocklist = set([
     'Centers for Disease Control',
     'Ministry of Health and Sanitation',
 ])
+
 
 def location_contains(loc_outer, loc_inner):
     """
@@ -79,6 +78,7 @@ def location_contains(loc_outer, loc_inner):
             return 0
     return outer_feature_level
 
+
 class GeoSpan(AnnoSpan):
     def __init__(self, start, end, doc, geoname):
         self.start = start
@@ -86,10 +86,12 @@ class GeoSpan(AnnoSpan):
         self.doc = doc
         self.geoname = geoname
         self.label = geoname['name']
+
     def to_dict(self):
         result = super(GeoSpan, self).to_dict()
         result['geoname'] = self.geoname.to_dict()
         return result
+
 
 class GeonameRow(sqlite3.Row):
     def __init__(self, *args):
@@ -98,17 +100,22 @@ class GeonameRow(sqlite3.Row):
         self.spans = set()
         self.parents = set()
         self.score = None
+
     def add_spans(self, span_text_to_spans):
         for name in self['names_used'].split(';'):
             for span in span_text_to_spans[name.lower().strip()]:
                 self.spans.add(span)
+
     @lazy
     def lat_long(self):
         return (self['latitude'], self['longitude'])
+
     def __hash__(self):
         return id(self)
+
     def __repr__(self):
         return self['name']
+
     def to_dict(self):
         result = {}
         for key in self.keys():
@@ -116,6 +123,7 @@ class GeonameRow(sqlite3.Row):
         result['parents'] = [p.to_dict() for p in self.parents]
         result['score'] = self.score
         return result
+
 
 class GeonameFeatures(object):
     """
@@ -152,6 +160,7 @@ class GeonameFeatures(object):
         # for example, when they are the only location mentioned.
         'high_confidence',
     ]
+
     def __init__(self, geoname, spans_to_nes, span_to_tokens):
         self.geoname = geoname
         # The set of geonames that are mentioned in proximity to the spans
@@ -185,7 +194,6 @@ class GeonameFeatures(object):
         pos_tags = 0
         min_token_prob = 1.0
         for span in geoname.spans:
-            span_prob = 1.0
             for token_span in span_to_tokens[span]:
                 token = token_span.token
                 pos_tags += 1
@@ -211,12 +219,15 @@ class GeonameFeatures(object):
             d['other_feature_code'] = 1
         self._values = [0] * len(self.feature_names)
         self.set_values(d)
+
     def set_value(self, feature_name, value):
         self._values[self.feature_names.index(feature_name)] = value
+
     def set_values(self, value_dict):
         for idx, name in enumerate(self.feature_names):
             if name in value_dict:
                 self._values[idx] = value_dict[name]
+
     def set_contextual_features(self):
         """
         GeonameFeatures are initialized with only values that can be extracted
@@ -250,12 +261,15 @@ class GeonameFeatures(object):
             very_close_locations=very_close_locations,
             containing_locations=containing_locations,
             max_containment_level=max_containment_level))
+
     def to_dict(self):
         return {
             key: value
             for key, value in zip(self.feature_names, self._values)}
+
     def values(self):
         return self._values
+
 
 class GeonameAnnotator(Annotator):
     def __init__(self, custom_classifier=None):
@@ -265,6 +279,7 @@ class GeonameAnnotator(Annotator):
             self.geoname_classifier = custom_classifier
         else:
             self.geoname_classifier = geoname_classifier
+
     def get_candidate_geonames(self, doc):
         """
         Returns an array of geoname dicts correponding to locations that the document may refer to.
@@ -277,17 +292,21 @@ class GeonameAnnotator(Annotator):
             ne_annotator = NEAnnotator()
             doc.add_tier(ne_annotator)
         logger.info('Named entities annotated')
+
         def is_possible_geoname(text):
-            if text in blocklist: return False
+            if text in blocklist:
+                return False
             # We can rule out a few FPs and make the query much faster
             # by only looking at capitalized names.
-            if text[0] != text[0].upper(): return False
-            if len(text) < 3 and text != text.upper(): return False
+            if text[0] != text[0].upper():
+                return False
+            if len(text) < 3 and text != text.upper():
+                return False
             return True
         all_ngrams = list(set([span.text.lower()
-            for span in doc.tiers['ngrams'].spans
-            if is_possible_geoname(span.text)
-        ]))
+                               for span in doc.tiers['ngrams'].spans
+                               if is_possible_geoname(span.text)
+                               ]))
         logger.info('%s ngrams extracted' % len(all_ngrams))
         cursor = self.connection.cursor()
         geoname_results = list(cursor.execute('''
@@ -299,8 +318,8 @@ class GeonameAnnotator(Annotator):
         JOIN alternatename_counts USING ( geonameid )
         JOIN alternatenames USING ( geonameid )
         WHERE alternatename_lemmatized IN (''' +
-        ','.join('?' for x in all_ngrams) +
-        ''') GROUP BY geonameid''', all_ngrams))
+                                              ','.join('?' for x in all_ngrams) +
+                                              ''') GROUP BY geonameid''', all_ngrams))
         logger.info('%s geonames fetched' % len(geoname_results))
         # Associate spans with the geonames.
         # This is done up front so span information can be used in the scoring
@@ -337,15 +356,17 @@ class GeonameAnnotator(Annotator):
                 # If is more than one non-space/comma character between
                 # the spans do not combine them.
                 if (len(
-                        set(span_a.doc.text[span_a.end:span_b.start]) - set(", ")
-                    ) > 1): break
+                    set(span_a.doc.text[span_a.end:span_b.start]) - set(", ")
+                ) > 1):
+                        break
                 combined_span = span_a.extended_through(span_b)
                 for loc_a, loc_b in itertools.product(
-                    span_to_geonames[span_a],
-                    span_to_geonames[span_b]):
+                        span_to_geonames[span_a],
+                        span_to_geonames[span_b]):
                     if location_contains(loc_b, loc_a) > 0:
                         # TODO: Add combined_span to geoname_spans being iterated
-                        # so chains of spans can be joined. E.g. Seattle, WA, USA
+                        # so chains of spans can be joined. E.g. Seattle, WA,
+                        # USA
                         loc_a.spans.add(combined_span)
                         span_to_geonames[combined_span].append(loc_a)
                         loc_a.parents |= set([loc_b])
@@ -364,19 +385,23 @@ class GeonameAnnotator(Annotator):
             geoname.alternate_locations -= set([geoname])
         logger.info('%s alternative locations found' % sum([
             len(geoname.alternate_locations) for geoname in candidate_geonames]))
-        logger.info('%s candidate locations prepared' % len(candidate_geonames))
+        logger.info('%s candidate locations prepared' %
+                    len(candidate_geonames))
         return candidate_geonames
+
     def extract_features(self, geonames, doc):
         spans_to_nes = {}
         span_to_tokens = {}
-        geospan_tier = AnnoTier(set([span for geoname in geonames for span in geoname.spans]))
+        geospan_tier = AnnoTier(
+            set([span for geoname in geonames for span in geoname.spans]))
         for span, ne_spans in geospan_tier.group_spans_by_containing_span(
-            doc.tiers['nes'], allow_partial_containment=True):
+                doc.tiers['nes'], allow_partial_containment=True):
             spans_to_nes[span] = ne_spans
         for span, token_spans in geospan_tier.group_spans_by_containing_span(
-            doc.tiers['spacy.tokens']):
+                doc.tiers['spacy.tokens']):
             span_to_tokens[span] = token_spans
         return [GeonameFeatures(geoname, spans_to_nes, span_to_tokens) for geoname in geonames]
+
     def add_contextual_features(self, features):
         """
         Extend a list of features with values that are based on the geonames
@@ -388,7 +413,8 @@ class GeonameAnnotator(Annotator):
             for span in feature.geoname.spans:
                 span_to_features[span].append(feature)
         geoname_span_tier = AnnoTier(span_to_features.keys())
-        def feature_generator(filter_fun=lambda x:True):
+
+        def feature_generator(filter_fun=lambda x: True):
             for span in geoname_span_tier.spans:
                 for feature in span_to_features[span]:
                     if filter_fun(feature):
@@ -396,20 +422,25 @@ class GeonameAnnotator(Annotator):
         # Create iterators that will cycle through all the spans returning the span
         # offset and the associated feature.
         all_feature_span_iter = feature_generator()
-        resolved_feature_span_iter = feature_generator(lambda x: x.geoname.high_confidence)
-        # boolean indicators of whether the corresponding iterator has reached its end.
+        resolved_feature_span_iter = feature_generator(
+            lambda x: x.geoname.high_confidence)
+        # boolean indicators of whether the corresponding iterator has reached
+        # its end.
         afs_iter_end = False
         rfs_iter_end = False
-        # The starting index of the of the current feature span or resolved feature span.
+        # The starting index of the of the current feature span or resolved
+        # feature span.
         f_start = 0
         rf_start = 0
-        # A ring buffer containing the recently mentioned resolved geoname features.
+        # A ring buffer containing the recently mentioned resolved geoname
+        # features.
         rf_buffer = []
         rf_buffer_idx = 0
         BUFFER_SIZE = 10
         # The number of characters to lookahead searching for nearby mentions.
         LOOKAHEAD_OFFSET = 50
-        # Fill the buffer to capacity with initially mentioned resolved features.
+        # Fill the buffer to capacity with initially mentioned resolved
+        # features.
         while len(rf_buffer) < BUFFER_SIZE:
             try:
                 rf_start, feature = next(resolved_feature_span_iter)
@@ -429,12 +460,14 @@ class GeonameAnnotator(Annotator):
                 feature.nearby_mentions.update(rf_buffer)
             try:
                 rf_start, resolved_feature = next(resolved_feature_span_iter)
-                rf_buffer[rf_buffer_idx % BUFFER_SIZE] = resolved_feature.geoname
+                rf_buffer[rf_buffer_idx %
+                          BUFFER_SIZE] = resolved_feature.geoname
                 rf_buffer_idx += 1
             except StopIteration:
                 rfs_iter_end = True
         for feature in features:
             feature.set_contextual_features()
+
     def cull_geospans(self, geo_spans):
         mwis = find_maximum_weight_interval_set([
             Interval(
@@ -449,6 +482,7 @@ class GeonameAnnotator(Annotator):
         retained_spans = [interval.corresponding_object for interval in mwis]
         logger.info('overlapping geospans removed')
         return retained_spans
+
     def annotate(self, doc):
         logger.info('geoannotator started')
         candidate_geonames = self.get_candidate_geonames(doc)
@@ -459,9 +493,11 @@ class GeonameAnnotator(Annotator):
         scores = self.geoname_classifier.predict_proba_base([
             f.values() for f in features])
         for geoname, feature, score in zip(candidate_geonames, features, scores):
-            geoname.high_confidence = float(score[1]) > self.geoname_classifier.HIGH_CONFIDENCE_THRESHOLD
+            geoname.high_confidence = float(
+                score[1]) > self.geoname_classifier.HIGH_CONFIDENCE_THRESHOLD
             feature.set_value('high_confidence', geoname.high_confidence)
-        has_high_confidence_features = any([geoname.high_confidence for geoname in candidate_geonames])
+        has_high_confidence_features = any(
+            [geoname.high_confidence for geoname in candidate_geonames])
         if has_high_confidence_features:
             self.add_contextual_features(features)
             scores = self.geoname_classifier.predict_proba_contextual([
@@ -469,8 +505,8 @@ class GeonameAnnotator(Annotator):
         for geoname, score in zip(candidate_geonames, scores):
             geoname.score = float(score[1])
         culled_geonames = [geoname
-            for geoname in candidate_geonames
-            if geoname.score > self.geoname_classifier.GEONAME_SCORE_THRESHOLD]
+                           for geoname in candidate_geonames
+                           if geoname.score > self.geoname_classifier.GEONAME_SCORE_THRESHOLD]
         geo_spans = []
         for geoname in culled_geonames:
             for span in geoname.spans:
