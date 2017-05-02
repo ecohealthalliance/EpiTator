@@ -6,7 +6,6 @@ import re
 from lazy import lazy
 from collections import defaultdict
 
-import pattern
 import utils
 
 import maximum_weight_interval_set as mwis
@@ -26,172 +25,9 @@ class AnnoDoc(object):
             self.text = unicode(text, 'utf8')
         else:
             raise TypeError("text must be string or unicode")
-        # Replacing the unicode dashes is done to avoid this pattern bug:
-        # https://github.com/clips/pattern/issues/104
-        self.text = self.text.replace(u"—", "-")
         self.tiers = {}
         self.properties = {}
-        self.pattern_tree = None
         self.date = date
-
-    def find_match_offsets(self, match):
-        """
-        Returns the byte offsets of a pattern lib match object.
-        """
-        return (
-            match.words[0].byte_offsets[0],
-            match.words[-1].byte_offsets[-1]
-        )
-
-    def byte_offsets_to_pattern_match(self, offsets):
-        """
-        Create a pattern lib match object from the given byte offsets.
-        """
-        class ExternalMatch(pattern.search.Match):
-            """
-            A sequence of words that implements the pattern match interface.
-            """
-            def __init__(self, words):
-                self.words = words
-        start_word = self.__offset_to_word[offsets[0]]
-        end_word = self.__offset_to_word[offsets[-1] - 1]
-        return ExternalMatch(
-            self.pattern_tree.all_words[
-                start_word.abs_index:end_word.abs_index + 1
-            ]
-        )
-
-    def setup_pattern(self):
-        """
-        Parse the doc with pattern so we can use the pattern.search module on it
-        """
-        if self.pattern_tree:
-            # Document is already parsed.
-            return
-        self.taxonomy = pattern.search.Taxonomy()
-        self.taxonomy.append(pattern.search.WordNetClassifier())
-        self.pattern_tree = pattern.en.parsetree(
-            # Long series of linebreaks can cause major slowdowns for pattern lib.
-            utils.collapse_linebreaks(utils.dehyphenate_numbers_and_ages(self.text)),
-            lemmata=True,
-            relations=True
-        )
-        # The pattern tree parser doesn't tag some numbers, such as 2, as CD (Cardinal number).
-        # see: https://github.com/clips/pattern/issues/84
-        # This code tags all the arabic numerals as CDs. It is a temporairy fix
-        # that should be discarded when issue is resolved in the pattern lib.
-        for sent in self.pattern_tree:
-            for word in sent.words:
-                if utils.parse_number(word.string) is not None:
-                    word.tag = 'CD'
-        # Annotate the words in the parse tree with their absolute index and
-        # and create an array with all the words.
-        abs_index = 0
-        self.pattern_tree.all_words = []
-        for sent in self.pattern_tree:
-            for word in sent.words:
-                # Pattern probably shouldn't be creating zero length words.
-                # I've only encountered it happing with usual unicode chars
-                # like \u2028
-                # There might be other consequences when this happens.
-                if len(word.string) > 0:
-                    self.pattern_tree.all_words.append(word)
-                    word.abs_index = abs_index
-                    word.doc_word_array = self.pattern_tree.all_words
-                    abs_index += 1
-        # Create __offset_to_word array and add byte offsets to all the
-        # words in the parse tree.
-        text_offset = 0
-        word_offset = 0
-        self.__offset_to_word = [None] * len(self.text)
-        while(
-            text_offset < len(self.text) and
-            word_offset < len(self.pattern_tree.all_words)
-        ):
-            word = self.pattern_tree.all_words[word_offset]
-            # The match_len is the number of chars after the text_offset
-            # that the match ends.
-            # It needs to be computed because sometimes pattern lib
-            # Words remove spaces that were present in the original text
-            # e.g. :3 so we need to ignore spaces inside the original
-            match_len = 0
-            char_idx = 0
-            while char_idx < len(word.string):
-                word_char = word.string[char_idx]
-                if text_offset + match_len >= len(self.text):
-                    match_len = -1
-                    break
-                if self.text[text_offset + match_len] == word_char:
-                    match_len += 1
-                    char_idx += 1
-                else:
-                    whitespace = re.search(r"^\s*",
-                        self.text[text_offset + match_len:],
-                        re.UNICODE
-                    ).end()
-                    if whitespace == 0:
-                        match_len = -1
-                        break
-                    else:
-                        match_len += whitespace
-            # Any number of periods is turned into a 3 period ellipsis,
-            # so we need to include the extras in the match.
-            if word.string == '...':
-                match_len = re.match(r"^\.*", self.text[text_offset:]).end()
-            if (
-                word.string[0] == self.text[text_offset] and
-                match_len > 0 and
-                word.string[-1] == self.text[text_offset + match_len - 1]
-            ):
-                word.byte_offsets = (text_offset, text_offset + match_len)
-                self.__offset_to_word[text_offset] = word
-                text_offset += match_len
-                word_offset += 1
-            elif (
-                # Hyphens and underscores may be removed from the pattern text
-                # so they are treated as spaces and can be skipped when aligning
-                # the text.
-                re.match(r"^\s|-|_", self.text[text_offset], re.UNICODE)
-            ):
-                text_offset += 1
-            else:
-                raise Exception(
-                    u"Cannot match word [" + word.string +
-                    u"] with text [" + self.text[text_offset:text_offset + 10] +
-                    u"]" +
-                    u" match_len=" + unicode(match_len)
-                )
-        # Fill the empty offsets with their previous value
-        prev_val = None
-        for idx, value in enumerate(self.__offset_to_word):
-            if value is not None:
-                prev_val = value
-            else:
-                self.__offset_to_word[idx] = prev_val
-
-        def p_search(query):
-            # Add offsets:
-            results = pattern.search.search(
-                query,
-                self.pattern_tree,
-                taxonomy=self.taxonomy
-            )
-            # Sometimes matches include surrounding words when a match is part
-            # of a larger chunk.
-            # This restricts the match to only the words that match
-            # the constraint.
-            return [pattern.search.Match(
-                match.pattern,
-                words=filter(
-                    lambda x : match.constraint(x).match(x),
-                    match.words
-                ),
-                map=match._map1)
-                for match in results
-            ]
-
-
-        self.p_search = p_search
 
     def add_tier(self, annotator, **kwargs):
         annotator.annotate(self, **kwargs)
@@ -261,14 +97,16 @@ class AnnoTier(object):
             span_dict = span.__dict__.copy()
             del span_dict['doc']
             docless_spans.append(span_dict)
-
         return json.dumps(docless_spans)
 
     def group_spans_by_containing_span(self, other_tier, allow_partial_containment=False):
         """
         Group spans in the other tier by the spans that contain them.
         """
-        other_spans = other_tier.spans
+        if isinstance(other_tier, AnnoTier):
+            other_spans = other_tier.spans
+        else:
+            other_spans = sorted(other_tier)
         other_spans_idx = 0
         for span in self.spans:
             span_group = []
@@ -396,13 +234,12 @@ class AnnoSpan(object):
             other_span.comes_before(self, max_dist)
         )
 
-    def comes_before(self, other_span, max_dist=0):
-        # Note that this is a strict version of comes before where the
-        # span must end before the other one starts.
-        return (
-            self.end >= other_span.start - max_dist - 1 and
-            self.end <= other_span.start
-        )
+    def comes_before(self, other_span, max_dist=0, allow_overlap=False):
+        if allow_overlap:
+            ok_start = self.start <= other_span.start
+        else:
+            ok_start = self.end <= other_span.start
+        return self.end >= other_span.start - max_dist - 1 and ok_start
 
     def extended_through(self, other_span):
         """

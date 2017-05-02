@@ -11,5 +11,5 @@ setup(
     name='annie',
     version=__version__,
     packages=['annotator', ],
-    install_requires=['lazy', 'nltk', 'pattern', 'numpy', 'rdflib']
+    install_requires=['lazy', 'nltk', 'numpy', 'rdflib']
 )
