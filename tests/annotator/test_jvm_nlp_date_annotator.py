@@ -7,13 +7,8 @@ considered more of an integration test than a unit test.
 
 The code for the webservice required is github.com/ecohealthalliance/jvm-nlp
 """
-
-import sys
 import unittest
 import datetime
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.jvm_nlp_annotator import JVMNLPAnnotator
 

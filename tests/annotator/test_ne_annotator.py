@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 """Tests for the NEAnnotator that annotates a sentence with named entities."""
-
-import sys
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.ne_annotator import NEAnnotator
 

@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """Keyword Annotator"""
 from collections import defaultdict
-
 from annotator import Annotator, AnnoTier, AnnoSpan
 from ngram_annotator import NgramAnnotator
-
 import os
 import pickle
 

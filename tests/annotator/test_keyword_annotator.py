@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 """Tests for the KeywordAnnotator that annotates a sentence with tokens and their
 offsets."""
-
-import sys
-import os
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.keyword_annotator import KeywordAnnotator
 

@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 """Tests for the POSAnnotator that annotates a sentence with part of speech tags
    that align with the token tier."""
-
-import sys
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.jvm_nlp_annotator import JVMNLPAnnotator
 

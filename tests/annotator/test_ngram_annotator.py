@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 """Tests for the NgramAnnotator"""
-
-import sys
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.ngram_annotator import NgramAnnotator
 

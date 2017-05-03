@@ -2,13 +2,8 @@
 # -*- coding: utf-8 -*-
 """Tests for the GeonameAnnotator that annotates a sentence with locations from
 the Geonames dataset."""
-
-import sys
 import os
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.geoname_annotator import GeonameAnnotator
 import logging

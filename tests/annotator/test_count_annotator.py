@@ -3,13 +3,8 @@
 Tests our ability to annotate sentences with numerical
 instances of infections, hospitalizations and deaths.
 """
-
-import sys
 import unittest
 import test_utils
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.count_annotator import CountAnnotator
 

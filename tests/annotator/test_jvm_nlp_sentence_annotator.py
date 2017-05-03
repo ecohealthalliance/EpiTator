@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 """Tests for the SentenceAnnotator that annotates a doc with sentence offsets."""
-
-import sys
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.jvm_nlp_annotator import JVMNLPAnnotator
 

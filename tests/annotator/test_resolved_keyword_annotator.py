@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-import sys
 import os
 import unittest
 import test_utils
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.resolved_keyword_annotator import ResolvedKeywordAnnotator
 

@@ -11,5 +11,6 @@ setup(
     name='annie',
     version=__version__,
     packages=['annotator', ],
-    install_requires=['lazy', 'nltk', 'numpy', 'rdflib']
+    install_requires=['lazy', 'geopy', 'unicodecsv', 'spacy', 'numpy',
+        'rdflib', 'python-dateutil', 'requests'],
 )

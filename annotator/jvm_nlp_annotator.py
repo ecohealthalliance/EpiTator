@@ -6,7 +6,7 @@ import dateutil.parser
 import requests
 
 from annotator import AnnoDoc, Annotator, AnnoTier, AnnoSpan
-from time_expressions import *
+from time_expressions import TimePoint, TimeRange, TimeDuration, TimeSet
 
 
 class StanfordSpan(AnnoSpan):

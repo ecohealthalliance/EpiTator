@@ -1,13 +1,10 @@
 --index-url https://pypi.python.org/simple/
-nltk
 requests
-pyyaml
 unicodecsv
 lazy
 numpy
 geopy
 python-dateutil
-beautifulsoup
 rdflib
 spacy==1.7.2
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-1.2.0/en_core_web_sm-1.2.0.tar.gz
