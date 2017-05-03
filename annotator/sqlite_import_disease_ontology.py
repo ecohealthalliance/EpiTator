@@ -3,9 +3,9 @@ Script for importing disease names from the disease ontology (http://disease-ont
 into the slite synonym table so they can be resolved by the resolved keyword annotator.
 """
 import rdflib
-import sqlite3
 import re
 from get_database_connection import get_database_connection
+
 
 def batched(array):
     batch_size = 100
@@ -17,6 +17,7 @@ def batched(array):
             yield batch
             batch = []
     yield batch
+
 
 def import_disease_ontology(drop_previous=False):
     connection = get_database_connection(create_database=True)
@@ -31,7 +32,8 @@ def import_disease_ontology(drop_previous=False):
     if table_exists:
         print "The table already exists. Run this again with --drop-previous to recreate it."
         return
-    # synonyms_init is a temporary tables that is aggregated to generate the final synonyms table. 
+    # synonyms_init is a temporary tables that is aggregated to generate the
+    # final synonyms table.
     cur.execute("""
     CREATE TABLE synonyms_init (
         synonym text, uri text, weight integer
@@ -89,7 +91,7 @@ def import_disease_ontology(drop_previous=False):
                 weight += 1
             syn_string = str(rdict['synonym'])
             uri = str(rdict['entity'])
-            #Remove text that starts with a bracket
+            # Remove text that starts with a bracket
             if re.match(re.compile(r"^(\[|\()", re.I), syn_string):
                 continue
             syn_string = re.sub(r"\s*\(.*?\)\s*", " ", syn_string)
@@ -142,6 +144,7 @@ def import_disease_ontology(drop_previous=False):
     ''')
     connection.commit()
     connection.close()
+
 
 if __name__ == '__main__':
     import argparse

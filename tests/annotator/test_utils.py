@@ -3,15 +3,17 @@ def nested_items(d):
     Iterates over all the items in nested dictionaries returning path arrays
     with values.
     """
-    for k,v in d.items():
+    for k, v in d.items():
         if isinstance(v, dict):
             for kpath, v2 in nested_items(v):
                 yield [k] + kpath, v2
         else:
             yield [k], v
+
+
 def get_path(d, path, default=None):
     if not isinstance(d, dict):
-        #print "Could not get %s in non-dict %s" % (path, d)
+        # print "Could not get %s in non-dict %s" % (path, d)
         return None
     if isinstance(path, basestring):
         path = path.split('.')
@@ -19,6 +21,8 @@ def get_path(d, path, default=None):
         return d.get(path[0], default)
     else:
         return get_path(d.get(path[0], {}), path[1:])
+
+
 def assertHasProps(d, props):
     """
     All the properties and values in props must also exist in d for this
@@ -29,7 +33,7 @@ def assertHasProps(d, props):
         dv = get_path(d, kpath)
         if not dv or dv != v:
             missing_props.append(kpath)
-    
+
     if len(missing_props) > 0:
         raise AssertionError(
             "Missing properties\n" + str(d) + "\n" + str(props)

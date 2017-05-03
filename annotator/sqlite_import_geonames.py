@@ -1,9 +1,6 @@
 import sys
-import os
 import csv
 import unicodecsv
-import sqlite3
-import time
 from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
@@ -34,19 +31,21 @@ geonames_field_mappings = [
     ('modification_date', None)
 ]
 
+
 def read_geonames_csv():
     print "Downloading geoname data from: " + GEONAMES_ZIP_URL
     url = urlopen(GEONAMES_ZIP_URL)
     zipfile = ZipFile(StringIO(url.read()))
     print "done"
-    #Loading geonames data may cause errors without this line:
+    # Loading geonames data may cause errors without this line:
     csv.field_size_limit(sys.maxint)
     with zipfile.open('allCountries.txt') as f:
         reader = unicodecsv.DictReader(f,
-            fieldnames=[k for k,v in geonames_field_mappings],
-            encoding='utf-8',
-            delimiter='\t',
-            quoting=csv.QUOTE_NONE)
+                                       fieldnames=[
+                                           k for k, v in geonames_field_mappings],
+                                       encoding='utf-8',
+                                       delimiter='\t',
+                                       quoting=csv.QUOTE_NONE)
         for d in reader:
             d['population'] = parse_number(d['population'], 0)
             d['latitude'] = parse_number(d['latitude'], 0)
@@ -56,6 +55,7 @@ def read_geonames_csv():
             else:
                 d['alternatenames'] = []
             yield d
+
 
 def batched(array):
     batch_size = 100
@@ -67,6 +67,7 @@ def batched(array):
             yield batch
             batch = []
     yield batch
+
 
 def import_geonames(drop_previous=False):
     connection = get_database_connection(create_database=True)
@@ -91,7 +92,7 @@ def import_geonames(drop_previous=False):
     i = 0
     geonames_insert_command = 'INSERT INTO geonames VALUES (' + ','.join([
         '?' for x, sqltype in geonames_field_mappings if sqltype]) + ')'
-    alternatenames_insert_command  = 'INSERT INTO alternatenames VALUES (?, ?, ?)'
+    alternatenames_insert_command = 'INSERT INTO alternatenames VALUES (?, ?, ?)'
     for batch in batched(read_geonames_csv()):
         geoname_tuples = []
         alternatename_tuples = []
@@ -103,8 +104,8 @@ def import_geonames(drop_previous=False):
                 connection.commit()
             geoname_tuples.append(
                 tuple(geoname[field]
-                    for field, sqltype in geonames_field_mappings
-                    if sqltype))
+                      for field, sqltype in geonames_field_mappings
+                      if sqltype))
             for alternatename in set(geoname['alternatenames'] + [geoname['name']]):
                 alternatename_tuples.append((
                     geoname['geonameid'],
@@ -128,6 +129,7 @@ def import_geonames(drop_previous=False):
     ''')
     connection.commit()
     connection.close()
+
 
 if __name__ == '__main__':
     import argparse

@@ -7,13 +7,7 @@ considered more of an integration test than a unit test.
 
 The code for the webservice required is github.com/ecohealthalliance/jvm-nlp
 """
-
-import sys
 import unittest
-import datetime
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.jvm_nlp_annotator import JVMNLPAnnotator
 
@@ -72,6 +66,7 @@ class JVMNLPAnnotatorTest(unittest.TestCase):
         self.assertEqual(nes[1].end, 44)
         self.assertEqual(nes[1].type, 'LOCATION')
         self.assertEqual(nes[1].label, 'Eastasia')
+
 
 if __name__ == '__main__':
     unittest.main()

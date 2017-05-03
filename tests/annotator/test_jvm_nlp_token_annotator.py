@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 """Tests for the TokenAnnotator that annotates a sentence with tokens and their
 offsets."""
-
-import sys
 import unittest
-
-sys.path = ['./'] + sys.path
-
 from annotator.annotator import AnnoDoc
 from annotator.jvm_nlp_annotator import JVMNLPAnnotator
 
@@ -24,12 +19,15 @@ class TokenAnnotatorTest(unittest.TestCase):
         self.assertEqual(len(self.doc.tiers['stanford.tokens'].spans), 3)
 
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].text, 'Hi')
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].label, 'Hi')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[0].label, 'Hi')
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].start, 0)
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].end, 2)
 
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].text, 'Joe')
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].label, 'Joe')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[1].text, 'Joe')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[1].label, 'Joe')
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].start, 3)
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].end, 6)
 
@@ -47,7 +45,8 @@ class TokenAnnotatorTest(unittest.TestCase):
         self.assertEqual(len(self.doc.tiers['stanford.tokens'].spans), 2)
 
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].text, 'Hi')
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].label, 'Hi')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[0].label, 'Hi')
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].start, 1)
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].end, 3)
 
@@ -65,17 +64,22 @@ class TokenAnnotatorTest(unittest.TestCase):
         self.assertEqual(len(self.doc.tiers['stanford.tokens'].spans), 4)
 
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].text, 'Hi')
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].label, 'Hi')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[0].label, 'Hi')
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].start, 9)
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[0].end, 11)
 
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].text, 'there')
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].label, 'there')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[1].text, 'there')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[1].label, 'there')
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].start, 13)
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[1].end, 18)
 
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[2].text, 'Joe')
-        self.assertEqual(self.doc.tiers['stanford.tokens'].spans[2].label, 'Joe')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[2].text, 'Joe')
+        self.assertEqual(
+            self.doc.tiers['stanford.tokens'].spans[2].label, 'Joe')
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[2].start, 24)
         self.assertEqual(self.doc.tiers['stanford.tokens'].spans[2].end, 27)
 

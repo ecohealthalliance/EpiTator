@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Classes to hold time-related objects"""
 
+
 class TimePoint:
 
     def __init__(self, iso_string=None, year=None, month=None, date=None,
@@ -16,14 +17,14 @@ class TimePoint:
     def __repr__(self):
         return ' '.join(['year:', str(self.year), 'month:', str(self.month),
                          'date:', str(self.date), 'hour:', str(self.hour),
-                         'minute:', str(self.minute), 'second:', str(self.second),
+                         'minute:', str(self.minute), 'second:', str(
+                             self.second),
                          'mod:', str(self.mod)])
 
     def to_dict(self):
-        return dict( (key, val)
-                     for key, val in self.__dict__.iteritems()
-                     if val is not None)
-
+        return dict((key, val)
+                    for key, val in self.__dict__.iteritems()
+                    if val is not None)
 
     @staticmethod
     def from_json(json):
@@ -39,9 +40,9 @@ class TimeRange:
         self.mod = mod
 
     def to_dict(self):
-        return dict( (key, val)
-                     for key, val in self.__dict__.iteritems()
-                     if val is not None)
+        return dict((key, val)
+                    for key, val in self.__dict__.iteritems()
+                    if val is not None)
 
     @staticmethod
     def from_json(json):
@@ -50,6 +51,7 @@ class TimeRange:
         end = TimePoint.from_json(json['end'])
         mod = json['mod'] if 'mod' in json else None
         return TimeRange(begin, end, mod)
+
 
 class TimeDuration:
 
@@ -61,14 +63,15 @@ class TimeDuration:
         return ' '.join(['label:', str(self.label), 'mod:', str(self.mod)])
 
     def to_dict(self):
-        return dict( (key, val)
-                     for key, val in self.__dict__.iteritems()
-                     if val is not None)
+        return dict((key, val)
+                    for key, val in self.__dict__.iteritems()
+                    if val is not None)
 
     @staticmethod
     def from_json(json):
         """Build a TimeDuration from a JSON object"""
         return TimeDuration(**json)
+
 
 class TimeSet:
 
@@ -80,10 +83,9 @@ class TimeSet:
         return ' '.join(['label:', str(self.label), 'mod:', str(self.mod)])
 
     def to_dict(self):
-        return dict( (key, val)
-                     for key, val in self.__dict__.iteritems()
-                     if val is not None)
-
+        return dict((key, val)
+                    for key, val in self.__dict__.iteritems()
+                    if val is not None)
 
     @staticmethod
     def from_json(json):

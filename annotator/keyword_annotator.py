@@ -1,14 +1,11 @@
-    #!/usr/bin/env python
+#!/usr/bin/env python
 """Keyword Annotator"""
-import math
-import re
 from collections import defaultdict
-
-from annotator import *
+from annotator import Annotator, AnnoTier, AnnoSpan
 from ngram_annotator import NgramAnnotator
-
 import os
 import pickle
+
 
 class KeywordAnnotator(Annotator):
 
@@ -53,7 +50,8 @@ class KeywordAnnotator(Annotator):
         ngram_spans_by_lowercase = defaultdict(list)
 
         for ngram_span in doc.tiers['ngrams'].spans:
-            ngram_spans_by_lowercase[ngram_span.text.lower()].append(ngram_span)
+            ngram_spans_by_lowercase[ngram_span.text.lower()].append(
+                ngram_span)
 
         ngrams = ngram_spans_by_lowercase.keys()
 
@@ -69,11 +67,10 @@ class KeywordAnnotator(Annotator):
                             label = true_case
                         else:
                             label = keyword
-                        keyword_spans.append(AnnoSpan(ngram_span.start, ngram_span.end, doc, label=label))
+                        keyword_spans.append(
+                            AnnoSpan(ngram_span.start, ngram_span.end, doc, label=label))
 
             doc.tiers[keyword_type] = AnnoTier(keyword_spans)
             doc.tiers[keyword_type].filter_overlapping_spans()
 
         return doc
-
-

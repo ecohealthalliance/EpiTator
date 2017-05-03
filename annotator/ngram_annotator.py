@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 """Ngram Annotator"""
 
-from annotator import *
+from annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
 from token_annotator import TokenAnnotator
+
 
 class NgramAnnotator(Annotator):
 
     def annotate(self, doc, n_min=1, n_max=7):
 
-        if not 'tokens' in doc.tiers:
+        if 'tokens' not in doc.tiers:
             token_annotator = TokenAnnotator()
             doc.add_tier(token_annotator)
 

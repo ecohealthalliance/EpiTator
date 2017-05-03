@@ -5,48 +5,50 @@
 import numpy as np
 from numpy import array, int32
 base_classifier = {'C': 1.0,
- 'class_weight': None,
- 'classes_': array([False,  True], dtype=bool),
- 'coef_': array([[ 0.41709826,  0.01205768,  0.07386399,  0.39599024,  0.95476396,
-         0.69740105, -0.08068399,  0.        , -0.92411466, -0.01669044,
-        -0.00322474, -0.06288616,  0.        ,  0.        , -0.73363708,
-        -0.03837067,  0.        ,  0.        ,  0.        ,  0.        ,
-         0.        ]]),
- 'dual': False,
- 'fit_intercept': True,
- 'intercept_': array([-11.20751975]),
- 'intercept_scaling': 1,
- 'max_iter': 100,
- 'multi_class': 'ovr',
- 'n_iter_': 32,
- 'penalty': 'l1',
- 'random_state': None,
- 'solver': 'liblinear',
- 'tol': 0.0001,
- 'verbose': 0}
+                   'class_weight': None,
+                   'classes_': array([False,  True], dtype=bool),
+                   'coef_': array([[0.41709826,  0.01205768,  0.07386399,  0.39599024,  0.95476396,
+                                    0.69740105, -0.08068399,  0., -0.92411466, -0.01669044,
+                                    -0.00322474, -0.06288616,  0.,  0., -0.73363708,
+                                    -0.03837067,  0.,  0.,  0.,  0.,
+                                    0.]]),
+                   'dual': False,
+                   'fit_intercept': True,
+                   'intercept_': array([-11.20751975]),
+                   'intercept_scaling': 1,
+                   'max_iter': 100,
+                   'multi_class': 'ovr',
+                   'n_iter_': 32,
+                   'penalty': 'l1',
+                   'random_state': None,
+                   'solver': 'liblinear',
+                   'tol': 0.0001,
+                   'verbose': 0}
 HIGH_CONFIDENCE_THRESHOLD = 0.5
 GEONAME_SCORE_THRESHOLD = 0.2
 contextual_classifier = {'C': 1.0,
- 'class_weight': None,
- 'classes_': array([False,  True], dtype=bool),
- 'coef_': array([[ 0.35456089,  0.01535475,  0.03191418,  0.34968344,  0.83846999,
-         0.48107491,  0.        ,  0.        , -0.9297052 , -0.00738149,
-        -0.00293301, -0.07625671,  0.        ,  0.25805974, -0.55884754,
-         0.02127332,  0.67585766, -0.18060365, -0.06753644,  0.50056382,
-         0.02063619]]),
- 'dual': False,
- 'fit_intercept': True,
- 'intercept_': array([-9.8223105]),
- 'intercept_scaling': 1,
- 'max_iter': 100,
- 'multi_class': 'ovr',
- 'n_iter_': 23,
- 'penalty': 'l1',
- 'random_state': None,
- 'solver': 'liblinear',
- 'tol': 0.0001,
- 'verbose': 0}
+                         'class_weight': None,
+                         'classes_': array([False,  True], dtype=bool),
+                         'coef_': array([[0.35456089,  0.01535475,  0.03191418,  0.34968344,  0.83846999,
+                                          0.48107491,  0.,  0., -0.9297052, -0.00738149,
+                                          -0.00293301, -0.07625671,  0.,  0.25805974, -0.55884754,
+                                          0.02127332,  0.67585766, -0.18060365, -0.06753644,  0.50056382,
+                                          0.02063619]]),
+                         'dual': False,
+                         'fit_intercept': True,
+                         'intercept_': array([-9.8223105]),
+                         'intercept_scaling': 1,
+                         'max_iter': 100,
+                         'multi_class': 'ovr',
+                         'n_iter_': 23,
+                         'penalty': 'l1',
+                         'random_state': None,
+                         'solver': 'liblinear',
+                         'tol': 0.0001,
+                         'verbose': 0}
 # Logistic regression code from scipy
+
+
 def predict_proba(X, classifier):
     """Probability estimation for OvR logistic regression.
     Positive class probabilities are computed as
@@ -65,7 +67,11 @@ def predict_proba(X, classifier):
         # OvR normalization, like LibLinear's predict_probability
         prob /= prob.sum(axis=1).reshape((prob.shape[0], -1))
         return prob
+
+
 def predict_proba_base(X):
     return predict_proba(X, base_classifier)
+
+
 def predict_proba_contextual(X):
     return predict_proba(X, contextual_classifier)

@@ -2,6 +2,8 @@
 """Token Annotator"""
 from annotator import Annotator, AnnoSpan, AnnoTier
 from spacy_annotator import SpacyAnnotator
+
+
 class TokenAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
