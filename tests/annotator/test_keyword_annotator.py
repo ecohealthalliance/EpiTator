@@ -2,8 +2,8 @@
 """Tests for the KeywordAnnotator that annotates a sentence with tokens and their
 offsets."""
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.keyword_annotator import KeywordAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.keyword_annotator import KeywordAnnotator
 
 
 class KeywordAnnotatorTest(unittest.TestCase):

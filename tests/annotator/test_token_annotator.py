@@ -2,8 +2,8 @@
 """Tests for the TokenAnnotator that annotates a sentence with tokens and their
 offsets."""
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.token_annotator import TokenAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.token_annotator import TokenAnnotator
 
 
 class TokenAnnotatorTest(unittest.TestCase):

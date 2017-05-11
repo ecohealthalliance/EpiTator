@@ -5,8 +5,8 @@ instances of infections, hospitalizations and deaths.
 """
 import unittest
 import test_utils
-from annotator.annotator import AnnoDoc
-from annotator.count_annotator import CountAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.count_annotator import CountAnnotator
 
 
 class TestCountAnnotator(unittest.TestCase):
@@ -236,8 +236,8 @@ class TestCountAnnotator(unittest.TestCase):
                 test_utils.assertHasProps(actual.metadata, expected)
 
     def test_internals(self):
-        from annotator.count_annotator import search_spans_for_regex
-        import annotator.result_aggregators as ra
+        from epitator.count_annotator import search_spans_for_regex
+        import epitator.result_aggregators as ra
         doc = AnnoDoc("Deaths: 2")
         doc.add_tier(self.annotator)
         ra.follows([

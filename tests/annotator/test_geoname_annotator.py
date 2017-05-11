@@ -4,8 +4,8 @@
 the Geonames dataset."""
 import os
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.geoname_annotator import GeonameAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.geoname_annotator import GeonameAnnotator
 import logging
 logging.getLogger('annotator.geoname_annotator').setLevel(logging.ERROR)
 

@@ -8,8 +8,8 @@ considered more of an integration test than a unit test.
 The code for the webservice required is github.com/ecohealthalliance/jvm-nlp
 """
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.jvm_nlp_annotator import JVMNLPAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.jvm_nlp_annotator import JVMNLPAnnotator
 
 
 class JVMNLPAnnotatorTest(unittest.TestCase):

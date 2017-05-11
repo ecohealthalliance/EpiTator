@@ -9,8 +9,8 @@ The code for the webservice required is github.com/ecohealthalliance/jvm-nlp
 """
 import unittest
 import datetime
-from annotator.annotator import AnnoDoc
-from annotator.jvm_nlp_annotator import JVMNLPAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.jvm_nlp_annotator import JVMNLPAnnotator
 
 
 class JVMNLPAnnotatorTest(unittest.TestCase):

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for the NEAnnotator that annotates a sentence with named entities."""
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.ne_annotator import NEAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.ne_annotator import NEAnnotator
 
 
 class NEAnnotatorTest(unittest.TestCase):
