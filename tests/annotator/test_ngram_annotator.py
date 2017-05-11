@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for the NgramAnnotator"""
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.ngram_annotator import NgramAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.ngram_annotator import NgramAnnotator
 
 
 class NgramAnnotatorTest(unittest.TestCase):

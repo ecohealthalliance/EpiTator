@@ -1,12 +1,10 @@
-# This project has moved to https://github.com/ecohealthalliance/EpiTator
+# EpiTator
 
-# Annie the annotator
-
-Annotators for extracting epidemiologic information from text.
+Annotators for extracting epidemiological information from text.
 
 ## Architecture
 
-Annie provides the following classes for organizing annotations.
+EpiTator provides the following classes for organizing annotations.
 
 AnnoDoc - The document being annotated. The AnnoDoc links to the tiers of annotations applied to it.
 
@@ -27,8 +25,6 @@ data into an embedded sqlite3 database:
 ```
 python -m annotator.sqlite_import_geonames
 ```
-
-This annotator also requires installing the nltk name entitiy extractor.
 
 ### Resolved Keyword Annotator
 

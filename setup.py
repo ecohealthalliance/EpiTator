@@ -4,13 +4,13 @@ try:
 except ImportError:
     from distutils.core import setup
 
-with open(os.path.join(os.path.dirname(__file__), 'annotator', 'version.py')) as f:
+with open(os.path.join(os.path.dirname(__file__), 'epitator', 'version.py')) as f:
     exec(f.read())
 
 setup(
-    name='annie',
+    name='EpiTator',
     version=__version__,
-    packages=['annotator', ],
+    packages=['epitator', ],
     install_requires=['lazy', 'geopy', 'unicodecsv', 'spacy', 'numpy',
         'rdflib', 'python-dateutil', 'requests'],
 )

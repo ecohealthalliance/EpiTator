@@ -2,8 +2,8 @@
 import os
 import unittest
 import test_utils
-from annotator.annotator import AnnoDoc
-from annotator.resolved_keyword_annotator import ResolvedKeywordAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.resolved_keyword_annotator import ResolvedKeywordAnnotator
 
 
 class ResolvedKeywordAnnotatorTest(unittest.TestCase):

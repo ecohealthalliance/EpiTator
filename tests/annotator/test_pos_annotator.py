@@ -3,8 +3,8 @@
    that align with the token tier."""
 import unittest
 
-from annotator.annotator import AnnoDoc
-from annotator.pos_annotator import POSAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.pos_annotator import POSAnnotator
 
 
 class POSAnnotatorTest(unittest.TestCase):

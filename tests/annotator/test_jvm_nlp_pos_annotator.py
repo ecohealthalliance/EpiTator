@@ -2,8 +2,8 @@
 """Tests for the POSAnnotator that annotates a sentence with part of speech tags
    that align with the token tier."""
 import unittest
-from annotator.annotator import AnnoDoc
-from annotator.jvm_nlp_annotator import JVMNLPAnnotator
+from epitator.annotator import AnnoDoc
+from epitator.jvm_nlp_annotator import JVMNLPAnnotator
 
 
 class POSAnnotatorTest(unittest.TestCase):
