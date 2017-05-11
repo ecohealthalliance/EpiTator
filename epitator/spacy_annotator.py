@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Create annotation tiers using spacy"""
-from annotator import Annotator, AnnoSpan, AnnoTier
+from __future__ import absolute_import
+from .annotator import Annotator, AnnoSpan, AnnoTier
 import re
 import en_core_web_sm as spacy_model
 spacy_nlp = spacy_model.load()

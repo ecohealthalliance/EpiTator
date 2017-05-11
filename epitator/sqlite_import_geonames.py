@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import csv
 import unicodecsv
 from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
-from get_database_connection import get_database_connection
-from utils import parse_number
+from .get_database_connection import get_database_connection
+from .utils import parse_number
 
 GEONAMES_ZIP_URL = "http://download.geonames.org/export/dump/allCountries.zip"
 
@@ -33,10 +35,10 @@ geonames_field_mappings = [
 
 
 def read_geonames_csv():
-    print "Downloading geoname data from: " + GEONAMES_ZIP_URL
+    print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
     url = urlopen(GEONAMES_ZIP_URL)
     zipfile = ZipFile(StringIO(url.read()))
-    print "done"
+    print("done")
     # Loading geonames data may cause errors without this line:
     csv.field_size_limit(sys.maxint)
     with zipfile.open('allCountries.txt') as f:
@@ -73,7 +75,7 @@ def import_geonames(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
-        print "Dropping geonames data..."
+        print("Dropping geonames data...")
         cur.execute("""DROP TABLE IF EXISTS 'geonames'""")
         cur.execute("""DROP TABLE IF EXISTS 'alternatenames'""")
         cur.execute("""DROP TABLE IF EXISTS 'alternatename_counts'""")
@@ -81,7 +83,7 @@ def import_geonames(drop_previous=False):
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='geonames'"""))) > 0
     if table_exists:
-        print "The geonames table already exists. Run this again with --drop-previous to recreate it."
+        print("The geonames table already exists. Run this again with --drop-previous to recreate it.")
         return
     # Create table
     cur.execute("CREATE TABLE geonames (" + ",".join([
@@ -100,7 +102,7 @@ def import_geonames(drop_previous=False):
             i += 1
             total_row_estimate = 11000000
             if i % (total_row_estimate / 40) == 0:
-                print i, '/', total_row_estimate, '+ geonames imported'
+                print(i, '/', total_row_estimate, '+ geonames imported')
                 connection.commit()
             geoname_tuples.append(
                 tuple(geoname[field]
@@ -113,7 +115,7 @@ def import_geonames(drop_previous=False):
                     alternatename.lower().strip()))
         cur.executemany(geonames_insert_command, geoname_tuples)
         cur.executemany(alternatenames_insert_command, alternatename_tuples)
-    print "Creating indexes..."
+    print("Creating indexes...")
     cur.execute('''
     CREATE INDEX alternatename_index
     ON alternatenames (alternatename_lemmatized);

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Geoname Annotator"""
+from __future__ import absolute_import
 import math
 import re
 import itertools
@@ -7,16 +8,17 @@ import sqlite3
 from collections import defaultdict
 from lazy import lazy
 
-from annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
-from ngram_annotator import NgramAnnotator
-from ne_annotator import NEAnnotator
+from .annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
+from .ngram_annotator import NgramAnnotator
+from .ne_annotator import NEAnnotator
 from geopy.distance import great_circle
-from maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
+from .maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
 
-from get_database_connection import get_database_connection
-import geoname_classifier
+from .get_database_connection import get_database_connection
+from . import geoname_classifier
 
 import logging
+from six.moves import zip
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -95,6 +97,7 @@ class GeoSpan(AnnoSpan):
 
 class GeonameRow(sqlite3.Row):
     def __init__(self, *args):
+        # TODO: In python3 this causes an error because it expects no arguments.
         super(GeonameRow, self).__init__(*args)
         self.alternate_locations = set()
         self.spans = set()
@@ -412,7 +415,7 @@ class GeonameAnnotator(Annotator):
         for feature in features:
             for span in feature.geoname.spans:
                 span_to_features[span].append(feature)
-        geoname_span_tier = AnnoTier(span_to_features.keys())
+        geoname_span_tier = AnnoTier(list(span_to_features.keys()))
 
         def feature_generator(filter_fun=lambda x: True):
             for span in geoname_span_tier.spans:
@@ -491,7 +494,7 @@ class GeonameAnnotator(Annotator):
             doc.tiers['geonames'] = AnnoTier([])
             return doc
         scores = self.geoname_classifier.predict_proba_base([
-            f.values() for f in features])
+            list(f.values()) for f in features])
         for geoname, feature, score in zip(candidate_geonames, features, scores):
             geoname.high_confidence = float(
                 score[1]) > self.geoname_classifier.HIGH_CONFIDENCE_THRESHOLD
@@ -501,7 +504,7 @@ class GeonameAnnotator(Annotator):
         if has_high_confidence_features:
             self.add_contextual_features(features)
             scores = self.geoname_classifier.predict_proba_contextual([
-                f.values() for f in features])
+                list(f.values()) for f in features])
         for geoname, score in zip(candidate_geonames, scores):
             geoname.score = float(score[1])
         culled_geonames = [geoname

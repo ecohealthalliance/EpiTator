@@ -7,6 +7,7 @@ considered more of an integration test than a unit test.
 
 The code for the webservice required is github.com/ecohealthalliance/jvm-nlp
 """
+from __future__ import absolute_import
 import unittest
 import datetime
 from epitator.annotator import AnnoDoc

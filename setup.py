@@ -12,5 +12,5 @@ setup(
     version=__version__,
     packages=['epitator', ],
     install_requires=['lazy', 'geopy', 'unicodecsv', 'spacy', 'numpy',
-        'rdflib', 'python-dateutil', 'requests'],
+        'rdflib', 'python-dateutil', 'requests', 'six'],
 )

@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 # coding=utf8
 """Annotator"""
+from __future__ import absolute_import
+from __future__ import print_function
 import json
 from lazy import lazy
-import maximum_weight_interval_set as mwis
+from . import maximum_weight_interval_set as mwis
+import six
+from six.moves import range
 
 
 class Annotator(object):
@@ -17,10 +21,10 @@ class Annotator(object):
 class AnnoDoc(object):
 
     def __init__(self, text=None, date=None):
-        if type(text) is unicode:
+        if type(text) is six.text_type:
             self.text = text
         elif type(text) is str:
-            self.text = unicode(text, 'utf8')
+            self.text = six.text_type(text, 'utf8')
         else:
             raise TypeError("text must be string or unicode")
         self.tiers = {}
@@ -41,7 +45,7 @@ class AnnoDoc(object):
             json_obj['properties'] = self.properties
 
         json_obj['tiers'] = {}
-        for name, tier in self.tiers.iteritems():
+        for name, tier in self.tiers.items():
             json_obj['tiers'][name] = tier.to_json()
 
         return json.dumps(json_obj)
@@ -51,13 +55,13 @@ class AnnoDoc(object):
         if not tiers:
             tiers = tier_names
         if not tiers:
-            tiers = self.tiers.keys()
+            tiers = list(self.tiers.keys())
         intervals = []
         for tier in tiers:
-            if isinstance(tier, basestring):
+            if isinstance(tier, six.string_types):
                 tier_name = tier
                 if tier_name not in self.tiers:
-                    print "Warning! Tier does not exist:", tier_name
+                    print("Warning! Tier does not exist:", tier_name)
                     continue
                 tier = self.tiers[tier_name]
             intervals.extend([
@@ -86,7 +90,7 @@ class AnnoTier(object):
             self.spans = sorted(spans)
 
     def __repr__(self):
-        return unicode([unicode(span) for span in self.spans])
+        return six.text_type([six.text_type(span) for span in self.spans])
 
     def __len__(self):
         return len(self.spans)
@@ -146,18 +150,16 @@ class AnnoTier(object):
         """Get all spans which overlap a position or range"""
         if not end:
             end = start + 1
-        return filter(lambda span: len(set(range(span.start, span.end)).
-                                       intersection(range(start, end))) > 0,
-                      self.spans)
+        return [span for span in self.spans if len(set(range(span.start, span.end)).
+                                       intersection(list(range(start, end)))) > 0]
 
     def spans_in(self, start, end):
         """Get all spans which are contained in a range"""
-        return filter(lambda span: span.start >= start and span.end <= end, self.spans)
+        return [span for span in self.spans if span.start >= start and span.end <= end]
 
     def spans_at(self, start, end):
         """Get all spans with certain start and end positions"""
-        return filter(lambda span: start == span.start and end == span.end,
-                      self.spans)
+        return [span for span in self.spans if start == span.start and end == span.end]
 
     def spans_over_span(self, span):
         """Get all spans which overlap another span"""
@@ -173,7 +175,7 @@ class AnnoTier(object):
 
     def spans_with_label(self, label):
         """Get all spans which have a given label"""
-        return filter(lambda span: span.label == label, self.spans)
+        return [span for span in self.spans if span.label == label]
 
     def labels(self):
         """Get a list of all labels in this tier"""
@@ -181,7 +183,7 @@ class AnnoTier(object):
 
     def sort_spans(self):
         """Sort spans by order of start"""
-        print "sort_spans is deprecated. AnnoTier spans are now always sorted."
+        print("sort_spans is deprecated. AnnoTier spans are now always sorted.")
 
     def filter_overlapping_spans(self, score_func=None):
         """Remove the smaller of any overlapping spans."""

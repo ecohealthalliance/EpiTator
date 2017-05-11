@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Token Annotator"""
-from annotator import Annotator, AnnoSpan, AnnoTier
-from spacy_annotator import SpacyAnnotator
+from __future__ import absolute_import
+from .annotator import Annotator, AnnoSpan, AnnoTier
+from .spacy_annotator import SpacyAnnotator
 
 
 class TokenAnnotator(Annotator):

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+import six
 def nested_items(d):
     """
     Iterates over all the items in nested dictionaries returning path arrays
@@ -15,7 +17,7 @@ def get_path(d, path, default=None):
     if not isinstance(d, dict):
         # print "Could not get %s in non-dict %s" % (path, d)
         return None
-    if isinstance(path, basestring):
+    if isinstance(path, six.string_types):
         path = path.split('.')
     if len(path) == 1:
         return d.get(path[0], default)

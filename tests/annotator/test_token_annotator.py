@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the TokenAnnotator that annotates a sentence with tokens and their
 offsets."""
+from __future__ import absolute_import
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.token_annotator import TokenAnnotator

@@ -2,9 +2,11 @@
 Script for importing disease names from the disease ontology (http://disease-ontology.org/)
 into the slite synonym table so they can be resolved by the resolved keyword annotator.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import rdflib
 import re
-from get_database_connection import get_database_connection
+from .get_database_connection import get_database_connection
 
 
 def batched(array):
@@ -23,14 +25,14 @@ def import_disease_ontology(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
-        print "Dropping previous database..."
+        print("Dropping previous database...")
         cur.execute("DROP TABLE IF EXISTS 'synonyms'")
         cur.execute("DROP TABLE IF EXISTS 'synonyms_init'")
         cur.execute("DROP TABLE IF EXISTS 'entity_labels'")
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='synonyms'"""))) > 0
     if table_exists:
-        print "The table already exists. Run this again with --drop-previous to recreate it."
+        print("The table already exists. Run this again with --drop-previous to recreate it.")
         return
     # synonyms_init is a temporary tables that is aggregated to generate the
     # final synonyms table.
@@ -82,7 +84,7 @@ def import_disease_ontology(drop_previous=False):
             elif synonymType == 'hasRelatedSynonym':
                 weight += 0
             else:
-                print "Unknown synonymType:", synonymType
+                print("Unknown synonymType:", synonymType)
                 continue
             if rdict['children'] == 0:
                 # Sometimes parents diseases have as synonyms child disease
@@ -137,7 +139,7 @@ def import_disease_ontology(drop_previous=False):
         (str(result[0]), str(result[1]))
         for result in disease_labels])
     cur.execute("DROP TABLE IF EXISTS 'synonyms_init'")
-    print "Creating indexes..."
+    print("Creating indexes...")
     cur.execute('''
     CREATE INDEX synonym_index
     ON synonyms (synonym);

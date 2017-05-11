@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Named entity annotator"""
-from annotator import Annotator
-from spacy_annotator import SpacyAnnotator
+from __future__ import absolute_import
+from .annotator import Annotator
+from .spacy_annotator import SpacyAnnotator
 
 
 class NEAnnotator(Annotator):

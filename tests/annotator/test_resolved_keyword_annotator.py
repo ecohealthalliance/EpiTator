@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 import os
 import unittest
-import test_utils
+from . import test_utils
 from epitator.annotator import AnnoDoc
 from epitator.resolved_keyword_annotator import ResolvedKeywordAnnotator
+from six.moves import zip
 
 
 class ResolvedKeywordAnnotatorTest(unittest.TestCase):

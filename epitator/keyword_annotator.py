@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Keyword Annotator"""
+from __future__ import absolute_import
 from collections import defaultdict
-from annotator import Annotator, AnnoTier, AnnoSpan
-from ngram_annotator import NgramAnnotator
+from .annotator import Annotator, AnnoTier, AnnoSpan
+from .ngram_annotator import NgramAnnotator
 import os
 import pickle
+import six
 
 
 class KeywordAnnotator(Annotator):
@@ -32,8 +34,14 @@ class KeywordAnnotator(Annotator):
     }
 
     def __init__(self, db=None):
-        with open(os.environ.get('KEYWORD_PICKLE_PATH') or 'current_classifier/keyword_array.p') as f:
-            keyword_array = pickle.load(f)
+        with open(os.environ.get('KEYWORD_PICKLE_PATH') or 'current_classifier/keyword_array.p', 'rb') as f:
+            args = dict()
+            if six.PY3:
+                args = dict(encoding='bytes')
+            # Loading Python2 pickles in Python3 causes a problem.
+            # http://stackoverflow.com/questions/28218466/unpickling-a-python-2-object-with-python-3
+            # TODO: Serialize as JSON or something else.
+            keyword_array = pickle.load(f, **args)
         self.keywords = defaultdict(dict)
         for keyword in keyword_array:
             if keyword['category'] in self.keyword_type_map:
@@ -53,9 +61,9 @@ class KeywordAnnotator(Annotator):
             ngram_spans_by_lowercase[ngram_span.text.lower()].append(
                 ngram_span)
 
-        ngrams = ngram_spans_by_lowercase.keys()
+        ngrams = list(ngram_spans_by_lowercase.keys())
 
-        for keyword_type, keywords in self.keywords.iteritems():
+        for keyword_type, keywords in self.keywords.items():
 
             keyword_spans = []
             for keyword in set(keywords.keys()).intersection(ngrams):

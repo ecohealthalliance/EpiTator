@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sqlite3
 if os.environ.get('ANNOTATOR_DB_PATH'):
@@ -10,7 +12,7 @@ def get_database_connection(create_database=False):
     databse_exists = os.path.exists(ANNOTATOR_DB_PATH)
     if databse_exists or create_database:
         if not databse_exists:
-            print "Creating database at:", ANNOTATOR_DB_PATH
+            print("Creating database at:", ANNOTATOR_DB_PATH)
         return sqlite3.connect(ANNOTATOR_DB_PATH)
     else:
         raise Exception("There is no EpiTator database at: " + ANNOTATOR_DB_PATH +

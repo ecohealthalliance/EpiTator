@@ -2,6 +2,8 @@
 """Classes to hold time-related objects"""
 
 
+from __future__ import absolute_import
+import six
 class TimePoint:
 
     def __init__(self, iso_string=None, year=None, month=None, date=None,
@@ -23,7 +25,7 @@ class TimePoint:
 
     def to_dict(self):
         return dict((key, val)
-                    for key, val in self.__dict__.iteritems()
+                    for key, val in six.iteritems(self.__dict__)
                     if val is not None)
 
     @staticmethod
@@ -41,7 +43,7 @@ class TimeRange:
 
     def to_dict(self):
         return dict((key, val)
-                    for key, val in self.__dict__.iteritems()
+                    for key, val in six.iteritems(self.__dict__)
                     if val is not None)
 
     @staticmethod
@@ -64,7 +66,7 @@ class TimeDuration:
 
     def to_dict(self):
         return dict((key, val)
-                    for key, val in self.__dict__.iteritems()
+                    for key, val in six.iteritems(self.__dict__)
                     if val is not None)
 
     @staticmethod
@@ -84,7 +86,7 @@ class TimeSet:
 
     def to_dict(self):
         return dict((key, val)
-                    for key, val in self.__dict__.iteritems()
+                    for key, val in six.iteritems(self.__dict__)
                     if val is not None)
 
     @staticmethod
