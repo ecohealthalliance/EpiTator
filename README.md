@@ -1,3 +1,5 @@
+# This project has moved to https://github.com/ecohealthalliance/EpiTator
+
 # Annie the annotator
 
 Annotators for extracting epidemiologic information from text.
