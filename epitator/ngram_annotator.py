@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """Ngram Annotator"""
 
-from annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
-from token_annotator import TokenAnnotator
+from __future__ import absolute_import
+from .annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
+from .token_annotator import TokenAnnotator
+from six.moves import range
 
 
 class NgramAnnotator(Annotator):

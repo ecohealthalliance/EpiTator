@@ -1,5 +1,4 @@
 --index-url https://pypi.python.org/simple/
-nltk
 requests
 unicodecsv
 lazy
@@ -7,5 +6,6 @@ numpy
 geopy
 python-dateutil
 rdflib
+six
 spacy==1.7.2
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-1.2.0/en_core_web_sm-1.2.0.tar.gz

@@ -3,10 +3,12 @@
 Tests our ability to annotate sentences with numerical
 instances of infections, hospitalizations and deaths.
 """
+from __future__ import absolute_import
 import unittest
-import test_utils
+from . import test_utils
 from epitator.annotator import AnnoDoc
 from epitator.count_annotator import CountAnnotator
+from six.moves import zip
 
 
 class TestCountAnnotator(unittest.TestCase):

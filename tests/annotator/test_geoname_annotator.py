@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 """Tests for the GeonameAnnotator that annotates a sentence with locations from
 the Geonames dataset."""
+from __future__ import absolute_import
 import os
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
 import logging
+import six
 logging.getLogger('annotator.geoname_annotator').setLevel(logging.ERROR)
 
 
@@ -106,7 +108,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
             if span.start in span_starts:
                 duplicate_spans.append(span)
             span_starts.add(span.start)
-        self.assertEqual([unicode(s) for s in duplicate_spans], [])
+        self.assertEqual([six.text_type(s) for s in duplicate_spans], [])
 
     def test_parent_cycles(self):
         doc = AnnoDoc(u"""

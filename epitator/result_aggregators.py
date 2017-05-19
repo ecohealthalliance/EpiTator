@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 import itertools
-import maximum_weight_interval_set as mwis
-from annotator import AnnoSpan
+from . import maximum_weight_interval_set as mwis
+from .annotator import AnnoSpan
+from six.moves import map
+from functools import reduce
 
 
 class MatchSpan(AnnoSpan):

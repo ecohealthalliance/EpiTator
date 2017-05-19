@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the POSAnnotator that annotates a sentence with part of speech tags
    that align with the token tier."""
+from __future__ import absolute_import
 import unittest
 
 from epitator.annotator import AnnoDoc

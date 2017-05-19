@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """Annotator to add NLP annotations from REST calls to a webservice"""
 
+from __future__ import absolute_import
 import dateutil.parser
 
 import requests
 
-from annotator import AnnoDoc, Annotator, AnnoTier, AnnoSpan
-from time_expressions import TimePoint, TimeRange, TimeDuration, TimeSet
+from .annotator import AnnoDoc, Annotator, AnnoTier, AnnoSpan
+from .time_expressions import TimePoint, TimeRange, TimeDuration, TimeSet
 
 
 class StanfordSpan(AnnoSpan):

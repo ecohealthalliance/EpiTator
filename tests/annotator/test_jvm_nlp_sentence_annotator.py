@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the SentenceAnnotator that annotates a doc with sentence offsets."""
+from __future__ import absolute_import
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.jvm_nlp_annotator import JVMNLPAnnotator

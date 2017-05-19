@@ -3,14 +3,16 @@
 Annotates counts with the following attributes:
 cumulative, case, death, age, hospitalization, approximate, min, max
 """
+from __future__ import absolute_import
 import re
-from annotator import Annotator, AnnoTier, AnnoSpan
-from jvm_nlp_annotator import JVMNLPAnnotator
-from spacy_annotator import SpacyAnnotator
-import result_aggregators as ra
-from result_aggregators import MatchSpan
-import utils
+from .annotator import Annotator, AnnoTier, AnnoSpan
+from .jvm_nlp_annotator import JVMNLPAnnotator
+from .spacy_annotator import SpacyAnnotator
+from . import result_aggregators as ra
+from .result_aggregators import MatchSpan
+from . import utils
 import logging
+from functools import reduce
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 

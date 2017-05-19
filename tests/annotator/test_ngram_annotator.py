@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the NgramAnnotator"""
+from __future__ import absolute_import
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.ngram_annotator import NgramAnnotator

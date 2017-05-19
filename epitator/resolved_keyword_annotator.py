@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Keyword Annotator"""
+from __future__ import absolute_import
 from collections import defaultdict
-from annotator import Annotator, AnnoSpan, AnnoTier
-from ngram_annotator import NgramAnnotator
-from get_database_connection import get_database_connection
+from .annotator import Annotator, AnnoSpan, AnnoTier
+from .ngram_annotator import NgramAnnotator
+from .get_database_connection import get_database_connection
 import sqlite3
 import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
