@@ -6,6 +6,8 @@ group: edge
 
 python:
    - "2.7"
+   - "3.6.1"
+
 os:
   - linux
 

@@ -95,10 +95,10 @@ class GeoSpan(AnnoSpan):
         return result
 
 
-class GeonameRow(sqlite3.Row):
-    def __init__(self, *args):
-        # TODO: In python3 this causes an error because it expects no arguments.
-        super(GeonameRow, self).__init__(*args)
+class GeonameRow(dict):
+    def __init__(self, sqlite3_row):
+        for key in sqlite3_row.keys():
+            self[key] = sqlite3_row[key]
         self.alternate_locations = set()
         self.spans = set()
         self.parents = set()
@@ -277,7 +277,7 @@ class GeonameFeatures(object):
 class GeonameAnnotator(Annotator):
     def __init__(self, custom_classifier=None):
         self.connection = get_database_connection()
-        self.connection.row_factory = GeonameRow
+        self.connection.row_factory = sqlite3.Row
         if custom_classifier:
             self.geoname_classifier = custom_classifier
         else:
@@ -324,6 +324,7 @@ class GeonameAnnotator(Annotator):
                                               ','.join('?' for x in all_ngrams) +
                                               ''') GROUP BY geonameid''', all_ngrams))
         logger.info('%s geonames fetched' % len(geoname_results))
+        geoname_results = [GeonameRow(g) for g in geoname_results]
         # Associate spans with the geonames.
         # This is done up front so span information can be used in the scoring
         # function

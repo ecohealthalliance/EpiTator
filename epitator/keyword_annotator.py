@@ -37,10 +37,7 @@ class KeywordAnnotator(Annotator):
         with open(os.environ.get('KEYWORD_PICKLE_PATH') or 'current_classifier/keyword_array.p', 'rb') as f:
             args = dict()
             if six.PY3:
-                args = dict(encoding='bytes')
-            # Loading Python2 pickles in Python3 causes a problem.
-            # http://stackoverflow.com/questions/28218466/unpickling-a-python-2-object-with-python-3
-            # TODO: Serialize as JSON or something else.
+                args = dict(fix_imports=True)
             keyword_array = pickle.load(f, **args)
         self.keywords = defaultdict(dict)
         for keyword in keyword_array:

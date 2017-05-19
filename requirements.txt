@@ -1,5 +1,4 @@
 --index-url https://pypi.python.org/simple/
-nltk
 requests
 unicodecsv
 lazy
