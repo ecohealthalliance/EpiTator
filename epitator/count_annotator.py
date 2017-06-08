@@ -99,14 +99,17 @@ class CountAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tier(SpacyAnnotator())
-        if 'stanford.times' not in doc.tiers:
-            doc.add_tier(JVMNLPAnnotator([
-                'times', 'nes', 'sentences', 'tokens']))
         counts = []
-        for ne_span in doc.tiers['stanford.nes'].spans:
-            if ne_span.type == 'NUMBER' and is_valid_count(ne_span.text):
+        for ne_span in doc.tiers['spacy.nes'].spans:
+            if ne_span.label in ['QUANTITY', 'CARDINAL'] and is_valid_count(ne_span.text):
                 counts.append(MatchSpan(ne_span, 'count'))
-
+            elif ne_span.label == 'DATE' and is_valid_count(ne_span.text):
+                # Sometimes counts like 1500 are parsed as as the year component
+                # of dates. This tries to catched that mistake when the year
+                # is long enough ago that it is unlikely to be a date.
+                date_as_number = utils.parse_spelled_number(ne_span.text)
+                if date_as_number and date_as_number < 1900:
+                    counts.append(MatchSpan(ne_span, 'count'))
         def search_regex(regex_term, match_name=None):
             return search_spans_for_regex(
                 regex_term, doc.tiers['spacy.tokens'].spans, match_name)

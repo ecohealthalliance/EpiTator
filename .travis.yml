@@ -18,5 +18,6 @@ before_install:
 script:
   - "flake8 --statistics annotator tests; true"
   - "python -m unittest discover -p 'test_token_annotator.py'"
+  - "python -m unittest discover -p 'test_count_annotator.py'"
   - "python -m unittest discover -p 'test_ne_annotator.py'"
   - "python -m unittest discover -p 'test_pos_annotator.py'"
