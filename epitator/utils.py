@@ -56,7 +56,7 @@ def parse_number(num, default=None):
 def parse_spelled_number(num_str):
     """Parse spelled out whole numbers."""
     tokens = []
-    for t in num_str.split(' '):
+    for t in num_str.strip().split(' '):
         if len(t) > 0:
             tokens.extend(t.split('-'))
     punctuation = re.compile(r'[\,\(\)]')
@@ -64,6 +64,10 @@ def parse_spelled_number(num_str):
     cleaned_tokens = []
     for t in tokens:
         if t == 'and':
+            continue
+        # Sometimes spacy CARDIAL entities will include descriptors like
+        # about, or more than.
+        if t in ['about', 'less', 'more', 'than']:
             continue
         t = punctuation.sub('', t)
         t = affix.sub(r'\1', t)
