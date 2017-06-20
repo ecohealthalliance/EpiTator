@@ -2,7 +2,7 @@
 requests
 unicodecsv
 lazy
-numpy
+numpy==1.13.0
 geopy
 python-dateutil
 rdflib
