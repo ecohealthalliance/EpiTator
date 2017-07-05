@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+import unittest
+import datetime
+from epitator.annotator import AnnoDoc
+from epitator.date_annotator import DateAnnotator
+
+
+class DateAnnotatorTest(unittest.TestCase):
+
+    def setUp(self):
+        self.annotator = DateAnnotator()
+
+    def test_no_times(self):
+        text = 'I went to see her in a boat.'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+
+    def test_simple_date(self):
+        text = 'I went to Chicago Friday, October 7th 2010.'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 1)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2010, 10, 7),
+            datetime.datetime(2010, 10, 8)])
+
+    def test_relative_date(self):
+        text = 'Yesterday I went to the symphony.'
+        doc = AnnoDoc(text, date=datetime.datetime(2010, 10, 10))
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 1)
+        self.assertEqual(doc.tiers['dates'].spans[0].text, 'Yesterday')
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2010, 10, 9),
+            datetime.datetime(2010, 10, 10)])
+
+    def test_duration_with_years(self):
+        text = 'I lived there for three years, from 1999 until late 2001'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 1)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(1999, 1, 1),
+            datetime.datetime(2002, 1, 1)])
+
+    def test_inexact_range(self):
+        text = 'From May to August of 2009 we languished there.'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2009, 5, 1),
+            datetime.datetime(2009, 8, 1)])
+
+    def test_1950s(self):
+        text = 'Adenoviruses, first isolated in the 1950s from explanted adenoid tissue.'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(1950, 1, 1),
+            datetime.datetime(1960, 1, 1)])
+
+    def test_specificity(self):
+        text = """He said the strain detected in the Cloppenburg district
+        [Lower Saxony state] was the same as that found at another farm in November [2014]
+        in Schleswig-Holstein state."""
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 1)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2014, 11, 1),
+             datetime.datetime(2014, 12, 1)])
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].text, 'November [2014')
+
+
+if __name__ == '__main__':
+    unittest.main()

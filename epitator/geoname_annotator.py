@@ -518,5 +518,4 @@ class GeonameAnnotator(Annotator):
                     span.start, span.end, doc, geoname)
                 geo_spans.append(geo_span)
         culled_geospans = self.cull_geospans(geo_spans)
-        doc.tiers['geonames'] = AnnoTier(culled_geospans)
-        return doc
+        return { 'geonames': AnnoTier(culled_geospans) }

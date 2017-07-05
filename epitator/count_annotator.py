@@ -198,8 +198,8 @@ class CountAnnotator(Annotator):
         annotated_counts = ra.combine(
             [single_sentence_counts], prefer='num_spans')
 
-        doc.tiers['counts'] = AnnoTier([
-            CountSpan(count)
-            for count in annotated_counts
-        ])
-        return doc
+        return {
+            'counts': AnnoTier([
+                CountSpan(count)
+                for count in annotated_counts
+            ])}
