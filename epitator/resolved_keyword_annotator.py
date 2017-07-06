@@ -81,9 +81,8 @@ class ResolvedKeywordAnnotator(Annotator):
         for result in results:
             uris_to_labels[result['uri']] = result['label']
 
-        doc.tiers['resolved_keywords'] = AnnoTier([
+        tier = AnnoTier([
             ResolvedKeywordSpan(span, resolved_keywords, uris_to_labels)
             for span, resolved_keywords in spans_to_resolved_keywords.items()])
-        doc.tiers['resolved_keywords'].filter_overlapping_spans()
-
-        return doc
+        tier.filter_overlapping_spans()
+        return { 'resolved_keywords': tier }

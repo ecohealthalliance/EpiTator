@@ -308,6 +308,15 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
                 'count': 1407
             })
 
+    # Currently failing. Uncomment after spacy model update.
+    # def test_counts_with_spaces(self):
+    #     doc = AnnoDoc("Ther were 565 749 new cases")
+    #     doc.add_tier(self.annotator)
+    #     actual_counts = [count.metadata['count']
+    #                      for count in doc.tiers['counts'].spans
+    #                      if 'case' in count.metadata['attributes']]
+    #     print(actual_counts)
+
 
 if __name__ == '__main__':
     unittest.main()

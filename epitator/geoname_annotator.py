@@ -8,7 +8,7 @@ import sqlite3
 from collections import defaultdict
 from lazy import lazy
 
-from .annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
+from .annotator import Annotator, AnnoTier, AnnoSpan
 from .ngram_annotator import NgramAnnotator
 from .ne_annotator import NEAnnotator
 from geopy.distance import great_circle
@@ -285,7 +285,8 @@ class GeonameAnnotator(Annotator):
 
     def get_candidate_geonames(self, doc):
         """
-        Returns an array of geoname dicts correponding to locations that the document may refer to.
+        Returns an array of geoname dicts correponding to locations that the
+        document may refer to.
         The dicts are extended with lists of associated AnnoSpans.
         """
         if 'ngrams' not in doc.tiers:
@@ -320,9 +321,9 @@ class GeonameAnnotator(Annotator):
         FROM geonames
         JOIN alternatename_counts USING ( geonameid )
         JOIN alternatenames USING ( geonameid )
-        WHERE alternatename_lemmatized IN (''' +
-                                              ','.join('?' for x in all_ngrams) +
-                                              ''') GROUP BY geonameid''', all_ngrams))
+        WHERE alternatename_lemmatized IN
+        (''' + ','.join('?' for x in all_ngrams) + ''')
+        GROUP BY geonameid''', all_ngrams))
         logger.info('%s geonames fetched' % len(geoname_results))
         geoname_results = [GeonameRow(g) for g in geoname_results]
         # Associate spans with the geonames.
@@ -388,7 +389,8 @@ class GeonameAnnotator(Annotator):
         for geoname in candidate_geonames:
             geoname.alternate_locations -= set([geoname])
         logger.info('%s alternative locations found' % sum([
-            len(geoname.alternate_locations) for geoname in candidate_geonames]))
+            len(geoname.alternate_locations)
+            for geoname in candidate_geonames]))
         logger.info('%s candidate locations prepared' %
                     len(candidate_geonames))
         return candidate_geonames
@@ -404,7 +406,8 @@ class GeonameAnnotator(Annotator):
         for span, token_spans in geospan_tier.group_spans_by_containing_span(
                 doc.tiers['spacy.tokens']):
             span_to_tokens[span] = token_spans
-        return [GeonameFeatures(geoname, spans_to_nes, span_to_tokens) for geoname in geonames]
+        return [GeonameFeatures(geoname, spans_to_nes, span_to_tokens)
+                for geoname in geonames]
 
     def add_contextual_features(self, features):
         """
@@ -518,5 +521,4 @@ class GeonameAnnotator(Annotator):
                     span.start, span.end, doc, geoname)
                 geo_spans.append(geo_span)
         culled_geospans = self.cull_geospans(geo_spans)
-        doc.tiers['geonames'] = AnnoTier(culled_geospans)
-        return doc
+        return {'geonames': AnnoTier(culled_geospans)}

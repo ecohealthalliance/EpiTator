@@ -11,6 +11,12 @@ setup(
     name='EpiTator',
     version=__version__,
     packages=['epitator', ],
+    description = 'Annotators for extracting epidemiological information from text.',
+    author = 'EcoHealth Alliance',
+    author_email = 'breit@ecohealthalliance.org',
+    url = 'https://github.com/ecohealthalliance/EpiTator',
+    keywords = ['nlp', 'information extraction', 'case counts', 'toponym resolution'],
     install_requires=['lazy', 'geopy', 'unicodecsv', 'spacy', 'numpy',
         'rdflib', 'python-dateutil', 'requests', 'six'],
+    classifiers=['Topic :: Text Processing', 'Natural Language :: English']
 )

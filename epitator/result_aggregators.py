@@ -66,7 +66,7 @@ def near(results_lists, max_dist=100, allow_overlap=True):
     return result
 
 
-def follows(results_lists, max_dist=100, allow_overlap=False):
+def follows(results_lists, max_dist=100, allow_overlap=False, label=None):
     """
     Find sequences of matches within the given proximity that occur in the same
     order as the results lists.
@@ -85,7 +85,7 @@ def follows(results_lists, max_dist=100, allow_overlap=False):
                                              max_dist=max_dist, allow_overlap=allow_overlap):
                     next_sequences.append(sequence + [result])
         sequences = next_sequences
-    return [MatchSpan(seq) for seq in sequences]
+    return [MatchSpan(seq, label) for seq in sequences]
 
 
 def label(label, results_list):

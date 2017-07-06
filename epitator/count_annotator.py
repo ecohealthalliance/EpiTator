@@ -6,7 +6,6 @@ cumulative, case, death, age, hospitalization, approximate, min, max
 from __future__ import absolute_import
 import re
 from .annotator import Annotator, AnnoTier, AnnoSpan
-from .jvm_nlp_annotator import JVMNLPAnnotator
 from .spacy_annotator import SpacyAnnotator
 from . import result_aggregators as ra
 from .result_aggregators import MatchSpan
@@ -110,15 +109,18 @@ class CountAnnotator(Annotator):
                 date_as_number = utils.parse_spelled_number(ne_span.text)
                 if date_as_number and date_as_number < 1900:
                     counts.append(MatchSpan(ne_span, 'count'))
+
         def search_regex(regex_term, match_name=None):
             return search_spans_for_regex(
                 regex_term, doc.tiers['spacy.tokens'].spans, match_name)
         # Remove counts that overlap an age
         counts = ra.remove_overlaps(counts,
-                                    ra.follows([search_regex('age'), search_regex('of'), counts]))
+                                    ra.follows([search_regex('age'),
+                                                search_regex('of'), counts]))
         # Remove distances
         counts = ra.remove_overlaps(counts,
-                                    ra.follows([counts, search_regex('kilometers|km|miles|mi')]))
+                                    ra.follows([counts,
+                                                search_regex('kilometers|km|miles|mi')]))
         count_modifiers = ra.combine([
             search_regex('average|mean', 'average') +
             search_regex('annual(ly)?', 'annual') +
@@ -198,8 +200,8 @@ class CountAnnotator(Annotator):
         annotated_counts = ra.combine(
             [single_sentence_counts], prefer='num_spans')
 
-        doc.tiers['counts'] = AnnoTier([
-            CountSpan(count)
-            for count in annotated_counts
-        ])
-        return doc
+        return {
+            'counts': AnnoTier([
+                CountSpan(count)
+                for count in annotated_counts
+            ])}

@@ -32,7 +32,10 @@ class AnnoDoc(object):
         self.date = date
 
     def add_tier(self, annotator, **kwargs):
-        annotator.annotate(self, **kwargs)
+        result = annotator.annotate(self, **kwargs)
+        if isinstance(result, dict):
+            self.tiers.update(result)
+        return self
 
     def to_json(self):
         json_obj = {'text': self.text,

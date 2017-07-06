@@ -27,13 +27,14 @@ class SentSpan(AnnoSpan):
 
 class SpacyAnnotator(Annotator):
     def annotate(self, doc):
+        tiers = {}
         ne_spans = []
         token_spans = []
         ne_chunk_start = None
         ne_chunk_end = None
         ne_chunk_type = None
         spacy_doc = spacy_nlp(doc.text)
-        doc.tiers['spacy.sentences'] = AnnoTier([
+        tiers['spacy.sentences'] = AnnoTier([
             SentSpan(sent, doc) for sent in spacy_doc.sents])
         for token in spacy_doc:
             start = token.idx
@@ -60,6 +61,6 @@ class SpacyAnnotator(Annotator):
         if ne_chunk_start is not None:
             ne_spans.append(AnnoSpan(ne_chunk_start, ne_chunk_end,
                                      doc, label=ne_chunk_type))
-        doc.tiers['spacy.tokens'] = AnnoTier(token_spans)
-        doc.tiers['spacy.nes'] = AnnoTier(ne_spans)
-        return doc
+        tiers['spacy.tokens'] = AnnoTier(token_spans)
+        tiers['spacy.nes'] = AnnoTier(ne_spans)
+        return tiers

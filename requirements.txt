@@ -5,6 +5,7 @@ lazy
 numpy==1.13.0
 geopy
 python-dateutil
+dateparser
 rdflib
 six
 spacy==1.7.2

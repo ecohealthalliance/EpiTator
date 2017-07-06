@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 import six
+
+
 def nested_items(d):
     """
     Iterates over all the items in nested dictionaries returning path arrays
