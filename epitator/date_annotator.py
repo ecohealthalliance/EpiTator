@@ -13,9 +13,10 @@ from .spacy_annotator import SpacyAnnotator
 from . import result_aggregators as ra
 from dateparser.date import DateDataParser
 from dateutil.relativedelta import relativedelta
-import requests
 import re
 import datetime
+
+DATE_RANGE_JOINERS = r"to|through|until|untill|and"
 
 class DateSpan(AnnoSpan):
 
@@ -41,6 +42,7 @@ class DateAnnotator(Annotator):
             # strip extra words from the date string
             text = re.sub(r"^(from\s)?(the\s)?"
                 r"((beginning|middle|start|end)\sof)?"
+                r"(between\s)?"
                 r"(late|mid|early)?\s?", "", text, re.I)
             # remove extra characters
             text = re.sub(r"\[|\]", "", text)
@@ -72,11 +74,11 @@ class DateAnnotator(Annotator):
                 date_spans.append(ne_span)
         # Regex for numerical dates
         regex = re.compile(
-            r"\b\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4}\b", re.I)
+            r"\b(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})\b", re.I)
         match_spans = []
         for match in re.finditer(regex, doc.text):
             match_spans.append(AnnoSpan(
-                match.pos, match.endpos, doc, match.expand('\1')))
+                match.start(), match.end(), doc, match.group(0)))
         date_spans = sorted(date_spans + match_spans)
         # Group adjacent date info incase it is parsed as separate chunks.
         # ex: Friday, October 7th 2010.
@@ -100,7 +102,7 @@ class DateAnnotator(Annotator):
         date_range_spans = ra.follows([
             date_spans,
             [t_span for t_span in doc.tiers['spacy.tokens'].spans
-             if re.match(r"(to|through|\-|between|until|and)$", t_span.text)],
+             if re.match(r"("+DATE_RANGE_JOINERS+r"|\-)$", t_span.text, re.I)],
             date_spans], max_dist=1, label='date_range')
 
         tier_spans = []
@@ -115,15 +117,16 @@ class DateAnnotator(Annotator):
                                     for span in date_span.base_spans[0::2]]
             else:
                 range_components = re.split(
-                    r"\b(?:and|to|through|until)\b", date_span.text)
-                hyphenated_components = date_span.text.split("-")
-                if len(hyphenated_components) == 2:
-                    range_components = hyphenated_components
-                elif len(hyphenated_components) == 6:
-                    # Handle dote ranges like 2015-11-3 - 2015-11-6
-                    range_components = [
-                        '-'.join(hyphenated_components[:3]),
-                        '-'.join(hyphenated_components[3:])]
+                    r"\b(?:"+DATE_RANGE_JOINERS+r")\b", date_span.text, re.I)
+                if len(range_components) == 1:
+                    hyphenated_components = date_span.text.split("-")
+                    if len(hyphenated_components) == 2:
+                        range_components = hyphenated_components
+                    elif len(hyphenated_components) == 6:
+                        # Handle dote ranges like 2015-11-3 - 2015-11-6
+                        range_components = [
+                            '-'.join(hyphenated_components[:3]),
+                            '-'.join(hyphenated_components[3:])]
             if len(range_components) == 1:
                 datetime_range = date_to_datetime_range(range_components[0])
                 if datetime_range == None:

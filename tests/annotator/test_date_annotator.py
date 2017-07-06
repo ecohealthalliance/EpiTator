@@ -25,7 +25,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2010, 10, 7),
-            datetime.datetime(2010, 10, 8)])
+             datetime.datetime(2010, 10, 8)])
 
     def test_relative_date(self):
         text = 'Yesterday I went to the symphony.'
@@ -36,7 +36,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2010, 10, 9),
-            datetime.datetime(2010, 10, 10)])
+             datetime.datetime(2010, 10, 10)])
 
     def test_duration_with_years(self):
         text = 'I lived there for three years, from 1999 until late 2001'
@@ -46,7 +46,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(1999, 1, 1),
-            datetime.datetime(2002, 1, 1)])
+             datetime.datetime(2002, 1, 1)])
 
     def test_inexact_range(self):
         text = 'From May to August of 2009 we languished there.'
@@ -55,7 +55,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2009, 5, 1),
-            datetime.datetime(2009, 8, 1)])
+             datetime.datetime(2009, 8, 1)])
 
     def test_1950s(self):
         text = 'Adenoviruses, first isolated in the 1950s from explanted adenoid tissue.'
@@ -64,7 +64,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(1950, 1, 1),
-            datetime.datetime(1960, 1, 1)])
+             datetime.datetime(1960, 1, 1)])
 
     def test_specificity(self):
         text = """He said the strain detected in the Cloppenburg district
@@ -80,6 +80,23 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].text, 'November [2014')
 
+    def test_dashes(self):
+        text = 'Adenoviruses, first seen between 2010-1-1 and 2010-1-2'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2010, 1, 1),
+             datetime.datetime(2010, 1, 2)])
+
+    def test_dashes_2(self):
+        text = 'First seen between 2010-1-1 - 2011-1-1'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2010, 1, 1),
+             datetime.datetime(2011, 1, 1)])
 
 if __name__ == '__main__':
     unittest.main()

@@ -317,5 +317,6 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
     #                      if 'case' in count.metadata['attributes']]
     #     print(actual_counts)
 
+
 if __name__ == '__main__':
     unittest.main()
