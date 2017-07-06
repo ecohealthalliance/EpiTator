@@ -44,7 +44,6 @@ def import_disease_ontology(drop_previous=False):
     CREATE TABLE synonyms (
         synonym text, uri text, weight integer
     )""")
-    i = 0
     insert_command = 'INSERT OR IGNORE INTO synonyms_init VALUES (?, ?, ?)'
     print("Loading disease ontology...")
     disease_ontology = rdflib.Graph()

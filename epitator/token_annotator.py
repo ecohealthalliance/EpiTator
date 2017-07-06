@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Token Annotator"""
 from __future__ import absolute_import
-from .annotator import Annotator, AnnoSpan, AnnoTier
+from .annotator import Annotator
 from .spacy_annotator import SpacyAnnotator
 
 

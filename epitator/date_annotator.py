@@ -7,8 +7,7 @@ while a month like "December 2011" would be parsed as a range from the start
 of December 1st to the end of December.
 """
 from __future__ import absolute_import
-from dateutil.parser import parser
-from .annotator import AnnoDoc, Annotator, AnnoTier, AnnoSpan
+from .annotator import Annotator, AnnoTier, AnnoSpan
 from .spacy_annotator import SpacyAnnotator
 from . import result_aggregators as ra
 from dateparser.date import DateDataParser
@@ -18,8 +17,8 @@ import datetime
 
 DATE_RANGE_JOINERS = r"to|through|until|untill|and"
 
-class DateSpan(AnnoSpan):
 
+class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
         self.start = base_span.start
         self.end = base_span.end
@@ -28,22 +27,22 @@ class DateSpan(AnnoSpan):
         self.datetime_range = datetime_range
 
     def to_dict(self):
-        result = super(CountSpan, self).to_dict()
+        result = super(DateSpan, self).to_dict()
         result['datetime_range'] = self.datetime_range
         return result
 
 
 class DateAnnotator(Annotator):
-
     def annotate(self, doc):
         strict_parser = DateDataParser(['en'], settings={
             'STRICT_PARSING': True})
+
         def date_to_datetime_range(text, relative_base=doc.date):
             # strip extra words from the date string
             text = re.sub(r"^(from\s)?(the\s)?"
-                r"((beginning|middle|start|end)\sof)?"
-                r"(between\s)?"
-                r"(late|mid|early)?\s?", "", text, re.I)
+                          r"((beginning|middle|start|end)\sof)?"
+                          r"(between\s)?"
+                          r"(late|mid|early)?\s?", "", text, re.I)
             # remove extra characters
             text = re.sub(r"\[|\]", "", text)
             # handle dates like "1950s" since dateparser doesn't
@@ -143,11 +142,11 @@ class DateAnnotator(Annotator):
                 datetime_range_b = date_to_datetime_range(
                         range_components[1],
                         relative_base=(datetime_range_a or [doc.date])[0])
-                if datetime_range_a == None and datetime_range_b == None:
+                if datetime_range_a is None and datetime_range_b is None:
                     continue
-                elif datetime_range_a == None:
+                elif datetime_range_a is None:
                     datetime_range = datetime_range_b
-                elif datetime_range_b == None:
+                elif datetime_range_b is None:
                     datetime_range = datetime_range_a
                 else:
                     # Treat the span's daterange as ending at the start of the
@@ -166,4 +165,4 @@ class DateAnnotator(Annotator):
                 print("Bad date range split:", date_span.text, range_components)
                 continue
             tier_spans.append(DateSpan(date_span, datetime_range))
-        return { 'dates': AnnoTier(tier_spans) }
+        return {'dates': AnnoTier(tier_spans)}

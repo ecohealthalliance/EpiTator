@@ -98,5 +98,6 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2010, 1, 1),
              datetime.datetime(2011, 1, 1)])
 
+
 if __name__ == '__main__':
     unittest.main()
