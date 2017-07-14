@@ -104,7 +104,7 @@ class CountAnnotator(Annotator):
                 counts.append(MatchSpan(ne_span, 'count'))
             elif ne_span.label == 'DATE' and is_valid_count(ne_span.text):
                 # Sometimes counts like 1500 are parsed as as the year component
-                # of dates. This tries to catched that mistake when the year
+                # of dates. This tries to catch that mistake when the year
                 # is long enough ago that it is unlikely to be a date.
                 date_as_number = utils.parse_spelled_number(ne_span.text)
                 if date_as_number and date_as_number < 1900:

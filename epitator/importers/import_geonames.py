@@ -6,8 +6,9 @@ import unicodecsv
 from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
-from .get_database_connection import get_database_connection
-from .utils import parse_number
+from ..get_database_connection import get_database_connection
+from ..utils import parse_number, batched
+
 
 GEONAMES_ZIP_URL = "http://download.geonames.org/export/dump/allCountries.zip"
 
@@ -38,7 +39,7 @@ def read_geonames_csv():
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
     url = urlopen(GEONAMES_ZIP_URL)
     zipfile = ZipFile(StringIO(url.read()))
-    print("done")
+    print("Download complete")
     # Loading geonames data may cause errors without this line:
     csv.field_size_limit(sys.maxint)
     with zipfile.open('allCountries.txt') as f:
@@ -59,18 +60,6 @@ def read_geonames_csv():
             yield d
 
 
-def batched(array):
-    batch_size = 100
-    batch = []
-    for idx, item in enumerate(array):
-        batch.append(item)
-        batch_idx = idx % batch_size
-        if batch_idx == batch_size - 1:
-            yield batch
-            batch = []
-    yield batch
-
-
 def import_geonames(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
@@ -83,7 +72,8 @@ def import_geonames(drop_previous=False):
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='geonames'"""))) > 0
     if table_exists:
-        print("The geonames table already exists. Run this again with --drop-previous to recreate it.")
+        print("The geonames table already exists."
+              "Run this again with --drop-previous to recreate it.")
         return
     # Create table
     cur.execute("CREATE TABLE geonames (" + ",".join([

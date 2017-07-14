@@ -1,56 +1,72 @@
 """
 Script for importing disease names from the disease ontology (http://disease-ontology.org/)
-into the slite synonym table so they can be resolved by the resolved keyword annotator.
+into the sqlite synonym table so they can be resolved by the resolved keyword
+annotator.
 """
 from __future__ import absolute_import
 from __future__ import print_function
 import rdflib
 import re
-from .get_database_connection import get_database_connection
+from ..get_database_connection import get_database_connection
+from ..utils import batched
 
 
-def batched(array):
-    batch_size = 100
-    batch = []
-    for idx, item in enumerate(array):
-        batch.append(item)
-        batch_idx = idx % batch_size
-        if batch_idx == batch_size - 1:
-            yield batch
-            batch = []
-    yield batch
-
+DISEASE_ONTOLOGY_URL = "http://purl.obolibrary.org/obo/doid.owl"
 
 def import_disease_ontology(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
-        print("Dropping previous database...")
-        cur.execute("DROP TABLE IF EXISTS 'synonyms'")
-        cur.execute("DROP TABLE IF EXISTS 'synonyms_init'")
-        cur.execute("DROP TABLE IF EXISTS 'entity_labels'")
-    table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
-        WHERE type='table' AND name='synonyms'"""))) > 0
-    if table_exists:
-        print("The table already exists. Run this again with --drop-previous to recreate it.")
+        print("Dropping previous data...")
+        cur.execute("""
+        DELETE FROM synonyms WHERE entity_id IN (
+            SELECT id FROM entities WHERE source = 'Disease Ontology'
+        )""")
+        cur.execute("DELETE FROM entities WHERE source = 'Disease Ontology'")
+        cur.execute("DELETE FROM metadata WHERE property = 'disease_ontology_version'")
+    current_version = next(cur.execute("""
+    SELECT value FROM metadata WHERE property = 'disease_ontology_version'
+    """), None)
+    if current_version:
+        print("The disease ontology has already been imported. Run this again with --drop-previous to re-import it.")
         return
     # synonyms_init is a temporary tables that is aggregated to generate the
     # final synonyms table.
+    cur.execute("DROP TABLE IF EXISTS synonyms_init")
     cur.execute("""
     CREATE TABLE synonyms_init (
-        synonym text, uri text, weight integer
+        synonym TEXT, entity_id TEXT, weight INTEGER
     )""")
-    cur.execute("""
-    CREATE TABLE synonyms (
-        synonym text, uri text, weight integer
-    )""")
-    insert_command = 'INSERT OR IGNORE INTO synonyms_init VALUES (?, ?, ?)'
     print("Loading disease ontology...")
     disease_ontology = rdflib.Graph()
-    disease_ontology.parse(
-        "http://purl.obolibrary.org/obo/doid.owl",
-        format="xml")
+    disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+
+    # Store disease ontology version
+    version_query = disease_ontology.query("""
+    SELECT ?version
+    WHERE {
+        ?s owl:versionIRI ?version
+    }
+    """)
+    disease_ontology_version = str(list(version_query)[0][0])
+    cur.execute("INSERT INTO metadata VALUES ('disease_ontology_version', ?)",
+                (disease_ontology_version,))
+
+    print("Importing entities from disease ontology...")
+    disease_labels = disease_ontology.query("""
+    SELECT ?entity ?label
+    WHERE {
+        # only include diseases by infectious agent
+        ?entity rdfs:subClassOf* obo:DOID_0050117
+        ; rdfs:label ?label
+    }
+    """)
+    cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Disease Ontology')", [
+        (str(result[0]), str(result[1]))
+        for result in disease_labels])
+
     print("Importing synonyms from disease ontology...")
+    insert_command = 'INSERT OR IGNORE INTO synonyms_init VALUES (?, ?, ?)'
     disease_query = disease_ontology.query("""
     SELECT ?entity ?synonym ?synonymType (count(?child) AS ?children)
     WHERE {
@@ -118,31 +134,11 @@ def import_disease_ontology(drop_previous=False):
     ])
     cur.execute('''
     INSERT INTO synonyms
-    SELECT synonym, uri, max(weight)
+    SELECT synonym, entity_id, max(weight)
     FROM synonyms_init
-    GROUP BY synonym, uri
+    GROUP BY synonym, entity_id
     ''')
-    disease_labels = disease_ontology.query("""
-    SELECT ?entity ?label
-    WHERE {
-        # only include diseases by infectious agent
-        ?entity rdfs:subClassOf* obo:DOID_0050117
-        ; rdfs:label ?label
-    }
-    """)
-    cur.execute("""
-    CREATE TABLE entity_labels (
-        uri text, label text
-    )""")
-    cur.executemany("INSERT INTO entity_labels VALUES (?, ?)", [
-        (str(result[0]), str(result[1]))
-        for result in disease_labels])
     cur.execute("DROP TABLE IF EXISTS 'synonyms_init'")
-    print("Creating indexes...")
-    cur.execute('''
-    CREATE INDEX synonym_index
-    ON synonyms (synonym);
-    ''')
     connection.commit()
     connection.close()
 

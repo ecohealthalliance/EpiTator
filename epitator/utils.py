@@ -94,3 +94,17 @@ def parse_spelled_number(num_str):
         else:
             return None
     return sum(totals)
+
+
+def batched(iterable, batch_size=100):
+    """
+    Sequentially yield segments of the iterable in lists of the given size.
+    """
+    batch = []
+    for idx, item in enumerate(iterable):
+        batch.append(item)
+        batch_idx = idx % batch_size
+        if batch_idx == batch_size - 1:
+            yield batch
+            batch = []
+    yield batch

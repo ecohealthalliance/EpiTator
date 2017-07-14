@@ -153,16 +153,19 @@ class AnnoTier(object):
         """Get all spans which overlap a position or range"""
         if not end:
             end = start + 1
-        return [span for span in self.spans if len(set(range(span.start, span.end)).
-                                       intersection(list(range(start, end)))) > 0]
+        return [span for span in self.spans
+                if len(set(range(span.start, span.end)
+                          ).intersection(list(range(start, end)))) > 0]
 
     def spans_in(self, start, end):
         """Get all spans which are contained in a range"""
-        return [span for span in self.spans if span.start >= start and span.end <= end]
+        return [span for span in self.spans
+                if span.start >= start and span.end <= end]
 
     def spans_at(self, start, end):
         """Get all spans with certain start and end positions"""
-        return [span for span in self.spans if start == span.start and end == span.end]
+        return [span for span in self.spans
+                if start == span.start and end == span.end]
 
     def spans_over_span(self, span):
         """Get all spans which overlap another span"""
