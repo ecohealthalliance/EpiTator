@@ -48,5 +48,5 @@ def get_database_connection(create_database=False):
         return connection
     else:
         raise Exception("There is no EpiTator database at: " + ANNOTATOR_DB_PATH +
-                        "\nRun `python -m epitator.sqlite_import_all` to create a new database"
+                        "\nRun `python -m epitator.importers.import_all` to create a new database"
                         "\nor set ANNOTATOR_DB_PATH to use a database at a different location.")
