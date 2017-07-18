@@ -161,8 +161,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         # Normally this should be spelled Cao Bằng, but I want to test
         # that the ascii version works.
         doc = AnnoDoc(u"At Cao Bang, Vietnam 5 cases were recorded.")
-        candidates = self.annotator.get_candidate_geonames(doc)
-        gn_features = self.annotator.extract_features(candidates, doc)
         doc.add_tier(self.annotator)
         self.assertEqual(
             doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
@@ -177,6 +175,12 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
             self.assertTrue(len(ne_spans) > 0)
             for ne_span in ne_spans:
                 self.assertTrue(ne_span.overlaps(span))
+
+    def test_apostrophe(self):
+        doc = AnnoDoc(u"Seattle's coffee is delicious.")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '5809844')
 
 
 if __name__ == '__main__':
