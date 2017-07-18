@@ -23,15 +23,17 @@ def download_itis_database():
     url = urlopen(ITIS_URL)
     zipfile = ZipFile(StringIO(url.read()))
     print("Download complete")
-    with NamedTemporaryFile() as named_temp_file:
-        itis_version = zipfile.filelist[0].filename.split('/')[0]
-        for f in zipfile.filelist:
-            if f.filename.endswith('.sqlite'):
-                with zipfile.open(f) as database_file:
-                    named_temp_file.write(database_file.read())
-                    named_temp_file.flush()
-                    break
-        return sqlite3.connect(named_temp_file.name), itis_version
+    named_temp_file = NamedTemporaryFile()
+    itis_version = zipfile.filelist[0].filename.split('/')[0]
+    db_file = None
+    for f in zipfile.filelist:
+        if f.filename.endswith('.sqlite'):
+            db_file = f
+            break
+    with zipfile.open(db_file) as open_db_file:
+        named_temp_file.write(open_db_file.read())
+        named_temp_file.flush()
+    return named_temp_file, itis_version
 
 
 def import_species(drop_previous=False):
@@ -49,7 +51,8 @@ def import_species(drop_previous=False):
     if current_itis_version:
         print("The species data has already been imported. Run this again with --drop-previous to re-import it.")
         return
-    itis_db, itis_version = download_itis_database()
+    itis_db_file, itis_version = download_itis_database()
+    itis_db = sqlite3.connect(itis_db_file.name)
     cur.execute("INSERT INTO metadata VALUES ('itis_version', ?)", (itis_version,))
     itis_cur = itis_db.cursor()
     results = itis_cur.execute("""
@@ -110,6 +113,7 @@ def import_species(drop_previous=False):
     cur.execute("DROP TABLE 'synonyms_init'")
     connection.commit()
     connection.close()
+    itis_db_file.close()
 
 
 if __name__ == '__main__':
