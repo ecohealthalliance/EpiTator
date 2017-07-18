@@ -23,7 +23,7 @@ class DateSpan(AnnoSpan):
         self.start = base_span.start
         self.end = base_span.end
         self.doc = base_span.doc
-        self.label = base_span.label
+        self.label = base_span.doc.text[base_span.start:base_span.end]
         self.datetime_range = datetime_range
 
     def to_dict(self):
@@ -91,11 +91,11 @@ class DateAnnotator(Annotator):
         grouped_date_spans = []
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
-            if any(strict_parser.get_date_data(span.text)['date_obj'] == None
+            if any(strict_parser.get_date_data(span.text)['date_obj'] is None
                    for span in date_group_spans):
                 extended_span = date_group_spans[0].extended_through(
                     date_group_spans[-1])
-                if date_to_datetime_range(extended_span.text) != None:
+                if date_to_datetime_range(extended_span.text) is not None:
                     grouped_date_spans.append(extended_span)
         # Find date ranges by looking for joiner words between dates.
         date_range_spans = ra.follows([
@@ -128,7 +128,7 @@ class DateAnnotator(Annotator):
                             '-'.join(hyphenated_components[3:])]
             if len(range_components) == 1:
                 datetime_range = date_to_datetime_range(range_components[0])
-                if datetime_range == None:
+                if datetime_range is None:
                     continue
             elif len(range_components) == 2:
                 # March 3 to November 2 1984

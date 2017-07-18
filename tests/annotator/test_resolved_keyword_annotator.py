@@ -17,14 +17,17 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             "hepatitis B is also referred to as hepatitis B infection")
         doc.add_tier(self.annotator)
         expected_spans = [
-            dict(textOffsets=[[0, 11]],
-                 uris=["http://purl.obolibrary.org/obo/DOID_2043"]),
-            dict(textOffsets=[[35, 56]],
-                 uris=["http://purl.obolibrary.org/obo/DOID_2043"])]
+            dict(textOffsets=[0, 11],
+                 uris=['http://purl.obolibrary.org/obo/DOID_2043']),
+            dict(textOffsets=[35, 56],
+                 uris=['http://purl.obolibrary.org/obo/DOID_2043'])]
         spans = doc.tiers['resolved_keywords'].spans
         self.assertEqual(len(spans), len(expected_spans))
         for span, expected_span in zip(spans, expected_spans):
-            test_utils.assertHasProps(span.to_dict(), expected_span)
+            self.assertEqual([r['entity_id'] for r in span.resolutions],
+                             expected_span['uris'])
+            self.assertEqual([span.start, span.end],
+                             expected_span['textOffsets'])
 
     def test_capitalization_variations(self):
         doc = AnnoDoc("Mumps is mumps")
@@ -33,7 +36,7 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             'http://purl.obolibrary.org/obo/DOID_10264',
             'http://purl.obolibrary.org/obo/DOID_10264']
         for span, expected_uri in zip(doc.tiers['resolved_keywords'].spans, expected_uris):
-            self.assertEqual(span.resolutions[0]['uri'], expected_uri)
+            self.assertEqual(span.resolutions[0]['entity_id'], expected_uri)
 
     def test_acroynms(self):
         doc = AnnoDoc("Ebola Virus disease is EVD")
@@ -42,21 +45,31 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
         test_utils.assertHasProps(
             resolved_keyword, {'textOffsets': [[23, 26]]})
         test_utils.assertHasProps(resolved_keyword['resolutions'][0], {
-            'label': 'Ebola hemorrhagic fever',
-            'uri': 'http://purl.obolibrary.org/obo/DOID_4325'
+            'entity_id': 'http://purl.obolibrary.org/obo/DOID_4325'
         })
         doc = AnnoDoc('AIDS as in the disease, not as in "he aids his boss"')
         doc.add_tier(self.annotator)
+        resolved_keyword = doc.tiers['resolved_keywords'].spans[-1].to_dict()
         test_utils.assertHasProps(
-            doc.tiers['resolved_keywords'].spans[-1].to_dict(), dict(
-                textOffsets=[[0, 4]],
-                uris=["http://purl.obolibrary.org/obo/DOID_635"]))
+            resolved_keyword, dict(
+                textOffsets=[[0, 4]]))
+        test_utils.assertHasProps(
+            resolved_keyword['resolutions'][0]['entity'],
+            {'id': 'http://purl.obolibrary.org/obo/DOID_635'})
 
     def test_very_long_article(self):
         with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 
+    def test_species(self):
+        doc = AnnoDoc("His illness was caused by cattle")
+        doc.add_tier(self.annotator)
+        resolved_keyword = doc.tiers['resolved_keywords'].spans[-1].to_dict()
+        test_utils.assertHasProps(resolved_keyword['resolutions'][0], {
+            'entity_id': 'tsn:180704',
+            'entity': {'type': 'species', 'id': 'tsn:180704', 'label': 'Bovidae'}
+        })
 
 if __name__ == '__main__':
     unittest.main()

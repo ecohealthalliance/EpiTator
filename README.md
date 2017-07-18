@@ -10,10 +10,12 @@ The geoname annotator uses the geonames.org dataset to resolve mentions of geona
 A classifier is used to disambiguate geonames and rule out false positives.
 
 To use the geoname annotator run the following command to import geonames.org
-data into an embedded sqlite3 database:
+data into epitator's embedded sqlite3 database:
+
+You should review the geonames license before using this data.
 
 ```
-python -m annotator.sqlite_import_geonames
+python -m epitator.importers.import_geonames
 ```
 
 #### Usage
@@ -37,14 +39,18 @@ geoname['longitude']
 
 ### Resolved Keyword Annotator
 
-The resolved keyword annotator uses synonyms from the disease ontology to 
-resolve mentions of diseases to doid uris.
+The resolved keyword annotator uses an sqlite database of entities to resolve
+mentions of multiple synonyms for an entity to a single id.
+This project includes scripts for importing diseases and animal species into
+that database. The following commands cab be used to invoke them:
 
-To use the geoname annotator run the following command to import the disease ontology
-data into an embedded sqlite3 database:
+The scripts import data from the [Disease Ontology](http://disease-ontology.org/) and [ITIS](https://www.itis.gov/).
+You should review their licenses and terms of use before using this data.
+Currently the Disease Ontology is under public domain and ITIS requests citation.
 
 ```
-python -m annotator.sqlite_import_disease_ontology
+python -m epitator.importers.import_species
+python -m epitator.importers.import_disease_ontology
 ```
 
 #### Usage
