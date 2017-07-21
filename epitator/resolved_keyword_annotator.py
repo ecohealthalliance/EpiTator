@@ -44,8 +44,7 @@ class ResolvedKeywordAnnotator(Annotator):
 
     def annotate(self, doc):
         if 'ngrams' not in doc.tiers:
-            ngram_annotator = NgramAnnotator()
-            doc.add_tier(ngram_annotator)
+            doc.add_tiers(NgramAnnotator())
             logger.info('ngrams')
         span_text_to_spans = defaultdict(list)
         for ngram_span in doc.tiers['ngrams'].spans:

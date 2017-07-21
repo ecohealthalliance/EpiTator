@@ -65,7 +65,7 @@ class DateAnnotator(Annotator):
                     date = datetime.datetime(date.year, 1, 1)
                     return [date, date + relativedelta(years=1)]
         if 'spacy.nes' not in doc.tiers:
-            doc.add_tier(SpacyAnnotator())
+            doc.add_tiers(SpacyAnnotator())
         # Create a combine tier of nes and regex dates
         date_spans = []
         for ne_span in doc.tiers['spacy.nes'].spans:

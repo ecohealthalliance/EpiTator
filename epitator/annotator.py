@@ -32,6 +32,9 @@ class AnnoDoc(object):
         self.date = date
 
     def add_tier(self, annotator, **kwargs):
+        return self.add_tiers(annotator, **kwargs)
+
+    def add_tiers(self, annotator, **kwargs):
         result = annotator.annotate(self, **kwargs)
         if isinstance(result, dict):
             self.tiers.update(result)

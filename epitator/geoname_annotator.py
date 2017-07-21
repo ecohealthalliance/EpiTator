@@ -290,11 +290,9 @@ class GeonameAnnotator(Annotator):
         The dicts are extended with lists of associated AnnoSpans.
         """
         if 'ngrams' not in doc.tiers:
-            ngram_annotator = NgramAnnotator()
-            doc.add_tier(ngram_annotator)
+            doc.add_tiers(NgramAnnotator())
         if 'nes' not in doc.tiers:
-            ne_annotator = NEAnnotator()
-            doc.add_tier(ne_annotator)
+            doc.add_tiers(NEAnnotator())
         logger.info('Named entities annotated')
 
         def is_possible_geoname(text):

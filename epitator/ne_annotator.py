@@ -8,6 +8,6 @@ from .spacy_annotator import SpacyAnnotator
 class NEAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.nes' not in doc.tiers:
-            doc.add_tier(SpacyAnnotator())
+            doc.add_tiers(SpacyAnnotator())
         doc.tiers['nes'] = doc.tiers['spacy.nes']
         return doc

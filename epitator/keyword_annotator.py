@@ -49,8 +49,7 @@ class KeywordAnnotator(Annotator):
     def annotate(self, doc):
 
         if 'ngrams' not in doc.tiers:
-            ngram_annotator = NgramAnnotator()
-            doc.add_tier(ngram_annotator)
+            doc.add_tiers(NgramAnnotator())
 
         ngram_spans_by_lowercase = defaultdict(list)
 

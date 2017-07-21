@@ -12,8 +12,7 @@ class NgramAnnotator(Annotator):
     def annotate(self, doc, n_min=1, n_max=7):
 
         if 'tokens' not in doc.tiers:
-            token_annotator = TokenAnnotator()
-            doc.add_tier(token_annotator)
+            doc.add_tiers(TokenAnnotator())
 
         ngram_spans = []
 

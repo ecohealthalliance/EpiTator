@@ -97,7 +97,7 @@ def search_spans_for_regex(regex_term, spans, match_name=None):
 class CountAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
-            doc.add_tier(SpacyAnnotator())
+            doc.add_tiers(SpacyAnnotator())
         counts = []
         for ne_span in doc.tiers['spacy.nes'].spans:
             if ne_span.label in ['QUANTITY', 'CARDINAL'] and is_valid_count(ne_span.text):
