@@ -8,7 +8,7 @@ root = os.path.dirname(__file__)
 with open(os.path.join(root, 'epitator', 'version.py')) as f:
     exec(f.read())
 
-with open(os.path.join(root, 'README.md'), encoding='utf8') as f:
+with open(os.path.join(root, 'README.rst'), encoding='utf8') as f:
     readme = f.read()
 
 setup(
@@ -20,9 +20,9 @@ setup(
     author = 'EcoHealth Alliance',
     author_email = 'breit@ecohealthalliance.org',
     url = 'https://github.com/ecohealthalliance/EpiTator',
-    keywords = 'nlp, information extraction, case counts, death counts,'
-        'epidemiology, keyword resolution, toponym resolution,'
-        'disease resolution, species resolution',
+    keywords = 'nlp information extraction case counts death counts '
+        'epidemiology keyword resolution toponym resolution '
+        'disease resolution species resolution',
     install_requires=[
         'geopy>=1.11.0',
         'unicodecsv>=0.14.1',
