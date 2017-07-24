@@ -2,6 +2,13 @@
 
 Annotators for extracting epidemiological information from text.
 
+## Installation
+
+```
+pip install epitator
+python -m spacy download en_core_web_md
+```
+
 ## Annotators
 
 ### Geoname Annotator
@@ -24,7 +31,7 @@ python -m epitator.importers.import_geonames
 from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
 doc = AnnoDoc("Where is Chiang Mai?")
-doc.add_tier(GeonameAnnotator())
+doc.add_tiers(GeonameAnnotator())
 annotations = doc.tiers["geonames"].spans
 geoname = annotations[0].geoname
 geoname['name']
@@ -59,7 +66,7 @@ python -m epitator.importers.import_disease_ontology
 from epitator.annotator import AnnoDoc
 from epitator.resolved_keyword_annotator import ResolvedKeywordAnnotator
 doc = AnnoDoc("5 cases of smallpox")
-doc.add_tier(ResolvedKeywordAnnotator())
+doc.add_tiers(ResolvedKeywordAnnotator())
 annotations = doc.tiers["resolved_keywords"].spans
 annotations[0].resolutions
 # = [{'uri': u'http://purl.obolibrary.org/obo/DOID_8736', 'weight': 3, 'label': u'smallpox'}]
@@ -77,7 +84,7 @@ refers to cases or deaths, or whether the value is approximate are also extracte
 from epitator.annotator import AnnoDoc
 from epitator.count_annotator import CountAnnotator
 doc = AnnoDoc("5 cases of smallpox")
-doc.add_tier(CountAnnotator())
+doc.add_tiers(CountAnnotator())
 annotations = doc.tiers["counts"].spans
 annotations[0].metadata
 # = {'count': 5, 'text': '5 cases', 'attributes': ['case']}
@@ -97,7 +104,7 @@ of December 1st to the start of the next month.
 from epitator.annotator import AnnoDoc
 from epitator.date_annotator import DateAnnotator
 doc = AnnoDoc("From March 5 until April 7 1988")
-doc.add_tier(DateAnnotator())
+doc.add_tiers(DateAnnotator())
 annotations = doc.tiers["dates"].spans
 annotations[0].datetime_range
 # = [datetime.datetime(1988, 3, 5, 0, 0), datetime.datetime(1988, 4, 7, 0, 0)]
