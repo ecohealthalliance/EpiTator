@@ -1,4 +1,5 @@
 import os
+import io
 try:
     from setuptools import setup
 except ImportError:
@@ -8,7 +9,7 @@ root = os.path.dirname(__file__)
 with open(os.path.join(root, 'epitator', 'version.py')) as f:
     exec(f.read())
 
-with open(os.path.join(root, 'README.rst'), encoding='utf8') as f:
+with io.open(os.path.join(root, 'README.rst'), encoding='utf8') as f:
     readme = f.read()
 
 setup(
