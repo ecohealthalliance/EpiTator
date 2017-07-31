@@ -114,7 +114,8 @@ would be parsed as a range from the start of the day to the start of the next da
 while a month like "December 2011" would be parsed as a range from the start
 of December 1st to the start of the next month.
 
-#### Usage
+Usage
+-----
 
 .. code:: python
 

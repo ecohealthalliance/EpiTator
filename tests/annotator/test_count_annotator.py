@@ -102,7 +102,7 @@ class TestCountAnnotator(unittest.TestCase):
             test_utils.assertHasProps(
                 doc.tiers['counts'].spans[0].metadata, {
                     'count': actual_count,
-                    'attributes': ['hospitalization']
+                    'attributes': ['case', 'hospitalization']
                 })
 
     def test_colon_delimited_counts(self):
@@ -306,6 +306,21 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
         test_utils.assertHasProps(
             doc.tiers['counts'].spans[0].metadata, {
                 'count': 1407
+            })
+
+    def test_ranges(self):
+        doc = AnnoDoc("10 to 13 suspected cases of Ebola.")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['counts']), 2)
+        test_utils.assertHasProps(
+            doc.tiers['counts'].spans[0].metadata, {
+                'count': 10,
+                'attributes': ['case', 'min', 'suspected']
+            })
+        test_utils.assertHasProps(
+            doc.tiers['counts'].spans[1].metadata, {
+                'count': 13,
+                'attributes': ['case', 'max', 'suspected']
             })
 
     # Currently failing. Uncomment after spacy model update.

@@ -32,9 +32,10 @@ class MatchSpan(AnnoSpan):
         out = {}
         for base_span in self.base_spans:
             if isinstance(base_span, MatchSpan):
-                out.update(base_span.groupdict())
+                for key, values in base_span.groupdict().items():
+                    out[key] = out.get(key, []) + values
         if self.match_name:
-            out[self.match_name] = self
+            out[self.match_name] = [self]
         return out
 
     def iterate_base_spans(self):
@@ -66,7 +67,7 @@ def near(results_lists, max_dist=100, allow_overlap=True):
     return result
 
 
-def follows(results_lists, max_dist=100, allow_overlap=False, label=None):
+def follows(results_lists, max_dist=1, allow_overlap=False, label=None):
     """
     Find sequences of matches within the given proximity that occur in the same
     order as the results lists.
@@ -105,7 +106,9 @@ def combine(results_lists, prefer="first"):
         """
         Perfers the matches that appear first in the first result list.
         """
-        return len(all_results) - all_results.index(x)
+        # Using an exponent makes it so that a first match will be prefered
+        # over multiple non-overlapping later matches.
+        return 2 ** (len(all_results) - all_results.index(x))
 
     def text_length(x):
         """
