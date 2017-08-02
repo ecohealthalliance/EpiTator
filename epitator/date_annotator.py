@@ -53,7 +53,10 @@ class DateAnnotator(Annotator):
                         datetime.datetime(decade + 10, 1, 1)]
             parser = DateDataParser(['en'], settings={
                 'RELATIVE_BASE': relative_base or datetime.datetime.now()})
-            date_data = parser.get_date_data(text)
+            try:
+                date_data = parser.get_date_data(text)
+            except TypeError:
+                return
             if date_data['date_obj']:
                 date = date_data['date_obj']
                 if date_data['period'] == 'day':

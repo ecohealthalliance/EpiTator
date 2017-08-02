@@ -98,6 +98,15 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2010, 1, 1),
              datetime.datetime(2011, 1, 1)])
 
+    def test_dateparser_bug(self):
+        # This triggers an exception in the dateparser library described in this
+        # bug report:
+        # https://github.com/scrapinghub/dateparser/issues/339
+        # This only tests that the exception is handled.
+        # The date range in the text is still not property parsed.
+        text = "week 1 - 53, 2015"
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
 
 if __name__ == '__main__':
     unittest.main()
