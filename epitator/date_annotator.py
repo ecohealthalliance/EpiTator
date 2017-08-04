@@ -37,7 +37,7 @@ class DateAnnotator(Annotator):
         strict_parser = DateDataParser(['en'], settings={
             'STRICT_PARSING': True})
 
-        def date_to_datetime_range(text, relative_base=doc.date):
+        def date_to_datetime_range(text, relative_base=doc.date, prefer_dates_from='past'):
             # strip extra words from the date string
             text = re.sub(r"^(from\s)?(the\s)?"
                           r"((beginning|middle|start|end)\sof)?"
@@ -52,7 +52,9 @@ class DateAnnotator(Annotator):
                 return [datetime.datetime(decade, 1, 1),
                         datetime.datetime(decade + 10, 1, 1)]
             parser = DateDataParser(['en'], settings={
-                'RELATIVE_BASE': relative_base or datetime.datetime.now()})
+                'RELATIVE_BASE': relative_base or datetime.datetime.now(),
+                'PREFER_DATES_FROM': prefer_dates_from
+            })
             try:
                 date_data = parser.get_date_data(text)
             except TypeError:
@@ -74,9 +76,15 @@ class DateAnnotator(Annotator):
         for ne_span in doc.tiers['spacy.nes'].spans:
             if ne_span.label == 'DATE':
                 date_spans.append(ne_span)
-        # Regex for numerical dates
+        # Regex for formatted dates
         regex = re.compile(
-            r"\b(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})\b", re.I)
+            # dd-mm-yyyy
+            r"\b(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})\b|"
+            # yyyy-MMM-dd
+            r"\b(\d{1,4}\s?[\/\-]\s?\w{3,4}\s?[\/\-]\s?\d{1,4})\b|"
+            # yyyy-mm-dd
+            r"\b(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})\b"
+            , re.I)
         match_spans = []
         for match in re.finditer(regex, doc.text):
             match_spans.append(AnnoSpan(
@@ -144,7 +152,8 @@ class DateAnnotator(Annotator):
                         relative_base=(datetime_range_b or [doc.date])[0])
                 datetime_range_b = date_to_datetime_range(
                         range_components[1],
-                        relative_base=(datetime_range_a or [doc.date])[0])
+                        relative_base=(datetime_range_a or [doc.date])[0],
+                        prefer_dates_from='future')
                 if datetime_range_a is None and datetime_range_b is None:
                     continue
                 elif datetime_range_a is None:

@@ -108,5 +108,23 @@ class DateAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
 
+    def test_relative_date_range(self):
+        text = "between Thursday and Friday"
+        doc = AnnoDoc(text, date=datetime.datetime(2017,7,15))
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2017, 7, 13),
+             datetime.datetime(2017, 7, 14)])
+
+    def test_formatted_date(self):
+        text = "08-FEB-17"
+        doc = AnnoDoc(text, date=datetime.datetime(2017,7,15))
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2017, 2, 8),
+             datetime.datetime(2017, 2, 9)])
+
 if __name__ == '__main__':
     unittest.main()
