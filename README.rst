@@ -60,7 +60,9 @@ mentions of multiple synonyms for an entity to a single id.
 This project includes scripts for importing diseases and animal species into
 that database. The following commands cab be used to invoke them:
 
-The scripts import data from the `Disease Ontology <http://disease-ontology.org/>`_ and `ITIS <https://www.itis.gov/>`_.
+The scripts import data from the `Disease Ontology <http://disease-ontology.org/>`_,
+`Wikidata <https://www.wikidata.org/>`_
+and `ITIS <https://www.itis.gov/>`_.
 You should review their licenses and terms of use before using this data.
 Currently the Disease Ontology is under public domain and ITIS requests citation.
 
@@ -68,6 +70,7 @@ Currently the Disease Ontology is under public domain and ITIS requests citation
 
     python -m epitator.importers.import_species
     python -m epitator.importers.import_disease_ontology
+    python -m epitator.importers.import_wikidata
 
 
 Usage
