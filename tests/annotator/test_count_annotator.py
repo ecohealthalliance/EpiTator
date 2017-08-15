@@ -17,13 +17,13 @@ class TestCountAnnotator(unittest.TestCase):
         self.annotator = CountAnnotator()
 
     def test_no_counts(self):
-        doc = AnnoDoc("Fever")
+        doc = AnnoDoc('Fever')
         doc.add_tier(self.annotator)
 
     def test_false_positive_counts(self):
         examples = [
-            "Measles - Democratic Republic of the Congo (Katanga) 2007.1775",
-            "Meningitis - Democratic Republic of Congo [02] 970814010223"
+            'Measles - Democratic Republic of the Congo (Katanga) 2007.1775',
+            'Meningitis - Democratic Republic of Congo [02] 970814010223'
         ]
         for example in examples:
             doc = AnnoDoc(example)
@@ -32,8 +32,8 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_verb_counts(self):
         examples = [
-            ("it brings the number of cases reported to 28 in Jeddah since 27 March 2014", 28),
-            ("There have been nine hundred and ninety-nine reported cases.", 999)
+            ('it brings the number of cases reported to 28 in Jeddah since 27 March 2014', 28),
+            ('There have been nine hundred and ninety-nine reported cases.', 999)
         ]
         for example, actual_count in examples:
             doc = AnnoDoc(example)
@@ -46,10 +46,10 @@ class TestCountAnnotator(unittest.TestCase):
                 })
 
     def test_death_counts(self):
-        examples = [("The number of deaths is 30", 30),
+        examples = [('The number of deaths is 30', 30),
                     # Also test unicode
-                    (u"The number of deaths is 30", 30),
-                    ("Nine patients died last week", 9)]
+                    (u'The number of deaths is 30', 30),
+                    ('Nine patients died last week', 9)]
         for example, actual_count in examples:
             doc = AnnoDoc(example)
             doc.add_tier(self.annotator)
@@ -93,8 +93,8 @@ class TestCountAnnotator(unittest.TestCase):
         )
 
     def test_hospitalization_counts1(self):
-        examples = [("33 were hospitalized", 33),
-                    ("222 were admitted to hospitals with symptoms of diarrhea", 222)]
+        examples = [('33 were hospitalized', 33),
+                    ('222 were admitted to hospitals with symptoms of diarrhea', 222)]
         for example, actual_count in examples:
             doc = AnnoDoc(example)
             doc.add_tier(self.annotator)
@@ -106,7 +106,7 @@ class TestCountAnnotator(unittest.TestCase):
                 })
 
     def test_colon_delimited_counts(self):
-        doc = AnnoDoc("Deaths: 2")
+        doc = AnnoDoc('Deaths: 2')
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['counts']), 1)
         self.assertEqual(doc.tiers['counts'].spans[0].start, 0)
@@ -118,7 +118,7 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_age_elimination(self):
         doc = AnnoDoc(
-            "1200 children under the age of 5 are afflicted with a mystery illness")
+            '1200 children under the age of 5 are afflicted with a mystery illness')
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
             doc.tiers['counts'].spans[0].metadata, {
@@ -128,7 +128,7 @@ class TestCountAnnotator(unittest.TestCase):
         self.assertEqual(len(doc.tiers['counts'].spans), 1)
 
     def test_raw_counts(self):
-        doc = AnnoDoc("There are 5 new ones.")
+        doc = AnnoDoc('There are 5 new ones.')
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
             doc.tiers['counts'].spans[0].metadata, {
@@ -140,11 +140,11 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_complex(self):
         examples = [
-            ("These 2 new cases bring to 4 the number stricken in California this year [2012].", [
+            ('These 2 new cases bring to 4 the number stricken in California this year [2012].', [
                 {'count': 2, 'attributes': ['case', 'incremental']},
                 {'count': 4, 'attributes': ['case']},
             ]),
-            ("Two patients died out of four patients.", [
+            ('Two patients died out of four patients.', [
                 {'count': 2, 'attributes': ['case', 'death']},
                 {'count': 4, 'attributes': ['case']},
             ]),
@@ -159,11 +159,11 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_cumulative(self):
         examples = [
-            ("In total nationwide, 613 cases of the disease have been reported as of 2 July 2014, with 63 deaths", [
+            ('In total nationwide, 613 cases of the disease have been reported as of 2 July 2014, with 63 deaths', [
                 {'count': 613, 'attributes': ['case', 'cumulative']},
                 {'count': 63, 'attributes': ['case', 'death']}
             ]),
-            ("it has already claimed about 455 lives in Guinea", [
+            ('it has already claimed about 455 lives in Guinea', [
                 {'count': 455, 'attributes': [
                     'approximate', 'case', 'cumulative', 'death']}
             ])
@@ -178,12 +178,12 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_attributes(self):
         examples = [
-            ("There have been 12 reported cases in Colorado. " +
-             "There was one suspected case of bird flu in the country.", [
+            ('There have been 12 reported cases in Colorado. ' +
+             'There was one suspected case of bird flu in the country.', [
                  {'count': 12, 'attributes': ['case']},
                  {'count': 1, 'attributes': ['case', 'suspected']}
              ]),
-            ("The average number of cases reported annually is 600", [
+            ('The average number of cases reported annually is 600', [
                 {'count': 600, 'attributes': ['annual', 'average', 'case']}
             ])
         ]
@@ -210,8 +210,8 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_distance_and_percentage_filtering(self):
         examples = [
-            ("48 percent of the cases occured in Seattle", []),
-            ("28 kilometers away [17.4 miles]", [])
+            ('48 percent of the cases occured in Seattle', []),
+            ('28 kilometers away [17.4 miles]', [])
         ]
         for example in examples:
             sent, counts = example
@@ -226,7 +226,7 @@ class TestCountAnnotator(unittest.TestCase):
         These examples triggered some bugs with word token alignment in the past.
         """
         examples = [
-            ("These numbers include laboratory-confirmed, probable, and suspect cases and deaths of EVD.", []),
+            ('These numbers include laboratory-confirmed, probable, and suspect cases and deaths of EVD.', []),
             ("""22 new cases of EVD, including 14 deaths, were reported as follows:
         Guinea, 3 new cases and 5 deaths; Liberia, 8 new cases with 7 deaths; and Sierra Leone 11 new cases and 2 deaths.
         """, [{'count': 22}, {'count': 14}, {'count': 3}, {'count': 5}, {'count': 8}, {'count': 7}, {'count': 11}, {'count': 2}])]
@@ -241,7 +241,7 @@ class TestCountAnnotator(unittest.TestCase):
     def test_internals(self):
         from epitator.count_annotator import search_spans_for_regex
         import epitator.result_aggregators as ra
-        doc = AnnoDoc("Deaths: 2")
+        doc = AnnoDoc('Deaths: 2')
         doc.add_tier(self.annotator)
         ra.follows([
             search_spans_for_regex(
@@ -288,8 +288,8 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
 
     def test_singular_cases(self):
         examples = [
-            ("The index case occured on January 22.", [{'count': 1}]),
-            ("A lassa fever case was reported in Hawaii", [{'count': 1}])]
+            ('The index case occured on January 22.', [{'count': 1}]),
+            ('A lassa fever case was reported in Hawaii', [{'count': 1}])]
         for example in examples:
             sent, counts = example
             doc = AnnoDoc(sent)
@@ -309,7 +309,7 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
             })
 
     def test_ranges(self):
-        doc = AnnoDoc("10 to 13 suspected cases of Ebola.")
+        doc = AnnoDoc('10 to 13 suspected cases of Ebola.')
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['counts']), 2)
         test_utils.assertHasProps(

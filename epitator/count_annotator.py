@@ -43,7 +43,7 @@ def is_valid_count(count_string):
         if int(value) != value:
             return False
     except (TypeError, ValueError) as e:
-        logger.info("Cannot parse count string: " + count_string)
+        logger.info('Cannot parse count string: ' + count_string)
         return False
     if value > 1000000000:
         return False
@@ -51,7 +51,7 @@ def is_valid_count(count_string):
 
 
 def search_spans_for_regex(regex_term, spans, match_name=None):
-    regex = re.compile(r"^" + regex_term + r"$", re.I)
+    regex = re.compile(r'^' + regex_term + r'$', re.I)
     match_spans = []
     for span in spans:
         if regex.match(span.text):
@@ -69,7 +69,7 @@ class CountAnnotator(Annotator):
                 if is_valid_count(ne_span.text):
                     counts.append(MatchSpan(ne_span, 'count'))
                 else:
-                    joiner_offsets = [m.span() for m in re.finditer(r"\s(?:to|and|or)\s", ne_span.text)]
+                    joiner_offsets = [m.span() for m in re.finditer(r'\s(?:to|and|or)\s', ne_span.text)]
                     if len(joiner_offsets) == 1:
                         range_start = AnnoSpan(ne_span.start, ne_span.start + joiner_offsets[0][0], doc)
                         range_end = AnnoSpan(ne_span.start + joiner_offsets[0][1], ne_span.end, doc)
@@ -182,20 +182,20 @@ class CountAnnotator(Annotator):
             [single_sentence_counts], prefer='num_spans')
 
         attributes = [
-            "annual",
-            "approximate",
-            "average",
-            "case",
-            "confirmed",
-            "cumulative",
-            "death",
-            "hospitalization",
-            "incremental",
-            "max",
-            "min",
-            "monthly",
-            "suspected",
-            "weekly",
+            'annual',
+            'approximate',
+            'average',
+            'case',
+            'confirmed',
+            'cumulative',
+            'death',
+            'hospitalization',
+            'incremental',
+            'max',
+            'min',
+            'monthly',
+            'suspected',
+            'weekly',
         ]
         count_spans = []
         for match in annotated_counts:
