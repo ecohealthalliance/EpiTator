@@ -40,7 +40,6 @@ def import_wikidata(drop_previous=False):
         """
     }))
     results = json.loads(response.read())['results']['bindings']
-    print(results)
     print("Importing synonyms...")
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [
         (result['item']['value'], result['itemLabel']['value'])
