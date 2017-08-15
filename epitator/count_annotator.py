@@ -17,47 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 class CountSpan(AnnoSpan):
-    attributes = [
-        "annual",
-        "approximate",
-        "average",
-        "case",
-        "confirmed",
-        "cumulative",
-        "death",
-        "hospitalization",
-        "incremental",
-        "max",
-        "min",
-        "monthly",
-        "suspected",
-        "weekly",
-    ]
-
-    def __init__(self, match_span):
-        self.start = match_span.start
-        self.end = match_span.end
-        self.doc = match_span.doc
-        self.label = match_span.text
-        self.match = match_span
-        match_dict = match_span.groupdict()
-        attributes = set([
-            attr for attr in self.attributes
-            if attr in match_dict
-        ])
-        if 'death' in attributes:
-            attributes.add('case')
-        if 'count' in match_dict:
-            count = utils.parse_spelled_number(match_dict['count'].text)
-        else:
-            # For single case reports a count number might not be used.
-            # Ex. A new case, the index case
-            count = 1
-        self.metadata = {
-            'text': match_span.text,
-            'count': count,
-            'attributes': sorted(list(attributes))
-        }
+    def __init__(self, span, metadata):
+        self.start = span.start
+        self.end = span.end
+        self.doc = span.doc
+        self.label = span.text
+        self.metadata = metadata
 
     def to_dict(self):
         result = super(CountSpan, self).to_dict()
@@ -78,7 +43,7 @@ def is_valid_count(count_string):
         if int(value) != value:
             return False
     except (TypeError, ValueError) as e:
-        logger.info("Cannot parse count string: " + count_string)
+        logger.info('Cannot parse count string: ' + count_string)
         return False
     if value > 1000000000:
         return False
@@ -86,7 +51,7 @@ def is_valid_count(count_string):
 
 
 def search_spans_for_regex(regex_term, spans, match_name=None):
-    regex = re.compile(r"^" + regex_term + r"$", re.I)
+    regex = re.compile(r'^' + regex_term + r'$', re.I)
     match_spans = []
     for span in spans:
         if regex.match(span.text):
@@ -100,8 +65,18 @@ class CountAnnotator(Annotator):
             doc.add_tiers(SpacyAnnotator())
         counts = []
         for ne_span in doc.tiers['spacy.nes'].spans:
-            if ne_span.label in ['QUANTITY', 'CARDINAL'] and is_valid_count(ne_span.text):
-                counts.append(MatchSpan(ne_span, 'count'))
+            if ne_span.label in ['QUANTITY', 'CARDINAL'] :
+                if is_valid_count(ne_span.text):
+                    counts.append(MatchSpan(ne_span, 'count'))
+                else:
+                    joiner_offsets = [m.span() for m in re.finditer(r'\s(?:to|and|or)\s', ne_span.text)]
+                    if len(joiner_offsets) == 1:
+                        range_start = AnnoSpan(ne_span.start, ne_span.start + joiner_offsets[0][0], doc)
+                        range_end = AnnoSpan(ne_span.start + joiner_offsets[0][1], ne_span.end, doc)
+                        if is_valid_count(range_start.text):
+                            counts.append(MatchSpan(range_start, 'count'))
+                        if is_valid_count(range_end.text):
+                            counts.append(MatchSpan(range_end, 'count'))
             elif ne_span.label == 'DATE' and is_valid_count(ne_span.text):
                 # Sometimes counts like 1500 are parsed as as the year component
                 # of dates. This tries to catch that mistake when the year
@@ -113,6 +88,12 @@ class CountAnnotator(Annotator):
         def search_regex(regex_term, match_name=None):
             return search_spans_for_regex(
                 regex_term, doc.tiers['spacy.tokens'].spans, match_name)
+        # Add count ranges
+        ranges = ra.follows([counts,
+                             ra.label('range',
+                                      ra.follows([search_regex(r'to|and|or'),
+                                                  counts]))])
+        counts = ra.combine([ranges, counts])
         # Remove counts that overlap an age
         counts = ra.remove_overlaps(counts,
                                     ra.follows([search_regex('age'),
@@ -200,8 +181,55 @@ class CountAnnotator(Annotator):
         annotated_counts = ra.combine(
             [single_sentence_counts], prefer='num_spans')
 
-        return {
-            'counts': AnnoTier([
-                CountSpan(count)
-                for count in annotated_counts
-            ])}
+        attributes = [
+            'annual',
+            'approximate',
+            'average',
+            'case',
+            'confirmed',
+            'cumulative',
+            'death',
+            'hospitalization',
+            'incremental',
+            'max',
+            'min',
+            'monthly',
+            'suspected',
+            'weekly',
+        ]
+        count_spans = []
+        for match in annotated_counts:
+            match_dict = match.groupdict()
+            matching_attributes = set([
+                attr for attr in attributes
+                if attr in match_dict
+            ])
+            if 'death' in matching_attributes or 'hospitalization' in matching_attributes:
+                matching_attributes.add('case')
+            if 'count' in match_dict:
+                count = utils.parse_spelled_number(match_dict['count'][0].text)
+            else:
+                # For single case reports a count number might not be used.
+                # Ex. A new case, the index case
+                count = 1
+            if 'range' in match_dict:
+                range_match = match_dict['range'][0]
+                upper_count_text = range_match.groupdict()['count'][0].text
+                upper_count = utils.parse_spelled_number(upper_count_text)
+                count_spans.append(CountSpan(match, {
+                    'text': match.text,
+                    'attributes': sorted(list(matching_attributes) + ['min']),
+                    'count': count
+                }))
+                count_spans.append(CountSpan(range_match, {
+                    'text': upper_count_text,
+                    'attributes': sorted(list(matching_attributes) + ['max']),
+                    'count': upper_count
+                }))
+            else:
+                count_spans.append(CountSpan(match, {
+                    'text': match.text,
+                    'attributes': sorted(list(matching_attributes)),
+                    'count': count
+                }))
+        return {'counts': AnnoTier(count_spans)}
