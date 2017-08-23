@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 from .get_database_connection import get_database_connection
 
+
 class DatabaseInterface(object):
     """
     This interface provides utility methods for the embedded EpiTator database.
     """
     def __init__(self):
         self.db_connection = get_database_connection()
+
         def dict_factory(cursor, row):
             d = {}
             for idx, col in enumerate(cursor.description):
