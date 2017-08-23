@@ -17,6 +17,44 @@ import datetime
 
 DATE_RANGE_JOINERS = r"to|through|until|untill|and"
 
+ORDINALS = [
+    "first",
+    "second",
+    "third",
+    "fourth",
+    "fifth",
+    "sixth",
+    "seventh",
+    "eighth",
+    "ninth",
+    "tenth",
+    "eleventh",
+    "twelfth",
+    "thirteenth",
+    "fourteenth",
+    "fifteenth",
+    "sixteenth",
+    "seventeenth",
+    "eighteenth",
+    "nineteenth",
+    "twentieth",
+    "twenty-first",
+    "twenty-second",
+    "twenty-third",
+    "twenty-fourth",
+    "twenty-fifth",
+    "twenty-sixth",
+    "twenty-seventh",
+    "twenty-eighth",
+    "twenty-ninth",
+    "thirtieth",
+    "thirty-first",
+]
+ordinal_date_re = re.compile(
+    r"(?P<ordinal>" + "|".join(map(re.escape, ORDINALS)) + ")?"
+    r"((?P<ordinal_number>\d{1,2})(st|nd|rd|th))?"
+    r" (?P<unit>week|day|month) (of|in) "
+    r"(?P<rest>.{3,})")
 
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
@@ -37,7 +75,7 @@ class DateAnnotator(Annotator):
         strict_parser = DateDataParser(['en'], settings={
             'STRICT_PARSING': True})
 
-        def date_to_datetime_range(text, relative_base=doc.date, prefer_dates_from='past'):
+        def clean_date_str(text):
             # strip extra words from the date string
             text = re.sub(r"^(from\s)?(the\s)?"
                           r"((beginning|middle|start|end)\sof)?"
@@ -45,6 +83,41 @@ class DateAnnotator(Annotator):
                           r"(late|mid|early)?\s?", "", text, re.I)
             # remove extra characters
             text = re.sub(r"\[|\]", "", text)
+            return text
+
+        def date_to_datetime_range(text,
+                                   relative_base=doc.date,
+                                   prefer_dates_from='past'):
+            text = clean_date_str(text)
+            match = ordinal_date_re.match(text)
+            if match:
+                match_dict = match.groupdict()
+                if match_dict['ordinal']:
+                    ordinal_number = ORDINALS.index(match_dict['ordinal']) + 1
+                else:
+                    ordinal_number = int(match_dict['ordinal_number'])
+                unit = match_dict['unit']
+                rest = match_dict['rest']
+                print match_dict
+                if unit == 'day':
+                    return date_to_datetime_range(str(ordinal_number) + " " + rest)
+                elif unit == 'week':
+                    if ordinal_number > 4:
+                        return
+                    week_start = date_to_datetime_range("1 " + rest)[0]
+                    week_start = date_to_datetime_range("Sunday",
+                        relative_base=week_start)[0]
+                    for _ in range(ordinal_number - 1):
+                        week_start = date_to_datetime_range("Sunday",
+                            relative_base=week_start + relativedelta(days=1),
+                            prefer_dates_from='future')[0]
+                    return [
+                        week_start,
+                        week_start + relativedelta(days=7)]
+                elif unit == 'month':
+                    date_to_datetime_range(ordinal_number + "/1 " + rest)
+                else:
+                    raise Error("Unknown time unit: " + unit)
             # handle dates like "1950s" since dateparser doesn't
             decade_match = re.match(r"(\d{4})s", text)
             if decade_match:
@@ -69,6 +142,14 @@ class DateAnnotator(Annotator):
                 elif date_data['period'] == 'year':
                     date = datetime.datetime(date.year, 1, 1)
                     return [date, date + relativedelta(years=1)]
+
+        def parse_non_relative_date(text):
+            result = date_to_datetime_range(text, relative_base=datetime.datetime(900,1,1))
+            if result and result[0].year > 1000:
+                # If the year is less than 1000 assume the year 900
+                # base date was used when parsing so the date is relative.
+                return result[0]
+
         if 'spacy.nes' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
         # Create a combine tier of nes and regex dates
@@ -78,13 +159,14 @@ class DateAnnotator(Annotator):
                 date_spans.append(ne_span)
         # Regex for formatted dates
         regex = re.compile(
+            # date MonthName yyyy
+            r"\b(\d{1,2}\s\w{3,}\s\d{4})\b|"
             # dd-mm-yyyy
             r"\b(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})\b|"
             # yyyy-MMM-dd
             r"\b(\d{1,4}\s?[\/\-]\s?\w{3,4}\s?[\/\-]\s?\d{1,4})\b|"
             # yyyy-mm-dd
-            r"\b(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})\b"
-            , re.I)
+            r"\b(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})\b", re.I)
         match_spans = []
         for match in re.finditer(regex, doc.text):
             match_spans.append(AnnoSpan(
@@ -142,18 +224,20 @@ class DateAnnotator(Annotator):
                 if datetime_range is None:
                     continue
             elif len(range_components) == 2:
-                # March 3 to November 2 1984
-                datetime_range_a = date_to_datetime_range(range_components[0])
-                datetime_range_b = date_to_datetime_range(range_components[1])
-                # Reparse dates using eachother as a relative_base incase one of
-                # the dates in the date range doesn't include a year component.
+                # Check for a non-relative date in the range that can be used as a
+                # relative base date the other date.
+                # Example: March 3 to November 2 1984
+                non_relative_dates = [
+                    parse_non_relative_date(text)
+                    for text in range_components]
+                relative_base_date = next((x for x in non_relative_dates if x),
+                                          doc.date)
                 datetime_range_a = date_to_datetime_range(
                         range_components[0],
-                        relative_base=(datetime_range_b or [doc.date])[0])
+                        relative_base=relative_base_date)
                 datetime_range_b = date_to_datetime_range(
                         range_components[1],
-                        relative_base=(datetime_range_a or [doc.date])[0],
-                        prefer_dates_from='future')
+                        relative_base=relative_base_date)
                 if datetime_range_a is None and datetime_range_b is None:
                     continue
                 elif datetime_range_a is None:
@@ -176,5 +260,8 @@ class DateAnnotator(Annotator):
             else:
                 print("Bad date range split:", date_span.text, range_components)
                 continue
-            tier_spans.append(DateSpan(date_span, datetime_range))
+            # Omit reverse ranges because they usually come from something
+            # being incorrectly parsed.
+            if datetime_range[0] <= datetime_range[1]:
+                tier_spans.append(DateSpan(date_span, datetime_range))
         return {'dates': AnnoTier(tier_spans)}
