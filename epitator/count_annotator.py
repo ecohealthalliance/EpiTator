@@ -14,7 +14,20 @@ import logging
 from functools import reduce
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
+from .spacy_nlp import spacy_nlp
 
+case_count_senses = list(spacy_nlp(u"""
+The doctor reviewed the symptoms from the first case of the disease.
+In the index case medics recorded a high fever.
+For a recent case of Ebola medical attention was not available.
+The death of the first patient, a man in his 30s, suprised doctors.
+The latest hospitalization involving a febrile disease happend on Monday.
+""").sents)
+non_case_count_senses = list(spacy_nlp(u"""
+The case is spacious container designed to hold many items.
+The lawyer's legal case is to be decided in a court of law.
+In the case of the first disease action should be taken to prevent it from spreading.
+""").sents)
 
 class CountSpan(AnnoSpan):
     def __init__(self, span, metadata):
@@ -63,8 +76,11 @@ class CountAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
+        spacy_tokens = doc.tiers['spacy.tokens']
+        spacy_sentences = doc.tiers['spacy.sentences']
+        spacy_nes = doc.tiers['spacy.nes']
         counts = []
-        for ne_span in doc.tiers['spacy.nes'].spans:
+        for ne_span in spacy_nes.spans:
             if ne_span.label in ['QUANTITY', 'CARDINAL'] :
                 if is_valid_count(ne_span.text):
                     counts.append(MatchSpan(ne_span, 'count'))
@@ -87,7 +103,7 @@ class CountAnnotator(Annotator):
 
         def search_regex(regex_term, match_name=None):
             return search_spans_for_regex(
-                regex_term, doc.tiers['spacy.tokens'].spans, match_name)
+                regex_term, spacy_tokens.spans, match_name)
         # Add count ranges
         ranges = ra.follows([counts,
                              ra.label('range',
@@ -115,7 +131,7 @@ class CountAnnotator(Annotator):
         count_descriptions = ra.near([count_modifiers, counts]) + counts
         case_descriptions = (
             ra.label('death',
-                     search_regex(r'died|killed|claimed|fatalities|fatality') +
+                     search_regex(r'died|killed|claimed|fatalities|fatality|deceased') +
                      search_regex(r'deaths?')) +
             ra.label('hospitalization',
                      # Ex: admitted to hospitals
@@ -146,9 +162,9 @@ class CountAnnotator(Annotator):
         ], max_dist=50)
 
         singular_case_spans = []
-        for t_span in doc.tiers['spacy.tokens'].spans:
+        for t_span in spacy_tokens.spans:
             token = t_span.token
-            if token.lemma_ not in ['case', 'death', 'hospitalization']:
+            if token.lemma_ not in ['case', 'fatality', 'death', 'hospitalization']:
                 continue
             if token.tag_ != 'NN':
                 continue
@@ -156,6 +172,22 @@ class CountAnnotator(Annotator):
                     c.lower_ for c in token.children]):
                 continue
             singular_case_spans.append(t_span)
+
+        # Use word sense disabiguation to omit phrases like "In the case of"
+        # The sentence vectors from setences using the word "case" with
+        # different meanings are compared to the sentence from the document.
+        # The word sense from the most similar sentence is used.
+        filtered_singular_case_spans = []
+        for sentence, group in spacy_sentences.group_spans_by_containing_span(singular_case_spans):
+            if len(group) == 0:
+                continue
+            case_count_sence_similary = max(sentence.span.similarity(x)
+                                            for x in case_count_senses)
+            non_case_count_sence_similary = max(sentence.span.similarity(x)
+                                                for x in non_case_count_senses)
+            if case_count_sence_similary > non_case_count_sence_similary:
+                filtered_singular_case_spans.extend(group)
+        singular_case_spans = filtered_singular_case_spans
 
         singular_case_descriptions = []
         for count_description, group in AnnoTier(case_descriptions).group_spans_by_containing_span(
@@ -175,7 +207,7 @@ class CountAnnotator(Annotator):
             singular_case_descriptions])
 
         single_sentence_counts = []
-        for sentence, group in doc.tiers['spacy.sentences'].group_spans_by_containing_span(all_potential_counts):
+        for sentence, group in spacy_sentences.group_spans_by_containing_span(all_potential_counts):
             single_sentence_counts += group
 
         annotated_counts = ra.combine(

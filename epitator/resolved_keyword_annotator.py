@@ -27,9 +27,9 @@ class ResolvedKeywordSpan(AnnoSpan):
         result = super(ResolvedKeywordSpan, self).to_dict()
         result['resolutions'] = []
         for res in self.resolutions:
-            res_dict = {k:res[k] for k in res.keys()}
+            res_dict = {k: res[k] for k in res.keys()}
             entity = res['entity']
-            res_dict['entity'] = {k:entity[k] for k in entity.keys()}
+            res_dict['entity'] = {k: entity[k] for k in entity.keys()}
             result['resolutions'].append(res_dict)
         return result
 

@@ -98,7 +98,6 @@ class DateAnnotator(Annotator):
                     ordinal_number = int(match_dict['ordinal_number'])
                 unit = match_dict['unit']
                 rest = match_dict['rest']
-                print match_dict
                 if unit == 'day':
                     return date_to_datetime_range(str(ordinal_number) + " " + rest)
                 elif unit == 'week':
