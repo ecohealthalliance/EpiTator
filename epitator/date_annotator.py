@@ -8,6 +8,7 @@ of December 1st to the end of December.
 """
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoTier, AnnoSpan
+from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
 from . import result_aggregators as ra
 from dateparser.date import DateDataParser
@@ -202,8 +203,8 @@ class DateAnnotator(Annotator):
                                      date_spans], prefer='text_length'):
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.
-            if isinstance(date_span, ra.MatchSpan) and\
-               date_span.match_name == 'date_range':
+            if isinstance(date_span, SpanGroup) and\
+               date_span.label == 'date_range':
                 range_components = [span.text
                                     for span in date_span.base_spans[0::2]]
             else:

@@ -6,9 +6,9 @@ cumulative, case, death, age, hospitalization, approximate, min, max
 from __future__ import absolute_import
 import re
 from .annotator import Annotator, AnnoTier, AnnoSpan
+from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
 from . import result_aggregators as ra
-from .result_aggregators import MatchSpan
 from . import utils
 import logging
 from functools import reduce
@@ -68,7 +68,7 @@ def search_spans_for_regex(regex_term, spans, match_name=None):
     match_spans = []
     for span in spans:
         if regex.match(span.text):
-            match_spans.append(MatchSpan(span, match_name))
+            match_spans.append(SpanGroup([span], match_name))
     return match_spans
 
 
@@ -83,23 +83,23 @@ class CountAnnotator(Annotator):
         for ne_span in spacy_nes.spans:
             if ne_span.label in ['QUANTITY', 'CARDINAL'] :
                 if is_valid_count(ne_span.text):
-                    counts.append(MatchSpan(ne_span, 'count'))
+                    counts.append(SpanGroup([ne_span], 'count'))
                 else:
                     joiner_offsets = [m.span() for m in re.finditer(r'\s(?:to|and|or)\s', ne_span.text)]
                     if len(joiner_offsets) == 1:
                         range_start = AnnoSpan(ne_span.start, ne_span.start + joiner_offsets[0][0], doc)
                         range_end = AnnoSpan(ne_span.start + joiner_offsets[0][1], ne_span.end, doc)
                         if is_valid_count(range_start.text):
-                            counts.append(MatchSpan(range_start, 'count'))
+                            counts.append(SpanGroup([range_start], 'count'))
                         if is_valid_count(range_end.text):
-                            counts.append(MatchSpan(range_end, 'count'))
+                            counts.append(SpanGroup([range_end], 'count'))
             elif ne_span.label == 'DATE' and is_valid_count(ne_span.text):
                 # Sometimes counts like 1500 are parsed as as the year component
                 # of dates. This tries to catch that mistake when the year
                 # is long enough ago that it is unlikely to be a date.
                 date_as_number = utils.parse_spelled_number(ne_span.text)
                 if date_as_number and date_as_number < 1900:
-                    counts.append(MatchSpan(ne_span, 'count'))
+                    counts.append(SpanGroup([ne_span], 'count'))
 
         def search_regex(regex_term, match_name=None):
             return search_spans_for_regex(
@@ -109,15 +109,14 @@ class CountAnnotator(Annotator):
                              ra.label('range',
                                       ra.follows([search_regex(r'to|and|or'),
                                                   counts]))])
-        counts = ra.combine([ranges, counts])
+        counts_tier = AnnoTier(ra.combine([ranges, counts]))
         # Remove counts that overlap an age
-        counts = ra.remove_overlaps(counts,
-                                    ra.follows([search_regex('age'),
-                                                search_regex('of'), counts]))
+        counts_tier = counts_tier.without_overlaps(
+            ra.follows([search_regex('age'), search_regex('of'), counts]))
         # Remove distances
-        counts = ra.remove_overlaps(counts,
-                                    ra.follows([counts,
-                                                search_regex('kilometers|km|miles|mi')]))
+        counts_tier = counts_tier.without_overlaps(
+            ra.follows([counts, search_regex('kilometers|km|miles|mi')]))
+        counts = counts_tier.spans
         count_modifiers = ra.combine([
             search_regex('average|mean', 'average') +
             search_regex('annual(ly)?', 'annual') +
