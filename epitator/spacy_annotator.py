@@ -3,8 +3,7 @@
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoSpan, AnnoTier
 import re
-import en_core_web_sm as spacy_model
-spacy_nlp = spacy_model.load()
+from .spacy_nlp import spacy_nlp
 
 
 class TokenSpan(AnnoSpan):

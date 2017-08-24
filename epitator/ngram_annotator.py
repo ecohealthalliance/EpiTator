@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """Ngram Annotator"""
-
 from __future__ import absolute_import
-from .annotator import Annotator, AnnoDoc, AnnoTier, AnnoSpan
+from .annotator import Annotator, AnnoTier, AnnoSpan
 from .token_annotator import TokenAnnotator
 from six.moves import range
 

@@ -22,6 +22,7 @@ class TestCountAnnotator(unittest.TestCase):
 
     def test_false_positive_counts(self):
         examples = [
+            'In the case of mosquito-borne diseases indoor spraying is a common intervention',
             'Measles - Democratic Republic of the Congo (Katanga) 2007.1775',
             'Meningitis - Democratic Republic of Congo [02] 970814010223'
         ]

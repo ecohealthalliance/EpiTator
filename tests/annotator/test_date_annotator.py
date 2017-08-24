@@ -110,7 +110,7 @@ class DateAnnotatorTest(unittest.TestCase):
 
     def test_relative_date_range(self):
         text = "between Thursday and Friday"
-        doc = AnnoDoc(text, date=datetime.datetime(2017,7,15))
+        doc = AnnoDoc(text, date=datetime.datetime(2017, 7, 15))
         doc.add_tier(self.annotator)
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
@@ -119,12 +119,48 @@ class DateAnnotatorTest(unittest.TestCase):
 
     def test_formatted_date(self):
         text = "08-FEB-17"
-        doc = AnnoDoc(text, date=datetime.datetime(2017,7,15))
+        doc = AnnoDoc(text, date=datetime.datetime(2017, 7, 15))
         doc.add_tier(self.annotator)
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2017, 2, 8),
              datetime.datetime(2017, 2, 9)])
+
+    def test_reversed_range_error_1(self):
+        text = "24 to 94 years"
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+
+    def test_reversed_range_error_2(self):
+        text = "9 months to 9 years"
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+
+    def test_reversed_range_error_3(self):
+        text = "6350-65"
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+
+    def test_day_of_week(self):
+        text = "Sat 19 Aug 2017"
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2017, 8, 19),
+             datetime.datetime(2017, 8, 20)])
+
+    def test_week_parsing(self):
+        text = "AES had taken 13 lives by the 2nd week of August [2017]."
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2017, 8, 6),
+             datetime.datetime(2017, 8, 13)])
 
 if __name__ == '__main__':
     unittest.main()

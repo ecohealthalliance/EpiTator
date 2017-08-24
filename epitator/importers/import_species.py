@@ -82,9 +82,9 @@ def import_species(drop_previous=False):
     FROM longnames
     LEFT JOIN reference_links USING (tsn)
     GROUP BY tsn, completename
-    
+
     UNION
-    
+
     SELECT
       tsn,
       vernacular_name AS name,
