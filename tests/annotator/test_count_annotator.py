@@ -324,6 +324,20 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
                 'attributes': ['case', 'max', 'suspected']
             })
 
+    def test_count_suppression_fp(self):
+        # Test that the count of 26 is not supressed by the 20 count
+        doc = AnnoDoc('''
+        20 in Montserrado County [Monrovia & environs); 26 deaths are among the confirmed cases.
+        Foya, Lofa County, and New Kru Town [NW suburb of Monrovia],
+        Montserrado County, remain the epicentres of this Ebola outbreak.
+        ''')
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['counts']), 2)
+        test_utils.assertHasProps(
+            doc.tiers['counts'].spans[1].metadata, {
+                'count': 26
+            })
+
     # Currently failing. Uncomment after spacy model update.
     # def test_counts_with_spaces(self):
     #     doc = AnnoDoc("Ther were 565 749 new cases")
@@ -333,6 +347,17 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
     #                      if 'case' in count.metadata['attributes']]
     #     print(actual_counts)
 
+    # def test_count_table(self):
+    #     doc = AnnoDoc('''
+    #     Cases / 22 / 544 / 140 / 75 / 759
+    #     Deaths / 14 / 291 / 128 / 48 / 467
+
+    #     *New cases were reported between 25-29 Jun 2014
+
+    #     The total number of cases is subject to change
+    #     ''')
+    #     doc.add_tier(self.annotator)
+    #     self.assertEqual(len(doc.tiers['counts']), 10)
 
 if __name__ == '__main__':
     unittest.main()

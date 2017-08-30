@@ -95,6 +95,5 @@ class ResolvedKeywordAnnotator(Annotator):
                             'weight': keyword['weight']}
                 resolutions.append(res_dict)
             spans.append(ResolvedKeywordSpan(span, resolutions))
-        tier = AnnoTier(spans)
-        tier.filter_overlapping_spans()
+        tier = AnnoTier(spans).optimal_span_set()
         return {'resolved_keywords': tier}

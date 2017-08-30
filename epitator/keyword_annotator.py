@@ -74,7 +74,6 @@ class KeywordAnnotator(Annotator):
                         keyword_spans.append(
                             AnnoSpan(ngram_span.start, ngram_span.end, doc, label=label))
 
-            doc.tiers[keyword_type] = AnnoTier(keyword_spans)
-            doc.tiers[keyword_type].filter_overlapping_spans()
+            doc.tiers[keyword_type] = AnnoTier(keyword_spans).optimal_span_set()
 
         return doc

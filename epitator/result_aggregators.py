@@ -24,6 +24,9 @@ def follows(results_lists, max_dist=1, allow_overlap=False, label=None):
     """
     sequences = []
     for idx, results in enumerate(results_lists):
+        if hasattr(results, 'spans'):
+            # Handle annotiers
+            results = results.spans
         if len(results) == 0:
             return []
         if idx == 0:
@@ -33,7 +36,8 @@ def follows(results_lists, max_dist=1, allow_overlap=False, label=None):
         for result in results:
             for sequence in sequences:
                 if sequence[-1].comes_before(result,
-                                             max_dist=max_dist, allow_overlap=allow_overlap):
+                                             max_dist=max_dist,
+                                             allow_overlap=allow_overlap):
                     next_sequences.append(sequence + [result])
         sequences = next_sequences
     return [SpanGroup(seq, label) for seq in sequences]

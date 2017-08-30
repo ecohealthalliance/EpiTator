@@ -153,34 +153,26 @@ class DateAnnotator(Annotator):
         if 'spacy.nes' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
         # Create a combine tier of nes and regex dates
-        date_spans = []
-        for ne_span in doc.tiers['spacy.nes'].spans:
-            if ne_span.label == 'DATE':
-                date_spans.append(ne_span)
+        date_span_tier = doc.tiers['spacy.nes'].with_label('DATE')
         # Regex for formatted dates
         regex = re.compile(
+            r"\b("
             # date MonthName yyyy
-            r"\b(\d{1,2}\s\w{3,}\s\d{4})\b|"
+            r"(\d{1,2}\s\w{3,}\s\d{4})|"
             # dd-mm-yyyy
-            r"\b(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})\b|"
+            r"(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})|"
             # yyyy-MMM-dd
-            r"\b(\d{1,4}\s?[\/\-]\s?\w{3,4}\s?[\/\-]\s?\d{1,4})\b|"
+            r"(\d{1,4}\s?[\/\-]\s?\w{3,4}\s?[\/\-]\s?\d{1,4})|"
             # yyyy-mm-dd
-            r"\b(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})\b", re.I)
-        match_spans = []
-        for match in re.finditer(regex, doc.text):
-            match_spans.append(AnnoSpan(
-                match.start(), match.end(), doc, match.group(0)))
-        date_spans = sorted(date_spans + match_spans)
+            r"(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})"
+            # Negative lookahead to prevent matches on other types of slash
+            # separated data.
+            r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
+        match_tier = doc.create_regex_tier(regex)
+        date_span_tier += match_tier
         # Group adjacent date info incase it is parsed as separate chunks.
         # ex: Friday, October 7th 2010.
-        adjacent_date_spans = ra.follows([date_spans, date_spans], max_dist=9)
-        adjacent_date_spans = ra.combine([
-            ra.follows([adjacent_date_spans, date_spans], max_dist=9),
-            adjacent_date_spans])
-        adjacent_date_spans = ra.combine([
-            ra.follows([adjacent_date_spans, date_spans], max_dist=9),
-            adjacent_date_spans])
+        adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)
         grouped_date_spans = []
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
@@ -192,15 +184,15 @@ class DateAnnotator(Annotator):
                     grouped_date_spans.append(extended_span)
         # Find date ranges by looking for joiner words between dates.
         date_range_spans = ra.follows([
-            date_spans,
-            [t_span for t_span in doc.tiers['spacy.tokens'].spans
+            date_span_tier,
+            [t_span for t_span in doc.tiers['spacy.tokens']
              if re.match(r"("+DATE_RANGE_JOINERS+r"|\-)$", t_span.text, re.I)],
-            date_spans], max_dist=1, label='date_range')
+            date_span_tier], max_dist=1, label='date_range')
 
         tier_spans = []
-        for date_span in ra.combine([date_range_spans,
-                                     grouped_date_spans,
-                                     date_spans], prefer='text_length'):
+        all_date_spans = AnnoTier(date_range_spans + grouped_date_spans + date_span_tier.spans)
+        all_date_spans = all_date_spans.optimal_span_set(prefer='text_length')
+        for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.
             if isinstance(date_span, SpanGroup) and\

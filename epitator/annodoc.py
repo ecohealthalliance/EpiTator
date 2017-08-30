@@ -6,6 +6,9 @@ from __future__ import print_function
 import json
 from . import maximum_weight_interval_set as mwis
 import six
+import re
+from .annospan import AnnoSpan
+from .annotier import AnnoTier
 
 
 class AnnoDoc(object):
@@ -32,6 +35,16 @@ class AnnoDoc(object):
         if isinstance(result, dict):
             self.tiers.update(result)
         return self
+
+    def create_regex_tier(self, regex):
+        """
+        Create an AnnoTier from all the spans of text that match the regex.
+        """
+        return AnnoTier([AnnoSpan(match.start(),
+                                  match.end(),
+                                  self,
+                                  match.group(0))
+                         for match in re.finditer(regex, self.text)])
 
     def to_json(self):
         json_obj = {'text': self.text,
