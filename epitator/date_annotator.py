@@ -100,7 +100,8 @@ class DateAnnotator(Annotator):
                 unit = match_dict['unit']
                 rest = match_dict['rest']
                 if unit == 'day':
-                    return date_to_datetime_range(str(ordinal_number) + " " + rest)
+                    return date_to_datetime_range(
+                        str(ordinal_number) + " " + rest)
                 elif unit == 'week':
                     if ordinal_number > 4:
                         return
@@ -117,7 +118,7 @@ class DateAnnotator(Annotator):
                 elif unit == 'month':
                     date_to_datetime_range(ordinal_number + "/1 " + rest)
                 else:
-                    raise Error("Unknown time unit: " + unit)
+                    raise Exception("Unknown time unit: " + unit)
             # handle dates like "1950s" since dateparser doesn't
             decade_match = re.match(r"(\d{4})s", text)
             if decade_match:
@@ -144,7 +145,8 @@ class DateAnnotator(Annotator):
                     return [date, date + relativedelta(years=1)]
 
         def parse_non_relative_date(text):
-            result = date_to_datetime_range(text, relative_base=datetime.datetime(900,1,1))
+            result = date_to_datetime_range(
+                text, relative_base=datetime.datetime(900, 1, 1))
             if result and result[0].year > 1000:
                 # If the year is less than 1000 assume the year 900
                 # base date was used when parsing so the date is relative.
@@ -216,8 +218,8 @@ class DateAnnotator(Annotator):
                 if datetime_range is None:
                     continue
             elif len(range_components) == 2:
-                # Check for a non-relative date in the range that can be used as a
-                # relative base date the other date.
+                # Check for a non-relative date in the range that can be used as
+                # a relative base date the other date.
                 # Example: March 3 to November 2 1984
                 non_relative_dates = [
                     parse_non_relative_date(text)

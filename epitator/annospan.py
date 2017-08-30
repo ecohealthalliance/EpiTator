@@ -87,7 +87,7 @@ class SpanGroup(AnnoSpan):
     def __repr__(self):
         return ("SpanGroup("
             "text=" + self.text + ", "
-            "label=" + str(self.label) + ", " +\
+            "label=" + str(self.label) + ", " +
             ", ".join(map(str, self.base_spans)) + ")"
         )
 

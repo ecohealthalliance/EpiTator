@@ -8,6 +8,7 @@ import six
 from . import result_aggregators as ra
 from .annospan import SpanGroup
 
+
 class AnnoTier(object):
     """
     A group of AnnoSpans stored sorted by start offset.
@@ -40,7 +41,9 @@ class AnnoTier(object):
             docless_spans.append(span_dict)
         return json.dumps(docless_spans)
 
-    def group_spans_by_containing_span(self, other_tier, allow_partial_containment=False):
+    def group_spans_by_containing_span(self,
+                                       other_tier,
+                                       allow_partial_containment=False):
         """
         Group spans in the other tier by the spans that contain them.
         """
