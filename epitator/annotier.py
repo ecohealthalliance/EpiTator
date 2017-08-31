@@ -45,6 +45,14 @@ class AnnoTier(object):
                                        allow_partial_containment=False):
         """
         Group spans in the other tier by the spans that contain them.
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> tier_a = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
+        >>> tier_b = AnnoTier([AnnoSpan(0, 1, doc)])
+        >>> list(tier_a.group_spans_by_containing_span(tier_b))
+        [(0-3:one, [0-1:o]), (4-7:two, [])]
         """
         if isinstance(other_tier, AnnoTier):
             other_spans = other_tier.spans
@@ -78,13 +86,34 @@ class AnnoTier(object):
             yield span, span_group
 
     def with_label(self, label):
-        """Create a tier from the spans which have the given label"""
+        """
+        Create a tier from the spans which have the given label
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc, 'odd'),
+        ...                  AnnoSpan(4, 7, doc, 'even'),
+        ...                  AnnoSpan(8, 13, doc, 'odd')])
+        >>> tier.with_label("odd")
+        [u'0-3:odd', u'8-13:odd']
+        """
         return AnnoTier([span for span in self if span.label == label])
 
     def optimal_span_set(self, prefer="text_length"):
         """
         Create a tier with the set of non-overlapping spans from this tier that
         maximizes the prefer function.
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc, 'odd'),
+        ...                  AnnoSpan(4, 7, doc, 'even'),
+        ...                  AnnoSpan(3, 13, doc, 'long_span'),
+        ...                  AnnoSpan(8, 13, doc, 'odd')])
+        >>> tier.optimal_span_set()
+        [u'0-3:odd', u'3-13:long_span']
         """
         return AnnoTier(ra.combine([self.spans], prefer=prefer))
 

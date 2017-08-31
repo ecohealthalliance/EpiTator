@@ -15,6 +15,8 @@ class Interval():
     def end_endpoint(self):
         return Endpoint(self, False)
 
+    def __len__(self):
+        return self.end - self.start
 
 class Endpoint():
     def __init__(self, interval, is_start):
@@ -28,13 +30,21 @@ class Endpoint():
             return self.interval.end
 
     def __lt__(self, other):
+        # This sorts endpont in the following order when offsets are the same:
+        # [NI end points][ZI start points][NI start points][ZI end points]
+        # NI = Non-zero length interval
+        # ZI = Zero length interval
         if self.get_idx() == other.get_idx():
-            # This condition is used so the starting endpoints come first
-            # when iterating over the sorted endpoints.
-            # This is necessary for zero length intervals.
-            # However, it also adds the requirement that overlapping endpoints
-            # makes invervals overlap.
-            return self.is_start and not other.is_start
+            if len(self.interval) == 0:
+                if len(other.interval) == 0:
+                    return self.is_start and not other.is_start
+                else:
+                    return self.is_start and other.is_start
+            else:
+                if len(other.interval) == 0:
+                    return not self.is_start or not other.is_start
+                else:
+                    return not self.is_start and other.is_start
         else:
             return self.get_idx() < other.get_idx()
 
@@ -43,7 +53,14 @@ def find_maximum_weight_interval_set(intervals):
     """
     Takes a list of weighted intervals and returns a non-overlapping set of them
     with the maximum possible weight.
-    If endpoints overlap, the intervals are considered to be overlapping.
+    There are some edge-cases to consider in determining what constitutes an
+    overlap in relation to end-points and zero length intervals.
+    The intervals are left-closed. If the left endpoints of two zero
+    length intervals overlap, they are considered to be overlapping.
+    However, the right endpoint of a non-zero length interval could overlap
+    the left endpoint of another interval without it being considered an overlap.
+    Of course, if an endpoint is in the middle of another non-zero length
+    interval, it is considered to be overlapping.
     """
     endpoints = []
     for interval in intervals:
