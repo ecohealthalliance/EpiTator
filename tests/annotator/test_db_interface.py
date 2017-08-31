@@ -5,8 +5,8 @@ instances of infections, hospitalizations and deaths.
 """
 from __future__ import absolute_import
 import unittest
-from . import test_utils
 from epitator.database_interface import DatabaseInterface
+
 
 class TestCountAnnotator(unittest.TestCase):
 

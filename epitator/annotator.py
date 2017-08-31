@@ -7,6 +7,7 @@ from .annodoc import AnnoDoc
 from .annospan import AnnoSpan
 from .annotier import AnnoTier
 
+
 class Annotator(object):
 
     def annotate(self, doc):

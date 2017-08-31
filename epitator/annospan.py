@@ -55,7 +55,8 @@ class AnnoSpan(object):
         """
         return SpanGroup([self, other_span], self.label)
 
-    def size(self): return self.end - self.start
+    def size(self):
+        return self.end - self.start
 
     @lazy
     def text(self):
@@ -85,8 +86,10 @@ class SpanGroup(AnnoSpan):
         self.label = label
 
     def __repr__(self):
-        return "SpanGroup(label=" + str(self.label) +\
-            ", ".join(map(str, self.base_spans)) + ")"
+        return ("SpanGroup("
+                "text=" + self.text + ", "
+                "label=" + str(self.label) + ", " +
+                ", ".join(map(str, self.base_spans)) + ")")
 
     def groupdict(self):
         """

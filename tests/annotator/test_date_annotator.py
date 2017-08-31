@@ -162,5 +162,15 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2017, 8, 6),
              datetime.datetime(2017, 8, 13)])
 
+    def test_count_table(self):
+        doc = AnnoDoc('''
+        Type / Suspected / Confirmed / Recovered / Ongoing / Total
+        Cases / 8 / 34 / 18 / 16 / 70
+        Deaths / 7 / 33 / 17 / 15 / 65
+        ''')
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates']), 0)
+
+
 if __name__ == '__main__':
     unittest.main()

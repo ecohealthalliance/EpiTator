@@ -35,7 +35,8 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
         expected_uris = [
             'http://purl.obolibrary.org/obo/DOID_10264',
             'http://purl.obolibrary.org/obo/DOID_10264']
-        for span, expected_uri in zip(doc.tiers['resolved_keywords'].spans, expected_uris):
+        for span, expected_uri in zip(doc.tiers['resolved_keywords'].spans,
+                                      expected_uris):
             self.assertEqual(span.resolutions[0]['entity_id'], expected_uri)
 
     def test_acroynms(self):
@@ -58,7 +59,8 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             {'id': 'http://purl.obolibrary.org/obo/DOID_635'})
 
     def test_very_long_article(self):
-        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+        path = os.path.dirname(__file__) + "/resources/WhereToItaly.txt"
+        with open(path) as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 
@@ -68,8 +70,12 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
         resolved_keyword = doc.tiers['resolved_keywords'].spans[-1].to_dict()
         test_utils.assertHasProps(resolved_keyword['resolutions'][0], {
             'entity_id': 'tsn:180704',
-            'entity': {'type': 'species', 'id': 'tsn:180704', 'label': 'Bovidae'}
+            'entity': {
+                'type': 'species',
+                'id': 'tsn:180704',
+                'label': 'Bovidae'}
         })
+
 
 if __name__ == '__main__':
     unittest.main()

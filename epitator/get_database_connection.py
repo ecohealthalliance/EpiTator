@@ -9,6 +9,7 @@ if os.environ.get('ANNOTATOR_DB_PATH'):
 else:
     ANNOTATOR_DB_PATH = os.path.expanduser("~") + '/.epitator.sqlitedb'
 
+
 def get_database_connection(create_database=False):
     databse_exists = os.path.exists(ANNOTATOR_DB_PATH)
     if databse_exists or create_database:
