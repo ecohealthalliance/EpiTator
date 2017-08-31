@@ -181,10 +181,8 @@ class DateAnnotator(Annotator):
             date_group_spans = list(date_group.iterate_leaf_base_spans())
             if any(strict_parser.get_date_data(span.text)['date_obj'] is None
                    for span in date_group_spans):
-                extended_span = date_group_spans[0].extended_through(
-                    date_group_spans[-1])
-                if date_to_datetime_range(extended_span.text) is not None:
-                    grouped_date_spans.append(extended_span)
+                if date_to_datetime_range(date_group.text) is not None:
+                    grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
         date_range_spans = ra.follows([
             date_span_tier,

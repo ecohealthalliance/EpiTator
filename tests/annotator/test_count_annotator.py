@@ -31,7 +31,8 @@ class TestCountAnnotator(unittest.TestCase):
         examples = [
             'In the case of mosquito-borne diseases indoor spraying is a common intervention',
             'Measles - Democratic Republic of the Congo (Katanga) 2007.1775',
-            'Meningitis - Democratic Republic of Congo [02] 970814010223'
+            'Meningitis - Democratic Republic of Congo [02] 970814010223',
+            'On 11 / 16 / 1982 the The Last Unicorn was the most popular movie.'
         ]
         for example in examples:
             self.assertHasCounts(example, [])

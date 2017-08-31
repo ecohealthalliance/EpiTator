@@ -16,7 +16,7 @@ class KeywordAnnotator(Annotator):
     keyword_type_map = {
         'doid/diseases': 'diseases',
         'eha/disease': 'diseases',
-        'pm/disease':  'diseases',
+        'pm/disease': 'diseases',
         'hm/disease': 'diseases',
         'biocaster/diseases': 'diseases',
         'eha/symptom': 'symptoms',

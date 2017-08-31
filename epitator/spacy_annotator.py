@@ -5,7 +5,6 @@ from .annotator import Annotator, AnnoSpan, AnnoTier
 import re
 from .spacy_nlp import spacy_nlp
 
-
 class TokenSpan(AnnoSpan):
     def __init__(self, token, doc):
         self.doc = doc
@@ -60,6 +59,17 @@ class SpacyAnnotator(Annotator):
         if ne_chunk_start is not None:
             ne_spans.append(AnnoSpan(ne_chunk_start, ne_chunk_end,
                                      doc, label=ne_chunk_type))
+
+        ambiguous_year_pattern = re.compile(r'\d{1,4}$', re.I)
+        for ne_span in ne_spans:
+            if ne_span.label == 'DATE' and ambiguous_year_pattern.match(ne_span.text):
+                # Sometimes counts like 1500 are parsed as as the year component
+                # of dates. This tries to catch that mistake when the year
+                # is long enough ago that it is unlikely to be a date.
+                date_as_number = int(ne_span.text)
+                if date_as_number < 1900:
+                    ne_span.label = 'QUANTITY'
+
         tiers['spacy.tokens'] = AnnoTier(token_spans)
         tiers['spacy.nes'] = AnnoTier(ne_spans)
         return tiers

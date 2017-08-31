@@ -5,14 +5,15 @@ cumulative, case, death, age, hospitalization, approximate, min, max
 """
 from __future__ import absolute_import
 import re
+from functools import reduce
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
+from .date_annotator import DateAnnotator
 from . import result_aggregators as ra
 from . import utils
 from .spacy_nlp import spacy_nlp
 import logging
-from functools import reduce
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,8 @@ class CountAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
+        if 'dates' not in doc.tiers:
+            doc.add_tiers(DateAnnotator())
         spacy_tokens = doc.tiers['spacy.tokens']
         spacy_sentences = doc.tiers['spacy.sentences']
         spacy_nes = doc.tiers['spacy.nes']
@@ -96,19 +99,13 @@ class CountAnnotator(Annotator):
                             counts.append(SpanGroup([range_start], 'count'))
                         if is_valid_count(range_end.text):
                             counts.append(SpanGroup([range_end], 'count'))
-            elif ne_span.label == 'DATE' and is_valid_count(ne_span.text):
-                # Sometimes counts like 1500 are parsed as as the year component
-                # of dates. This tries to catch that mistake when the year
-                # is long enough ago that it is unlikely to be a date.
-                date_as_number = utils.parse_spelled_number(ne_span.text)
-                if date_as_number and date_as_number < 1900:
-                    counts.append(SpanGroup([ne_span], 'count'))
 
         def search_regex(regex_term, match_name=None):
             return ra.label(match_name, search_spans_for_regex(
                 regex_term, spacy_tokens.spans))
 
         spacy_lemmas = [span.token.lemma_ for span in spacy_tokens]
+
         def search_lemmas(lemmas, match_name=None):
             match_spans = []
             lemmas = set(lemmas)
@@ -122,13 +119,15 @@ class CountAnnotator(Annotator):
                              ra.label('range',
                                       ra.follows([search_regex(r'to|and|or'),
                                                   counts]))])
-        counts_tier = AnnoTier(ranges + counts)#.optimal_span_set()
+        counts_tier = AnnoTier(ranges + counts).optimal_span_set()
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
             ra.follows([search_regex('age'), search_regex('of'), counts]))
         # Remove distances
         counts_tier = counts_tier.without_overlaps(
             ra.follows([counts, search_regex('kilometers|km|miles|mi')]))
+        # Remove counts that overlap a date
+        counts_tier = counts_tier.without_overlaps(doc.tiers['dates'])
         modifier_lemma_groups = [
             'average|mean',
             'annual|annually',
