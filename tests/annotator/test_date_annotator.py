@@ -171,5 +171,6 @@ class DateAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['dates']), 0)
 
+
 if __name__ == '__main__':
     unittest.main()

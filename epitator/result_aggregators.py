@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import itertools
 from . import maximum_weight_interval_set as mwis
 from .annospan import SpanGroup
-from six.moves import map
 from functools import reduce
 
 

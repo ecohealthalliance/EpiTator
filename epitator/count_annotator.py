@@ -29,6 +29,7 @@ The lawyer's legal case is to be decided in a court of law.
 In the case of the first disease action should be taken to prevent it from spreading.
 """).sents)
 
+
 class CountSpan(AnnoSpan):
     def __init__(self, span, metadata):
         self.start = span.start
@@ -81,11 +82,13 @@ class CountAnnotator(Annotator):
         spacy_nes = doc.tiers['spacy.nes']
         counts = []
         for ne_span in spacy_nes:
-            if ne_span.label in ['QUANTITY', 'CARDINAL'] :
+            if ne_span.label in ['QUANTITY', 'CARDINAL']:
                 if is_valid_count(ne_span.text):
                     counts.append(SpanGroup([ne_span], 'count'))
                 else:
-                    joiner_offsets = [m.span() for m in re.finditer(r'\s(?:to|and|or)\s', ne_span.text)]
+                    joiner_offsets = [m.span()
+                                      for m in re.finditer(r'\s(?:to|and|or)\s',
+                                                           ne_span.text)]
                     if len(joiner_offsets) == 1:
                         range_start = AnnoSpan(ne_span.start, ne_span.start + joiner_offsets[0][0], doc)
                         range_end = AnnoSpan(ne_span.start + joiner_offsets[0][1], ne_span.end, doc)
@@ -119,7 +122,7 @@ class CountAnnotator(Annotator):
                              ra.label('range',
                                       ra.follows([search_regex(r'to|and|or'),
                                                   counts]))])
-        counts_tier = AnnoTier(ranges + counts).optimal_span_set()
+        counts_tier = AnnoTier(ranges + counts)#.optimal_span_set()
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
             ra.follows([search_regex('age'), search_regex('of'), counts]))
@@ -135,7 +138,8 @@ class CountAnnotator(Annotator):
             'incremental|new|additional|recent',
             'max|less|below|under|most|maximum|up',
             'min|greater|above|over|least|minimum|down|exceeds',
-            'approximate|about|near|around',]
+            'approximate|about|near|around',
+        ]
         count_descriptions = AnnoTier(counts_tier)
         for group in modifier_lemma_groups:
             lemmas = group.split('|')
@@ -143,28 +147,37 @@ class CountAnnotator(Annotator):
             count_descriptions += count_descriptions.with_nearby_spans_from(results)
         case_descriptions = (
             ra.label('death',
-                     search_regex(r'died|killed|claimed|fatalities|fatality|deceased') +
-                     search_regex(r'deaths?')) +
+                search_lemmas([
+                    'death',
+                    'die',
+                    'kill',
+                    'claim',
+                    'fatality',
+                    'deceased'])) +
             ra.label('hospitalization',
-                     # Ex: admitted to hospitals
-                     search_regex(r'hospitals?') +
-                     search_regex(r'hospitaliz(ations?|ed|es?|ing)')) +
+                search_lemmas([
+                    'hospital',
+                    'hospitalize'])) +
             ra.label('case',
-                     search_regex(r'cases?') +
-                     search_regex(r'infections?|infect(ed|ing|s)?') +
-                     search_regex(r'stricken')))
+                search_lemmas([
+                    'case',
+                    'infect',
+                    'infection',
+                    'stricken'])))
         case_statuses = (
             search_lemmas(['suspect'], 'suspected') +
             search_lemmas(['confirm'], 'confirmed'))
         case_descriptions = AnnoTier(
             ra.follows([case_statuses, case_descriptions]) + case_descriptions)
         case_descriptions = case_descriptions.optimal_span_set()
-        person_descriptions = search_regex('(adult|senior|patient|life)s?') +\
-            search_regex('child(ren)?|person|people')
-        person_counts = ra.follows([
-            count_descriptions,
-            ra.label('case', person_descriptions)
-        ], max_dist=50)
+        person_descriptions = search_lemmas([
+            'adult',
+            'senior',
+            'patient',
+            'life',
+            'child',
+            'person'], 'case')
+        case_descriptions += person_descriptions + person_descriptions.with_nearby_spans_from(case_descriptions)
         case_descriptions_with_counts = case_descriptions.with_nearby_spans_from(
             count_descriptions,
             max_dist=50)
@@ -210,7 +223,6 @@ class CountAnnotator(Annotator):
             ra.follows([
                 search_regex('deaths(\s?:)?', 'death'),
                 counts_tier]),
-            person_counts,
             count_descriptions.spans,
             singular_case_descriptions])
 

@@ -16,6 +16,13 @@ class TestCountAnnotator(unittest.TestCase):
     def setUp(self):
         self.annotator = CountAnnotator()
 
+    def assertHasCounts(self, sent, counts):
+        doc = AnnoDoc(sent)
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
+        for actual, expected in zip(doc.tiers['counts'].spans, counts):
+            test_utils.assertHasProps(actual.metadata, expected)
+
     def test_no_counts(self):
         doc = AnnoDoc('Fever')
         doc.add_tier(self.annotator)
@@ -27,9 +34,7 @@ class TestCountAnnotator(unittest.TestCase):
             'Meningitis - Democratic Republic of Congo [02] 970814010223'
         ]
         for example in examples:
-            doc = AnnoDoc(example)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts']), 0)
+            self.assertHasCounts(example, [])
 
     def test_verb_counts(self):
         examples = [
@@ -140,42 +145,37 @@ class TestCountAnnotator(unittest.TestCase):
         self.assertEqual(len(doc.tiers['counts'].spans), 1)
 
     def test_complex(self):
-        examples = [
-            ('These 2 new cases bring to 4 the number stricken in California this year [2012].', [
-                {'count': 2, 'attributes': ['case', 'incremental']},
-                {'count': 4, 'attributes': ['case']},
-            ]),
-            ('Two patients died out of four patients.', [
-                {'count': 2, 'attributes': ['case', 'death']},
-                {'count': 4, 'attributes': ['case']},
-            ]),
+        sent = 'These 2 new cases bring to 4 the number stricken in California this year [2012].'
+        counts = [
+            {'count': 2, 'attributes': ['case', 'incremental']},
+            {'count': 4, 'attributes': ['case']}
         ]
-        for example in examples:
-            sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+        self.assertHasCounts(sent, counts)
+
+    def test_complex_2(self):
+        sent = 'Two patients died out of four patients.'
+        counts = [
+            {'count': 2, 'attributes': ['case', 'death']},
+            {'count': 4, 'attributes': ['case']}
+        ]
+        self.assertHasCounts(sent, counts)
 
     def test_cumulative(self):
-        examples = [
-            ('In total nationwide, 613 cases of the disease have been reported as of 2 July 2014, with 63 deaths', [
-                {'count': 613, 'attributes': ['case', 'cumulative']},
-                {'count': 63, 'attributes': ['case', 'death']}
-            ]),
-            ('it has already claimed about 455 lives in Guinea', [
-                {'count': 455, 'attributes': [
-                    'approximate', 'case', 'cumulative', 'death']}
-            ])
+        sent = 'In total nationwide, 613 cases of the disease have been reported as of 2 July 2014, with 63 deceased patients'
+        counts = [
+            {'count': 613, 'attributes': ['case', 'cumulative']},
+            {'count': 63, 'attributes': ['case', 'death']}
         ]
-        for example in examples:
-            sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+        self.assertHasCounts(sent, counts)
+
+    def test_cumulative_2(self):
+        sent = 'it has already claimed about 455 lives in Guinea'
+        counts = [
+            {
+                'count': 455,
+                'attributes': ['approximate', 'case', 'cumulative', 'death']}
+        ]
+        self.assertHasCounts(sent, counts)
 
     def test_attributes(self):
         examples = [
@@ -190,24 +190,17 @@ class TestCountAnnotator(unittest.TestCase):
         ]
         for example in examples:
             sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+            self.assertHasCounts(sent, counts)
 
     def test_misc(self):
-        examples = [
-            ("""How many cases occured with 3.2 miles of Katanga Province?
-                Three fatalities have been reported.""", [{'count': 3}])
+        sent = """How many cases occured with 3.2 miles of Katanga Province?
+                  Three fatalities have been reported."""
+        counts = [
+            {
+                'count': 3,
+                'attributes': ['case', 'death']}
         ]
-        for example in examples:
-            sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+        self.assertHasCounts(sent, counts)
 
     def test_distance_and_percentage_filtering(self):
         examples = [
@@ -216,11 +209,7 @@ class TestCountAnnotator(unittest.TestCase):
         ]
         for example in examples:
             sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+            self.assertHasCounts(sent, counts)
 
     def test_tokenization_edge_cases(self):
         """
@@ -233,11 +222,7 @@ class TestCountAnnotator(unittest.TestCase):
         """, [{'count': 22}, {'count': 14}, {'count': 3}, {'count': 5}, {'count': 8}, {'count': 7}, {'count': 11}, {'count': 2}])]
         for example in examples:
             sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+            self.assertHasCounts(sent, counts)
 
     def test_internals(self):
         from epitator.count_annotator import search_spans_for_regex
@@ -288,41 +273,28 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
         self.assertSequenceEqual(actual_counts, expected_counts)
 
     def test_singular_cases(self):
-        examples = [
-            ('The index case occured on January 22.', [{'count': 1}]),
-            ('A lassa fever case was reported in Hawaii', [{'count': 1}])]
-        for example in examples:
-            sent, counts = example
-            doc = AnnoDoc(sent)
-            doc.add_tier(self.annotator)
-            self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
-            for actual, expected in zip(doc.tiers['counts'].spans, counts):
-                test_utils.assertHasProps(actual.metadata, expected)
+        self.assertHasCounts('The index case occured on January 22.', [
+            {'count': 1}])
+
+    def test_singular_cases_2(self):
+        self.assertHasCounts('A lassa fever case was reported in Hawaii', [
+            {'count': 1}])
 
     def test_year_count(self):
-        doc = AnnoDoc("""As of [Sun 19 March 2017] (epidemiological week 11),
-        a total of 1407 suspected cases of meningitis have been reported.""")
-        doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['counts']), 1)
-        test_utils.assertHasProps(
-            doc.tiers['counts'].spans[0].metadata, {
-                'count': 1407
-            })
+        self.assertHasCounts("""As of [Sun 19 March 2017] (epidemiological week 11),
+        a total of 1407 suspected cases of meningitis have been reported.""", [
+            {'count': 1407}])
 
     def test_ranges(self):
-        doc = AnnoDoc('10 to 13 suspected cases of Ebola.')
-        doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['counts']), 2)
-        test_utils.assertHasProps(
-            doc.tiers['counts'].spans[0].metadata, {
+        self.assertHasCounts('10 to 13 suspected cases of Ebola.', [
+            {
                 'count': 10,
                 'attributes': ['case', 'min', 'suspected']
-            })
-        test_utils.assertHasProps(
-            doc.tiers['counts'].spans[1].metadata, {
+            }, {
                 'count': 13,
                 'attributes': ['case', 'max', 'suspected']
-            })
+            }
+        ])
 
     def test_count_suppression_fp(self):
         # Test that the count of 26 is not supressed by the 20 count
@@ -358,6 +330,7 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
     #     ''')
     #     doc.add_tier(self.annotator)
     #     self.assertEqual(len(doc.tiers['counts']), 10)
+
 
 if __name__ == '__main__':
     unittest.main()

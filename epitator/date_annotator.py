@@ -57,6 +57,7 @@ ordinal_date_re = re.compile(
     r" (?P<unit>week|day|month) (of|in) "
     r"(?P<rest>.{3,})")
 
+
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
         self.start = base_span.start
@@ -188,7 +189,9 @@ class DateAnnotator(Annotator):
         date_range_spans = ra.follows([
             date_span_tier,
             [t_span for t_span in doc.tiers['spacy.tokens']
-             if re.match(r"("+DATE_RANGE_JOINERS+r"|\-)$", t_span.text, re.I)],
+             if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$",
+                         t_span.text,
+                         re.I)],
             date_span_tier], max_dist=1, label='date_range')
 
         tier_spans = []
@@ -202,8 +205,9 @@ class DateAnnotator(Annotator):
                 range_components = [span.text
                                     for span in date_span.base_spans[0::2]]
             else:
-                range_components = re.split(
-                    r"\b(?:"+DATE_RANGE_JOINERS+r")\b", date_span.text, re.I)
+                range_components = re.split(r"\b(?:" + DATE_RANGE_JOINERS + r")\b",
+                                            date_span.text,
+                                            re.I)
                 if len(range_components) == 1:
                     hyphenated_components = date_span.text.split("-")
                     if len(hyphenated_components) == 2:

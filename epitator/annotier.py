@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf8
 from __future__ import absolute_import
-from __future__ import print_function
 import json
-from . import maximum_weight_interval_set as mwis
 import six
+from . import maximum_weight_interval_set as mwis
 from . import result_aggregators as ra
 from .annospan import SpanGroup
 
@@ -78,32 +77,14 @@ class AnnoTier(object):
                 other_span_idx_2 += 1
             yield span, span_group
 
-    def spans_in(self, start, end):
-        """Get all spans which are contained in a range"""
-        return [span for span in self.spans
-                if span.start >= start and span.end <= end]
-
-    def spans_at(self, start, end):
-        """Get all spans with certain start and end positions"""
-        return [span for span in self.spans
-                if start == span.start and end == span.end]
-
-    def spans_in_span(self, span):
-        """Get all spans which lie within a span"""
-        return self.spans_in(span.start, span.end)
-
-    def spans_at_span(self, span):
-        """Get all spans which have the same start and end as another span"""
-        return self.spans_at(span.start, span.end)
-
     def with_label(self, label):
-        """Create a tier from the spans which have a given label"""
+        """Create a tier from the spans which have the given label"""
         return AnnoTier([span for span in self if span.label == label])
 
     def optimal_span_set(self, prefer="text_length"):
         """
-        Return a tier with overlapping spans removed in such a way that the
-        prefer function is maximized.
+        Create a tier with the set of non-overlapping spans from this tier that
+        maximizes the prefer function.
         """
         return AnnoTier(ra.combine([self.spans], prefer=prefer))
 
