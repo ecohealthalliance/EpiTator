@@ -54,7 +54,7 @@ ORDINALS = [
 ordinal_date_re = re.compile(
     r"(?P<ordinal>" + "|".join(map(re.escape, ORDINALS)) + ")?"
     r"((?P<ordinal_number>\d{1,2})(st|nd|rd|th))?"
-    r" (?P<unit>week|day|month) (of|in) "
+    r" (?P<unit>week|day|month) (of|in)( the (year|month)( of)?)? "
     r"(?P<rest>.{3,})")
 
 
@@ -117,7 +117,10 @@ class DateAnnotator(Annotator):
                         week_start,
                         week_start + relativedelta(days=7)]
                 elif unit == 'month':
-                    date_to_datetime_range(ordinal_number + "/1 " + rest)
+                    month_name = datetime.datetime(2000,
+                                                   ordinal_number,
+                                                   1).strftime("%B ")
+                    return date_to_datetime_range(month_name + rest)
                 else:
                     raise Exception("Unknown time unit: " + unit)
             # handle dates like "1950s" since dateparser doesn't

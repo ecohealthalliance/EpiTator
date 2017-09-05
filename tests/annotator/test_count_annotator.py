@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Tests our ability to annotate sentences with numerical
 instances of infections, hospitalizations and deaths.

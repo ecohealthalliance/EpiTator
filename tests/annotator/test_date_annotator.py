@@ -171,6 +171,14 @@ class DateAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['dates']), 0)
 
+    def test_month_of_year(self):
+        example = "Dengue cases were increasing in the 3rd month of the year [2017]."
+        doc = AnnoDoc(example)
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2017, 3, 1),
+             datetime.datetime(2017, 4, 1)])
 
 if __name__ == '__main__':
     unittest.main()
