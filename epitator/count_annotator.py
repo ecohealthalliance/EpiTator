@@ -21,6 +21,7 @@ case_count_senses = list(spacy_nlp(u"""
 The doctor reviewed the symptoms from the first case of the disease.
 In the index case medics recorded a high fever.
 For a recent case of Ebola medical attention was not available.
+The infected patient was hospitalized and quarantined.
 The death of the first patient, a man in his 30s, suprised doctors.
 The latest hospitalization involving a febrile disease happend on Monday.
 """).sents)
@@ -170,11 +171,11 @@ class CountAnnotator(Annotator):
             ra.follows([case_statuses, case_descriptions]) + case_descriptions)
         case_descriptions = case_descriptions.optimal_span_set()
         person_descriptions = search_lemmas([
-            'adult',
-            'senior',
+            'man', 'woman',
+            'male', 'female',
+            'adult', 'senior', 'child',
             'patient',
             'life',
-            'child',
             'person'], 'case')
         case_descriptions += person_descriptions + person_descriptions.with_nearby_spans_from(case_descriptions)
         case_descriptions_with_counts = case_descriptions.with_nearby_spans_from(
@@ -182,16 +183,14 @@ class CountAnnotator(Annotator):
             max_dist=50)
         # Add singular case reports
         singular_case_spans = []
-        for t_span in spacy_tokens:
-            token = t_span.token
-            if token.lemma_ not in ['case', 'fatality', 'death', 'hospitalization']:
-                continue
-            if token.tag_ != 'NN':
-                continue
-            if not set(['a', 'an', 'the']).intersection([
-                    c.lower_ for c in token.children]):
-                continue
-            singular_case_spans.append(t_span)
+        for cd_span, token_group in case_descriptions.group_spans_by_containing_span(spacy_tokens):
+            for t_span in token_group:
+                token = t_span.token
+                article_lemmas = set(['a', 'an', 'the'])
+                if token.tag_ == 'NN'and any(c.lower_ in article_lemmas
+                                             for c in token.children):
+                    singular_case_spans.append(cd_span)
+                    break
         # Use word sense disabiguation to omit phrases like "In the case of"
         # The sentence vectors from setences using the word "case" with
         # different meanings are compared to the sentence from the document.
@@ -207,13 +206,6 @@ class CountAnnotator(Annotator):
             if case_count_sence_similary > non_case_count_sence_similary:
                 filtered_singular_case_spans.extend(group)
         singular_case_spans = filtered_singular_case_spans
-        singular_case_descriptions = []
-        grouped_singular_descriptions = case_descriptions.group_spans_by_containing_span(
-            singular_case_spans,
-            allow_partial_containment=True)
-        for count_description, group in grouped_singular_descriptions:
-            if len(group) > 0:
-                singular_case_descriptions.append(count_description)
 
         # remove counts that span multiple sentences
         all_potential_counts = reduce(lambda a, b: a + b, [
@@ -223,7 +215,7 @@ class CountAnnotator(Annotator):
                 search_regex('deaths(\s?:)?', 'death'),
                 counts_tier]),
             count_descriptions.spans,
-            singular_case_descriptions])
+            singular_case_spans])
 
         single_sentence_counts = []
         for sentence, group in spacy_sentences.group_spans_by_containing_span(all_potential_counts):
