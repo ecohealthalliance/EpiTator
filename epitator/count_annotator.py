@@ -60,6 +60,7 @@ def is_valid_count(count_string):
             return False
     except (TypeError, ValueError) as e:
         logger.info('Cannot parse count string: ' + count_string)
+        logger.info(str(e))
         return False
     if value > 1000000000:
         return False
@@ -183,11 +184,11 @@ class CountAnnotator(Annotator):
             max_dist=50)
         # Add singular case reports
         singular_case_spans = []
+        determiner_lemmas = set(['a', 'an', 'the'])
         for cd_span, token_group in case_descriptions.group_spans_by_containing_span(spacy_tokens):
             for t_span in token_group:
                 token = t_span.token
-                article_lemmas = set(['a', 'an', 'the'])
-                if token.tag_ == 'NN'and any(c.lower_ in article_lemmas
+                if token.tag_ == 'NN' and any(c.lower_ in determiner_lemmas
                                              for c in token.children):
                     singular_case_spans.append(cd_span)
                     break

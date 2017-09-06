@@ -288,7 +288,6 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
         self.assertHasCounts('They reported a patient infected with hepatitis B from a blood transfusion.',
                              [{'count': 1}])
 
-
     def test_singular_cases_4(self):
         self.assertHasCounts('the cases include a 27-year-old woman and 2 males, each of 37 years',
                              [{'count': 1}, {'count': 2}])
