@@ -42,6 +42,23 @@ def follows(results_lists, max_dist=1, allow_overlap=False, label=None):
     return [SpanGroup(seq, label) for seq in sequences]
 
 
+def n_or_more(n, results_list, max_dist=1):
+    """
+    Find sequences of n or more items from the results_list that follow eachother.
+    """
+    combined_spans = []
+    new_combined_spans = results_list
+    seq_len = 1
+    while True:
+        if seq_len >= n:
+            combined_spans += new_combined_spans
+        if len(new_combined_spans) == 0:
+            break
+        new_combined_spans = follows([new_combined_spans, results_list],
+                                     max_dist=max_dist)
+        seq_len += 1
+    return combined_spans
+
 def label(label, results_list):
     """
     Attach a label to the results so it can be looked up in a via groupdict.
