@@ -56,6 +56,8 @@ class SpacyAnnotator(Annotator):
                 elif token.ent_iob_ == "O":
                     ne_spans.append(AnnoSpan(start, end,
                                              doc, label=token.ent_type_))
+                else:
+                    raise Exception("Unexpected IOB tag: " + str(token.ent_iob_))
         if ne_chunk_start is not None:
             ne_spans.append(AnnoSpan(ne_chunk_start, ne_chunk_end,
                                      doc, label=ne_chunk_type))

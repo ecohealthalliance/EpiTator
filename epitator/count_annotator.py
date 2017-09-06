@@ -116,6 +116,9 @@ class CountAnnotator(Annotator):
                     match_spans.append(span)
             return AnnoTier(ra.label(match_name, match_spans))
 
+        # Add purely numeric counts that were not picked up by the NER.
+        counts += AnnoTier(search_regex(r'[1-9]\d{0,6}', 'count')
+                           ).without_overlaps(spacy_nes).spans
         # Add count ranges
         ranges = ra.follows([counts,
                              ra.label('range',
@@ -207,7 +210,6 @@ class CountAnnotator(Annotator):
             if case_count_sence_similary > non_case_count_sence_similary:
                 filtered_singular_case_spans.extend(group)
         singular_case_spans = filtered_singular_case_spans
-
         # remove counts that span multiple sentences
         all_potential_counts = reduce(lambda a, b: a + b, [
             case_descriptions_with_counts.spans,

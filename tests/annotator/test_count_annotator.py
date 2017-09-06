@@ -322,6 +322,46 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
                 'count': 26
             })
 
+    def test_count_list(self):
+        doc = AnnoDoc('''
+The 15 non-fatal cases confirmed across the state since the year began are as follows:
+
+ArithmeticError County - 1 case
+
+TypeError County - 1 case
+
+Python County - 2 cases
+
+Java County - 2 cases
+
+Scala County - 1 case
+
+Scheme County - 1 case
+
+Meteor County - 1 case
+
+Boolean County - 1 case (not including the fatality)
+
+Integer County - 3 cases
+''')
+        doc.add_tier(self.annotator)
+        expected_counts = [
+            15,
+            1,
+            1,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1,
+            3
+        ]
+        actual_counts = [count.metadata['count']
+                         for count in doc.tiers['counts'].spans
+                         if 'case' in count.metadata['attributes']]
+        self.assertSequenceEqual(actual_counts, expected_counts)
+
     # Currently failing. Uncomment after spacy model update.
     # def test_counts_with_spaces(self):
     #     doc = AnnoDoc("Ther were 565 749 new cases")
