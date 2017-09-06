@@ -20,7 +20,8 @@ class TestCountAnnotator(unittest.TestCase):
     def assertHasCounts(self, sent, counts):
         doc = AnnoDoc(sent)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['counts'].spans), len(counts))
+        if len(doc.tiers['counts'].spans) != len(counts):
+            self.assertEqual(doc.tiers['counts'].spans, counts)
         for actual, expected in zip(doc.tiers['counts'].spans, counts):
             test_utils.assertHasProps(actual.metadata, expected)
 
@@ -261,6 +262,7 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
 """
         expected_counts = [
             1,
+            1,
             5,
             2,
             19,
@@ -276,11 +278,19 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
 
     def test_singular_cases(self):
         self.assertHasCounts('The index case occured on January 22.', [
-            {'count': 1}])
+            {'count': 1, 'attributes': ['case']}])
 
     def test_singular_cases_2(self):
         self.assertHasCounts('A lassa fever case was reported in Hawaii', [
-            {'count': 1}])
+            {'count': 1, 'attributes': ['case']}])
+
+    def test_singular_cases_3(self):
+        self.assertHasCounts('They reported a patient infected with hepatitis B from a blood transfusion.',
+                             [{'count': 1}])
+
+    def test_singular_cases_4(self):
+        self.assertHasCounts('the cases include a 27-year-old woman and 2 males, each of 37 years',
+                             [{'count': 1}, {'count': 2}])
 
     def test_year_count(self):
         self.assertHasCounts("""As of [Sun 19 March 2017] (epidemiological week 11),

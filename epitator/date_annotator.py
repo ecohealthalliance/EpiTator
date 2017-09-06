@@ -232,11 +232,11 @@ class DateAnnotator(Annotator):
                 relative_base_date = next((x for x in non_relative_dates if x),
                                           doc.date)
                 datetime_range_a = date_to_datetime_range(
-                        range_components[0],
-                        relative_base=relative_base_date)
+                    range_components[0],
+                    relative_base=relative_base_date)
                 datetime_range_b = date_to_datetime_range(
-                        range_components[1],
-                        relative_base=relative_base_date)
+                    range_components[1],
+                    relative_base=relative_base_date)
                 if datetime_range_a is None and datetime_range_b is None:
                     continue
                 elif datetime_range_a is None:
