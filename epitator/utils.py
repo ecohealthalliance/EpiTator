@@ -65,16 +65,13 @@ def parse_spelled_number(num_str):
     for t in tokens:
         if t == 'and':
             continue
-        # Sometimes spacy CARDIAL entities will include descriptors like
-        # about, or more than.
-        if t in ['about', 'less', 'more', 'than']:
-            continue
         t = punctuation.sub('', t)
         t = affix.sub(r'\1', t)
         cleaned_tokens.append(t.lower())
     if len(cleaned_tokens) == 0:
         return None
     totals = [0]
+    numeric_tokens_found = False
     for t in cleaned_tokens:
         number = parse_number(t)
         if number is not None:
@@ -92,8 +89,16 @@ def parse_spelled_number(num_str):
                 totals[-1] *= ORDERS[t]
                 totals.append(0)
         else:
-            return None
-    return sum(totals)
+            # Sometimes spacy number entities will include words like
+            # about, or more than. This allows the initial tokens to be
+            # skipped if they can't be parsed as numbers.
+            if numeric_tokens_found:
+                return None
+            else:
+                continue
+        numeric_tokens_found = True
+    if numeric_tokens_found:
+        return sum(totals)
 
 
 def batched(iterable, batch_size=100):

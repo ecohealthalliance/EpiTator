@@ -115,15 +115,17 @@ class TestCountAnnotator(unittest.TestCase):
                 })
 
     def test_colon_delimited_counts(self):
-        doc = AnnoDoc('Deaths: 2')
-        doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['counts']), 1)
-        self.assertEqual(doc.tiers['counts'].spans[0].start, 0)
-        self.assertEqual(doc.tiers['counts'].spans[0].end, 9)
-        test_utils.assertHasProps(
-            doc.tiers['counts'].spans[0].metadata, {
-                'count': 2
-            })
+        self.assertHasCounts("""
+The 15 cases confirmed since the year began are as follows:
+
+Deaths: 2
+Hospitalizations: 5
+Ongoing cases: 7
+""", [
+            {'count': 15, 'attributes': ['case', 'confirmed']},
+            {'count': 2, 'attributes': ['case', 'death']},
+            {'count': 5, 'attributes': ['case', 'hospitalization']},
+            {'count': 7, 'attributes': ['case', 'ongoing']}])
 
     def test_age_elimination(self):
         doc = AnnoDoc(
@@ -181,19 +183,15 @@ class TestCountAnnotator(unittest.TestCase):
         self.assertHasCounts(sent, counts)
 
     def test_attributes(self):
-        examples = [
-            ('There have been 12 reported cases in Colorado. ' +
-             'There was one suspected case of bird flu in the country.', [
-                 {'count': 12, 'attributes': ['case']},
-                 {'count': 1, 'attributes': ['case', 'suspected']}
-             ]),
-            ('The average number of cases reported annually is 600', [
-                {'count': 600, 'attributes': ['annual', 'average', 'case']}
-            ])
-        ]
-        for example in examples:
-            sent, counts = example
-            self.assertHasCounts(sent, counts)
+        self.assertHasCounts('There have been 12 reported cases in Colorado. '
+                             'There was one suspected case of bird flu in the country.',
+                             [
+                                {'count': 12, 'attributes': ['case']},
+                                {'count': 1, 'attributes': ['case', 'suspected']}])
+
+    def test_attributes_2(self):
+        self.assertHasCounts('The average number of cases reported annually is 600',
+                             [{'count': 600, 'attributes': ['annual', 'average', 'case']}])
 
     def test_misc(self):
         sent = """How many cases occured with 3.2 miles of Katanga Province?
@@ -361,6 +359,27 @@ Integer County - 3 cases
                          for count in doc.tiers['counts'].spans
                          if 'case' in count.metadata['attributes']]
         self.assertSequenceEqual(actual_counts, expected_counts)
+
+    def test_count_list_2(self):
+        doc = AnnoDoc("Ica 562 cases, Chincha 17 cases, Nasca 152 cases, Palpa 409 cases, Pisco 299 cases.")
+        doc.add_tier(self.annotator)
+        expected_counts = [
+            562,
+            17,
+            152,
+            409,
+            299,
+        ]
+        actual_counts = [count.metadata['count']
+                         for count in doc.tiers['counts'].spans
+                         if 'case' in count.metadata['attributes']]
+        self.assertSequenceEqual(actual_counts, expected_counts)
+
+    def test_attribute_fp(self):
+        # Make sure the count is not parsed as incremental becasue of the
+        # new in New York.
+        self.assertHasCounts("5 cases of Dengue in New York.", [
+            {'attributes': ['case']}])
 
     # Currently failing. Uncomment after spacy model update.
     # def test_counts_with_spaces(self):

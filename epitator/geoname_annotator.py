@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 import math
 import re
-import itertools
 import sqlite3
 from collections import defaultdict
 from lazy import lazy

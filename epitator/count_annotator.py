@@ -5,7 +5,6 @@ cumulative, case, death, age, hospitalization, approximate, min, max
 """
 from __future__ import absolute_import
 import re
-from functools import reduce
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
@@ -43,6 +42,7 @@ class CountSpan(AnnoSpan):
     def to_dict(self):
         result = super(CountSpan, self).to_dict()
         result.update(self.metadata)
+        result['text'] = self.text
         return result
 
 
@@ -143,13 +143,18 @@ class CountAnnotator(Annotator):
             'max|less|below|under|most|maximum|up',
             'min|greater|above|over|least|minimum|down|exceeds',
             'approximate|about|near|around',
+            'ongoing|active',
         ]
         count_descriptions = AnnoTier(counts_tier)
+        person_and_place_nes = spacy_nes.with_label('GPE') + spacy_nes.with_label('PERSON')
         for group in modifier_lemma_groups:
             lemmas = group.split('|')
             results = search_lemmas(lemmas, match_name=lemmas[0])
+            # prevent components of NEs like the "New" in New York from being
+            # treated as count descriptors.
+            results = results.without_overlaps(person_and_place_nes)
             count_descriptions += count_descriptions.with_nearby_spans_from(results)
-        case_descriptions = (
+        case_descriptions = AnnoTier(
             ra.label('death',
                 search_lemmas([
                     'death',
@@ -160,6 +165,7 @@ class CountAnnotator(Annotator):
                     'deceased'])) +
             ra.label('hospitalization',
                 search_lemmas([
+                    'hospitalization',
                     'hospital',
                     'hospitalize'])) +
             ra.label('case',
@@ -171,9 +177,7 @@ class CountAnnotator(Annotator):
         case_statuses = (
             search_lemmas(['suspect'], 'suspected') +
             search_lemmas(['confirm'], 'confirmed'))
-        case_descriptions = AnnoTier(
-            ra.follows([case_statuses, case_descriptions]) + case_descriptions)
-        case_descriptions = case_descriptions.optimal_span_set()
+        case_descriptions += case_descriptions.with_nearby_spans_from(case_statuses, max_dist=1)
         person_descriptions = search_lemmas([
             'man', 'woman',
             'male', 'female',
@@ -211,34 +215,35 @@ class CountAnnotator(Annotator):
                 filtered_singular_case_spans.extend(group)
         singular_case_spans = filtered_singular_case_spans
         # remove counts that span multiple sentences
-        all_potential_counts = reduce(lambda a, b: a + b, [
-            case_descriptions_with_counts.spans,
-            # Ex: Deaths: 13
-            ra.follows([
-                search_regex('deaths(\s?:)?', 'death'),
-                counts_tier]),
-            count_descriptions.spans,
-            singular_case_spans])
-
+        all_potential_counts = (
+            case_descriptions_with_counts.spans +
+            count_descriptions.spans +
+            singular_case_spans)
         single_sentence_counts = []
         for sentence, group in spacy_sentences.group_spans_by_containing_span(all_potential_counts):
             single_sentence_counts += group
         annotated_counts = AnnoTier(single_sentence_counts
-                                    ).optimal_span_set(prefer='num_spans')
+                                    ).optimal_span_set(prefer='num_spans_and_no_linebreaks')
         attributes = [
-            'annual',
+            # count precisions
             'approximate',
-            'average',
-            'case',
-            'confirmed',
-            'cumulative',
-            'death',
-            'hospitalization',
-            'incremental',
             'max',
             'min',
-            'monthly',
+            'average',
+            # case status
+            'confirmed',
             'suspected',
+            # count anchors
+            'cumulative',
+            'incremental',
+            'ongoing',
+            # count units
+            'case',
+            'death',
+            'hospitalization',
+            # count periods
+            'annual',
+            'monthly',
             'weekly',
         ]
         count_spans = []
@@ -257,22 +262,20 @@ class CountAnnotator(Annotator):
                 # Ex. A new case, the index case
                 count = 1
             if 'range' in match_dict:
+                lower_count_match = match_dict['count'][0]
                 range_match = match_dict['range'][0]
-                upper_count_text = range_match.groupdict()['count'][0].text
-                upper_count = utils.parse_spelled_number(upper_count_text)
-                count_spans.append(CountSpan(match, {
-                    'text': match.text,
+                upper_count_match = range_match.groupdict()['count'][0]
+                upper_count = utils.parse_spelled_number(upper_count_match.text)
+                count_spans.append(CountSpan(lower_count_match, {
                     'attributes': sorted(list(matching_attributes) + ['min']),
                     'count': count
                 }))
-                count_spans.append(CountSpan(range_match, {
-                    'text': upper_count_text,
+                count_spans.append(CountSpan(upper_count_match, {
                     'attributes': sorted(list(matching_attributes) + ['max']),
                     'count': upper_count
                 }))
             else:
                 count_spans.append(CountSpan(match, {
-                    'text': match.text,
                     'attributes': sorted(list(matching_attributes)),
                     'count': count
                 }))
