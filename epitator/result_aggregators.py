@@ -95,6 +95,7 @@ def combine(results_lists, prefer="first"):
             return len(set(x.iterate_leaf_base_spans()))
         else:
             return 1
+
     def num_spans_and_no_linebreaks(x):
         """
         Same as num_spans, but linebreaks are avoided as a secondary objective.

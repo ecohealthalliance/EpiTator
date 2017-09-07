@@ -185,9 +185,8 @@ Ongoing cases: 7
     def test_attributes(self):
         self.assertHasCounts('There have been 12 reported cases in Colorado. '
                              'There was one suspected case of bird flu in the country.',
-                             [
-                                {'count': 12, 'attributes': ['case']},
-                                {'count': 1, 'attributes': ['case', 'suspected']}])
+                             [{'count': 12, 'attributes': ['case']},
+                              {'count': 1, 'attributes': ['case', 'suspected']}])
 
     def test_attributes_2(self):
         self.assertHasCounts('The average number of cases reported annually is 600',
@@ -361,7 +360,7 @@ Integer County - 3 cases
         self.assertSequenceEqual(actual_counts, expected_counts)
 
     def test_count_list_2(self):
-        doc = AnnoDoc("Ica 562 cases, Chincha 17 cases, Nasca 152 cases, Palpa 409 cases, Pisco 299 cases.")
+        doc = AnnoDoc('Ica 562 cases, Chincha 17 cases, Nasca 152 cases, Palpa 409 cases, Pisco 299 cases.')
         doc.add_tier(self.annotator)
         expected_counts = [
             562,
@@ -378,7 +377,7 @@ Integer County - 3 cases
     def test_attribute_fp(self):
         # Make sure the count is not parsed as incremental becasue of the
         # new in New York.
-        self.assertHasCounts("5 cases of Dengue in New York.", [
+        self.assertHasCounts('5 cases of Dengue in New York.', [
             {'attributes': ['case']}])
 
     # Currently failing. Uncomment after spacy model update.

@@ -74,6 +74,7 @@ class DateSpan(AnnoSpan):
 
 class DateAnnotator(Annotator):
     def annotate(self, doc):
+        doc_date = doc.date or datetime.datetime.now()
         strict_parser = DateDataParser(['en'], settings={
             'STRICT_PARSING': True})
 
@@ -88,7 +89,7 @@ class DateAnnotator(Annotator):
             return text
 
         def date_to_datetime_range(text,
-                                   relative_base=doc.date,
+                                   relative_base=doc_date,
                                    prefer_dates_from='past'):
             text = clean_date_str(text)
             match = ordinal_date_re.match(text)
@@ -194,15 +195,20 @@ class DateAnnotator(Annotator):
                          t_span.text,
                          re.I)],
             date_span_tier], max_dist=1, label='date_range')
+        since_date_spans = ra.follows([
+            [t_span for t_span in doc.tiers['spacy.tokens']
+             if 'since' == t_span.token.lemma_],
+            date_span_tier],
+            label='since_date')
 
         tier_spans = []
-        all_date_spans = AnnoTier(date_range_spans + grouped_date_spans + date_span_tier.spans)
+        all_date_spans = AnnoTier(date_range_spans + grouped_date_spans + date_span_tier.spans + since_date_spans)
         all_date_spans = all_date_spans.optimal_span_set(prefer='text_length')
         for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.
-            if isinstance(date_span, SpanGroup) and\
-               date_span.label == 'date_range':
+            if_span_group = isinstance(date_span, SpanGroup)
+            if if_span_group and date_span.label == 'date_range':
                 range_components = [span.text
                                     for span in date_span.base_spans[0::2]]
             else:
@@ -219,9 +225,17 @@ class DateAnnotator(Annotator):
                             '-'.join(hyphenated_components[:3]),
                             '-'.join(hyphenated_components[3:])]
             if len(range_components) == 1:
-                datetime_range = date_to_datetime_range(range_components[0])
-                if datetime_range is None:
-                    continue
+                if date_span.label == 'since_date':
+                    date_str = date_span.base_spans[1].text
+                    datetime_range = date_to_datetime_range(date_str)
+                    if datetime_range is None:
+                        continue
+                    datetime_range = [datetime_range[0], doc_date]
+                else:
+                    date_str = range_components[0]
+                    datetime_range = date_to_datetime_range(date_str)
+                    if datetime_range is None:
+                        continue
             elif len(range_components) == 2:
                 # Check for a non-relative date in the range that can be used as
                 # a relative base date the other date.
@@ -230,7 +244,7 @@ class DateAnnotator(Annotator):
                     parse_non_relative_date(text)
                     for text in range_components]
                 relative_base_date = next((x for x in non_relative_dates if x),
-                                          doc.date)
+                                          doc_date)
                 datetime_range_a = date_to_datetime_range(
                     range_components[0],
                     relative_base=relative_base_date)

@@ -180,6 +180,15 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2017, 3, 1),
              datetime.datetime(2017, 4, 1)])
 
+    def test_since_date(self):
+        text = 'nearly 5000 cases have been reported since 1 Sep 2010.'
+        doc = AnnoDoc(text, date=datetime.datetime(2010, 12, 10))
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2010, 9, 1),
+             datetime.datetime(2010, 12, 10)])
+
 
 if __name__ == '__main__':
     unittest.main()
