@@ -13,6 +13,7 @@ from .ngram_annotator import NgramAnnotator
 from .ne_annotator import NEAnnotator
 from geopy.distance import great_circle
 from .maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
+from . import result_aggregators as ra
 
 from .get_database_connection import get_database_connection
 from . import geoname_classifier
@@ -341,38 +342,26 @@ class GeonameAnnotator(Annotator):
         for geoname in candidate_geonames:
             for span in geoname.spans:
                 span_to_geonames[span].append(geoname)
-        geoname_spans = sorted(span_to_geonames.keys())
-        for span_a_idx, span_a in enumerate(geoname_spans):
-            span_b_idx = span_a_idx
-            # There could be multiple overlapping spans that come after
-            # this span. This loop will add combined spans for all of them.
-            while True:
-                # skip spans that overlap the first span
-                while span_b_idx < len(geoname_spans) and geoname_spans[span_b_idx].start < span_a.end:
-                    span_b_idx += 1
-                if span_b_idx >= len(geoname_spans):
-                    break
-                span_b = geoname_spans[span_b_idx]
-                span_b_idx += 1
-                if not span_a.comes_before(span_b, max_dist=4):
-                    break
-                # If is more than one non-space/comma character between
-                # the spans do not combine them.
-                if (len(
-                    set(span_a.doc.text[span_a.end:span_b.start]) - set(", ")
-                ) > 1):
-                        break
-                combined_span = span_a.extended_through(span_b)
-                for loc_a, loc_b in itertools.product(
-                        span_to_geonames[span_a],
-                        span_to_geonames[span_b]):
-                    if location_contains(loc_b, loc_a) > 0:
-                        # TODO: Add combined_span to geoname_spans being iterated
-                        # so chains of spans can be joined. E.g. Seattle, WA,
-                        # USA
-                        loc_a.spans.add(combined_span)
-                        span_to_geonames[combined_span].append(loc_a)
-                        loc_a.parents |= set([loc_b])
+        geoname_spans = span_to_geonames.keys()
+        combined_spans = ra.n_or_more(2, geoname_spans, max_dist=4)
+        for combined_span in combined_spans:
+            leaf_spans = combined_span.iterate_leaf_base_spans()
+            potential_geonames = {geoname: set()
+                                  for geoname in span_to_geonames[next(leaf_spans)]}
+            for leaf_span in leaf_spans:
+                next_potential_geonames = defaultdict(set)
+                for potential_geoname, prev_containing_geonames in potential_geonames.items():
+                    containing_geonames = [
+                        containing_geoname
+                        for containing_geoname in span_to_geonames[leaf_span]
+                        if location_contains(containing_geoname, potential_geoname) > 0]
+                    if len(containing_geonames) > 0:
+                        next_potential_geonames[potential_geoname] |= prev_containing_geonames | set(containing_geonames)
+                potential_geonames = next_potential_geonames
+            for geoname, containing_geonames in potential_geonames.items():
+                geoname.spans.add(combined_span)
+                span_to_geonames[combined_span].append(geoname)
+                geoname.parents |= containing_geonames
         logger.info('%s combined spans added' % (
             len(span_to_geonames) - len(geoname_spans)))
         # Find locations with overlapping spans

@@ -140,6 +140,15 @@ class AnnoTier(object):
     def combined_adjacent_spans(self, max_dist=1):
         """
         Create a new tier from groups of spans within max_dist of eachother.
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three four')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc),
+        ...                  AnnoSpan(8, 13, doc),
+        ...                  AnnoSpan(14, 18, doc)])
+        >>> tier.combined_adjacent_spans()
+        [u'SpanGroup(text=one, label=None, 0-3:one)', u'SpanGroup(text=three four, label=None, 8-13:three, 14-18:four)']
         """
         prev_span = None
         span_groups = []

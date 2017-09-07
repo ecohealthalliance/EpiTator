@@ -29,16 +29,24 @@ class GeonameAnnotatorTest(unittest.TestCase):
         self.assertEqual(doc.tiers['geonames'].spans[0].start, 10)
         self.assertEqual(doc.tiers['geonames'].spans[0].end, 17)
 
-    def test_mulipart_names(self):
-        text = 'I used to live in Seattle, WA'
+    def test_multipart_names(self):
+        text = 'From Seattle, WA, Canada is not far away.'
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
 
         self.assertEqual(doc.text, text)
-        self.assertEqual(len(doc.tiers['geonames'].spans), 1)
+        self.assertEqual(len(doc.tiers['geonames'].spans), 2)
         self.assertEqual(doc.tiers['geonames'].spans[0].text, "Seattle, WA")
 
-    def test_mulipart_names3(self):
+    def test_multipart_names_2(self):
+        text = 'I used to live in Seattle, Washington, USA'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.text, text)
+        self.assertEqual(len(doc.tiers['geonames'].spans), 1)
+        self.assertEqual(doc.tiers['geonames'].spans[0].text, "Seattle, Washington, USA")
+
+    def test_multipart_names_3(self):
         text = 'England, France, Germany and Italy are countries in Eurpoe'
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
