@@ -18,6 +18,7 @@ class Interval():
     def __len__(self):
         return self.end - self.start
 
+
 class Endpoint():
     def __init__(self, interval, is_start):
         self.interval = interval
@@ -75,7 +76,7 @@ def find_maximum_weight_interval_set(intervals):
             if max_interval_sofar:
                 if isinstance(max_interval_sofar.__value__, tuple):
                     endpoint.interval.__value__ = tuple(map(sum, zip(max_interval_sofar.__value__,
-                                                               endpoint.interval.__value__)))
+                                                                     endpoint.interval.__value__)))
                 else:
                     endpoint.interval.__value__ += max_interval_sofar.__value__
                 endpoint.interval.__previous__ = max_interval_sofar

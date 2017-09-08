@@ -39,6 +39,13 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
                                       expected_uris):
             self.assertEqual(span.resolutions[0]['entity_id'], expected_uri)
 
+    def test_MERS(self):
+        doc = AnnoDoc('There have been 6 new cases of MERS since last week.')
+        doc.add_tier(self.annotator)
+        first_span = doc.tiers['resolved_keywords'].spans[0]
+        self.assertEqual(first_span.resolutions[0]['entity_id'],
+                         'https://www.wikidata.org/wiki/Q16654806')
+
     def test_acroynms(self):
         doc = AnnoDoc("Ebola Virus disease is EVD")
         doc.add_tier(self.annotator)

@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 import json
 import six
-from . import maximum_weight_interval_set as mwis
 from . import result_aggregators as ra
 from .annospan import SpanGroup
 

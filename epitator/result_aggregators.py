@@ -59,6 +59,7 @@ def n_or_more(n, results_list, max_dist=1):
         seq_len += 1
     return combined_spans
 
+
 def label(label, results_list):
     """
     Attach a label to the results so it can be looked up in a via groupdict.

@@ -16,6 +16,7 @@ from ..utils import batched
 
 ITIS_URL = "https://www.itis.gov/downloads/itisSqlite.zip"
 
+
 # The data model for the itis database is available here:
 # https://www.itis.gov/pdf/ITIS_ConceptualModelEntityDefinition.pdf
 def download_itis_database():
