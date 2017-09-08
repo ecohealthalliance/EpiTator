@@ -59,6 +59,7 @@ def n_or_more(n, results_list, max_dist=1):
         seq_len += 1
     return combined_spans
 
+
 def label(label, results_list):
     """
     Attach a label to the results so it can be looked up in a via groupdict.
@@ -95,12 +96,21 @@ def combine(results_lists, prefer="first"):
             return len(set(x.iterate_leaf_base_spans()))
         else:
             return 1
+
+    def num_spans_and_no_linebreaks(x):
+        """
+        Same as num_spans, but linebreaks are avoided as a secondary objective.
+        """
+        return num_spans(x), int("\n" not in x.text)
+
     if prefer == "first":
         prefunc = first
     elif prefer == "text_length":
         prefunc = text_length
     elif prefer == "num_spans":
         prefunc = num_spans
+    elif prefer == "num_spans_and_no_linebreaks":
+        prefunc = num_spans_and_no_linebreaks
     else:
         prefunc = prefer
     my_mwis = mwis.find_maximum_weight_interval_set([

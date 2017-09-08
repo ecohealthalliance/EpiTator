@@ -10,6 +10,7 @@ from urllib import urlopen, urlencode
 import json
 import datetime
 
+
 def import_wikidata(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
@@ -46,6 +47,20 @@ def import_wikidata(drop_previous=False):
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, 1)", [
         (result['itemLabel']['value'], result['item']['value'])
         for result in results])
+    print("Importing manually added diseases not in disease ontology...")
+    # Wikidata entities are used in place of those from the disease ontology.
+    cur.execute("""
+                INSERT INTO entities VALUES
+                ('https://www.wikidata.org/wiki/Q16654806',
+                 'Middle East respiratory syndrome',
+                 'disease', 'Wikidata'
+                )""")
+    cur.executemany("INSERT INTO synonyms VALUES (?, ?, ?)", [
+        ('Middle East respiratory syndrome', 'https://www.wikidata.org/wiki/Q16654806', 3),
+        ('MERS', 'https://www.wikidata.org/wiki/Q16654806', 3),
+        ('Middle East respiratory syndrome coronavirus', 'https://www.wikidata.org/wiki/Q16654806', 3),
+        ('MERS-CoV', 'https://www.wikidata.org/wiki/Q16654806', 3),
+    ])
     connection.commit()
     connection.close()
 

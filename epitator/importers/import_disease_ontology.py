@@ -13,6 +13,7 @@ from ..utils import batched
 
 DISEASE_ONTOLOGY_URL = "http://purl.obolibrary.org/obo/doid.owl"
 
+
 def import_disease_ontology(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
@@ -126,7 +127,7 @@ def import_disease_ontology(drop_previous=False):
                 # capitalization is preserved.
                 tuples.append((syn_string, uri, weight))
         cur.executemany(insert_command, tuples)
-    # Extra synonyms not in the disease ontology
+    # Extra synonyms not in the disease ontology.
     cur.executemany(insert_command, [
         ('HIV', 'http://purl.obolibrary.org/obo/DOID_526', 3),
         ('Ebola', 'http://purl.obolibrary.org/obo/DOID_4325', 3),

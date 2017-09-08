@@ -5,7 +5,7 @@ class Interval():
         self.weight = weight
         self.corresponding_object = corresponding_object
         # The combined weight of the MWIS prior to this interval.
-        self.__value__ = 0.0
+        self.__value__ = None
         # The previous inverval in the MWIS prior to this interval.
         self.__previous__ = None
 
@@ -17,6 +17,7 @@ class Interval():
 
     def __len__(self):
         return self.end - self.start
+
 
 class Endpoint():
     def __init__(self, interval, is_start):
@@ -53,6 +54,7 @@ def find_maximum_weight_interval_set(intervals):
     """
     Takes a list of weighted intervals and returns a non-overlapping set of them
     with the maximum possible weight.
+    Weights may be numeric or numeric tuples.
     There are some edge-cases to consider in determining what constitutes an
     overlap in relation to end-points and zero length intervals.
     The intervals are left-closed. If the left endpoints of two zero
@@ -72,7 +74,11 @@ def find_maximum_weight_interval_set(intervals):
         if endpoint.is_start:
             endpoint.interval.__value__ = endpoint.interval.weight
             if max_interval_sofar:
-                endpoint.interval.__value__ += max_interval_sofar.__value__
+                if isinstance(max_interval_sofar.__value__, tuple):
+                    endpoint.interval.__value__ = tuple(map(sum, zip(max_interval_sofar.__value__,
+                                                                     endpoint.interval.__value__)))
+                else:
+                    endpoint.interval.__value__ += max_interval_sofar.__value__
                 endpoint.interval.__previous__ = max_interval_sofar
         else:  # endoint.is_end
             if not max_interval_sofar:
