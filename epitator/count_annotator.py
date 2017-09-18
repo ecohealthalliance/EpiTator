@@ -53,7 +53,7 @@ def is_valid_count(count_string):
     or are extremely large
     """
     value = utils.parse_spelled_number(count_string)
-    if count_string[0] == '0':
+    if count_string[0] == '0' and len(count_string) > 1:
         return False
     try:
         if int(value) != value:
@@ -168,6 +168,9 @@ class CountAnnotator(Annotator):
                     'hospitalization',
                     'hospital',
                     'hospitalize'])) +
+            ra.label('recovery',
+                search_lemmas([
+                    'recovery'])) +
             ra.label('case',
                 search_lemmas([
                     'case',
@@ -185,7 +188,8 @@ class CountAnnotator(Annotator):
             'patient',
             'life',
             'person'], 'case')
-        case_descriptions += person_descriptions + person_descriptions.with_nearby_spans_from(case_descriptions)
+        case_descriptions += person_descriptions.with_nearby_spans_from(case_descriptions)
+        case_descriptions += person_descriptions
         case_descriptions_with_counts = case_descriptions.with_nearby_spans_from(
             count_descriptions,
             max_dist=50)
@@ -240,6 +244,7 @@ class CountAnnotator(Annotator):
             # count units
             'case',
             'death',
+            'recovery',
             'hospitalization',
             # count periods
             'annual',
@@ -253,7 +258,9 @@ class CountAnnotator(Annotator):
                 attr for attr in attributes
                 if attr in match_dict
             ])
-            if 'death' in matching_attributes or 'hospitalization' in matching_attributes:
+            if set(['death',
+                    'hospitalization',
+                    'recovery']).intersection(matching_attributes):
                 matching_attributes.add('case')
             if 'count' in match_dict:
                 count = utils.parse_spelled_number(match_dict['count'][0].text)
