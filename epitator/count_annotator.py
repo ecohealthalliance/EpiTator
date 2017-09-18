@@ -155,28 +155,29 @@ class CountAnnotator(Annotator):
             results = results.without_overlaps(person_and_place_nes)
             count_descriptions += count_descriptions.with_nearby_spans_from(results)
         case_descriptions = AnnoTier(
-            ra.label('death',
-                search_lemmas([
+            search_lemmas(
+                [
                     'death',
                     'die',
                     'kill',
                     'claim',
                     'fatality',
-                    'deceased'])) +
-            ra.label('hospitalization',
-                search_lemmas([
+                    'deceased'
+                ], 'death') +
+            search_lemmas(
+                [
                     'hospitalization',
                     'hospital',
-                    'hospitalize'])) +
-            ra.label('recovery',
-                search_lemmas([
-                    'recovery'])) +
-            ra.label('case',
-                search_lemmas([
+                    'hospitalize'
+                ], 'hospitalization') +
+            search_lemmas(['recovery'], 'recovery') +
+            search_lemmas(
+                [
                     'case',
                     'infect',
                     'infection',
-                    'stricken'])))
+                    'stricken'
+                ], 'case'))
         case_statuses = (
             search_lemmas(['suspect'], 'suspected') +
             search_lemmas(['confirm'], 'confirmed'))
@@ -200,7 +201,7 @@ class CountAnnotator(Annotator):
             for t_span in token_group:
                 token = t_span.token
                 if token.tag_ == 'NN' and any(c.lower_ in determiner_lemmas
-                                             for c in token.children):
+                                              for c in token.children):
                     singular_case_spans.append(cd_span)
                     break
         # Use word sense disabiguation to omit phrases like "In the case of"

@@ -108,10 +108,12 @@ class DateAnnotator(Annotator):
                     if ordinal_number > 4:
                         return
                     week_start = date_to_datetime_range("1 " + rest)[0]
-                    week_start = date_to_datetime_range("Sunday",
+                    week_start = date_to_datetime_range(
+                        "Sunday",
                         relative_base=week_start)[0]
                     for _ in range(ordinal_number - 1):
-                        week_start = date_to_datetime_range("Sunday",
+                        week_start = date_to_datetime_range(
+                            "Sunday",
                             relative_base=week_start + relativedelta(days=1),
                             prefer_dates_from='future')[0]
                     return [
