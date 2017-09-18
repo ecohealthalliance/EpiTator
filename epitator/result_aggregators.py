@@ -42,9 +42,14 @@ def follows(results_lists, max_dist=1, allow_overlap=False, label=None):
     return [SpanGroup(seq, label) for seq in sequences]
 
 
-def n_or_more(n, results_list, max_dist=1):
+def n_or_more(n, results_list, max_dist=1, limit=None):
     """
     Find sequences of n or more items from the results_list that follow eachother.
+    It is possible for the number of sequences to grow exponentially
+    since a single item in the results_list can be the start of multiple
+    sequences. This is likely when max_dist is large.
+    A limit to the length of the sequences can be specified to prevent
+    unbounded growth.
     """
     combined_spans = []
     new_combined_spans = results_list
@@ -54,9 +59,11 @@ def n_or_more(n, results_list, max_dist=1):
             combined_spans += new_combined_spans
         if len(new_combined_spans) == 0:
             break
+        seq_len += 1
+        if limit and seq_len > limit:
+            break
         new_combined_spans = follows([new_combined_spans, results_list],
                                      max_dist=max_dist)
-        seq_len += 1
     return combined_spans
 
 

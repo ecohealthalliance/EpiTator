@@ -342,7 +342,7 @@ class GeonameAnnotator(Annotator):
             for span in geoname.spans:
                 span_to_geonames[span].append(geoname)
         geoname_spans = span_to_geonames.keys()
-        combined_spans = ra.n_or_more(2, geoname_spans, max_dist=4)
+        combined_spans = ra.n_or_more(2, geoname_spans, max_dist=4, limit=4)
         for combined_span in combined_spans:
             leaf_spans = combined_span.iterate_leaf_base_spans()
             potential_geonames = {geoname: set()
