@@ -36,18 +36,31 @@ class AnnoSpan(object):
     def contains(self, other_span):
         return self.start <= other_span.start and self.end >= other_span.end
 
-    def adjacent_to(self, other_span, max_dist=0):
+    def adjacent_to(self, other_span, max_dist=1):
         return (
             self.comes_before(other_span, max_dist) or
             other_span.comes_before(self, max_dist)
         )
 
-    def comes_before(self, other_span, max_dist=0, allow_overlap=False):
+    def comes_before(self, other_span, max_dist=1, allow_overlap=False):
+        """
+        Return True if the span comes before the other_span and there are
+        max_dist or fewer charaters between them.
+
+        >>> from .annotier import AnnoTier
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
+        >>> tier.spans[0].comes_before(tier.spans[1])
+        True
+        >>> tier.spans[1].comes_before(tier.spans[0])
+        False
+        """
         if allow_overlap:
             ok_start = self.start <= other_span.start
         else:
             ok_start = self.end <= other_span.start
-        return self.end >= other_span.start - max_dist - 1 and ok_start
+        return ok_start and self.end >= other_span.start - max_dist
 
     def extended_through(self, other_span):
         """
