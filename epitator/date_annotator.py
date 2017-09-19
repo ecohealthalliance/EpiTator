@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-"""
-This annotates and parses dates and date ranges.
-All dates are parsed as datetime ranges. For instance, a date like "11-6-87"
-would be parsed as a range from the start of the day to the end of the day,
-while a month like "December 2011" would be parsed as a range from the start
-of December 1st to the end of December.
-"""
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
@@ -55,8 +48,8 @@ ordinal_date_re = re.compile(
     r"(?P<ordinal>" + "|".join(map(re.escape, ORDINALS)) + ")?"
     r"((?P<ordinal_number>\d{1,2})(st|nd|rd|th))?"
     r" (?P<unit>week|day|month) (of|in)( the (year|month)( of)?)? "
-    r"(?P<rest>.{3,})")
-
+    r"(?P<rest>.{3,})", re.I)
+ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
 
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
@@ -64,7 +57,16 @@ class DateSpan(AnnoSpan):
         self.end = base_span.end
         self.doc = base_span.doc
         self.label = base_span.doc.text[base_span.start:base_span.end]
+        # The date span's datetime range is the time interval represented by
+        # the span. The interval ends at the final datetime, and does not
+        # include the day, minute or second of the final datetime.
         self.datetime_range = datetime_range
+
+    def __repr__(self):
+        return (
+            super(DateSpan, self).__repr__() + ':' +
+            ' to '.join(x.isoformat().split('T')[0] if x else None
+                        for x in self.datetime_range))
 
     def to_dict(self):
         result = super(DateSpan, self).to_dict()
@@ -73,6 +75,23 @@ class DateSpan(AnnoSpan):
 
 
 class DateAnnotator(Annotator):
+    """
+    DateAnnotator annotates and parses dates and date ranges.
+    All dates are parsed as datetime ranges. For instance, a date like "11-6-87"
+    would be parsed as a range from the start of the day to the end of the day,
+    while a month like "December 2011" would be parsed as a range from the start
+    of December 1st ending at the start of January 1st 2012.
+    
+    Args:
+        include_end_date (bool): Indicates whether a date range like "Monday to
+        Wednesday" should be parsed as ending at the start of Wednesday
+        or the start of Thursday. If a phrase like "Monday through Wednesday"
+        is used the date range will extend through Wednesday regardless of
+        this argument's value.
+    """
+    def __init__(self, include_end_date=True):
+        self.include_end_date = include_end_date
+
     def annotate(self, doc):
         doc_date = doc.date or datetime.datetime.now()
         strict_parser = DateDataParser(['en'], settings={
@@ -92,6 +111,7 @@ class DateAnnotator(Annotator):
                                    relative_base=doc_date,
                                    prefer_dates_from='past'):
             text = clean_date_str(text)
+            # Handle ordinal dates like "the second month of 2006"
             match = ordinal_date_re.match(text)
             if match:
                 match_dict = match.groupdict()
@@ -202,7 +222,11 @@ class DateAnnotator(Annotator):
             label='since_date')
 
         tier_spans = []
-        all_date_spans = AnnoTier(date_range_spans + grouped_date_spans + date_span_tier.spans + since_date_spans)
+        all_date_spans = AnnoTier(
+            date_range_spans +
+            grouped_date_spans +
+            date_span_tier.spans +
+            since_date_spans)
         all_date_spans = all_date_spans.optimal_span_set(prefer='text_length')
         for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
@@ -224,7 +248,11 @@ class DateAnnotator(Annotator):
                         range_components = [
                             '-'.join(hyphenated_components[:3]),
                             '-'.join(hyphenated_components[3:])]
-            if len(range_components) == 1:
+            if ends_with_timeunit_re.match(range_components[-1]):
+                # Prevent durations like "5 days" from being parsed as specific
+                # dates like "5 days ago"
+                continue
+            elif len(range_components) == 1:
                 if date_span.label == 'since_date':
                     date_str = date_span.base_spans[1].text
                     datetime_range = date_to_datetime_range(date_str)
@@ -258,10 +286,11 @@ class DateAnnotator(Annotator):
                 elif datetime_range_b is None:
                     datetime_range = datetime_range_a
                 else:
-                    # Treat the span's daterange as ending at the start of the
-                    # second date component unless a word like "through" is used
-                    # with the second component.
-                    if re.search(r"\bthrough\b", date_span.text) or\
+                    # If include_end_date is False treat the span's daterange
+                    # as ending at the start of the second date component unless
+                    # a word like "through" is used in the second component.
+                    if self.include_end_date or\
+                       re.search(r"\bthrough\b", date_span.text) or\
                        re.search(r"\b(late|end of)\b", range_components[1]):
                         datetime_range = [
                             datetime_range_a[0],
@@ -274,7 +303,8 @@ class DateAnnotator(Annotator):
                 print("Bad date range split:", date_span.text, range_components)
                 continue
             # Omit reverse ranges because they usually come from something
-            # being incorrectly parsed.
+            # being incorrectly parsed. The main exception is relative dates
+            # like 2 to 3 weeks ago.
             if datetime_range[0] <= datetime_range[1]:
                 tier_spans.append(DateSpan(date_span, datetime_range))
         return {'dates': AnnoTier(tier_spans)}
