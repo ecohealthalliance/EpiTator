@@ -15,7 +15,7 @@ class DateAnnotatorTest(unittest.TestCase):
         text = 'I went to see her in a boat.'
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+        self.assertEqual(doc.tiers['dates'].spans, [])
 
     def test_simple_date(self):
         text = 'I went to Chicago Friday, October 7th 2010.'
@@ -117,6 +117,12 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2017, 7, 13),
              datetime.datetime(2017, 7, 15)])
 
+    def test_relative_date_fp(self):
+        text = "The maximum incubation period is 21 days."
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.tiers['dates'].spans, [])
+
     def test_formatted_date(self):
         text = "08-FEB-17"
         doc = AnnoDoc(text, date=datetime.datetime(2017, 7, 15))
@@ -130,19 +136,19 @@ class DateAnnotatorTest(unittest.TestCase):
         text = "24 to 94 years"
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+        self.assertEqual(doc.tiers['dates'].spans, [])
 
     def test_reversed_range_error_2(self):
         text = "9 months to 9 years"
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+        self.assertEqual(doc.tiers['dates'].spans, [])
 
     def test_reversed_range_error_3(self):
         text = "6350-65"
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['dates'].spans), 0)
+        self.assertEqual(doc.tiers['dates'].spans, [])
 
     def test_day_of_week(self):
         text = "Sat 19 Aug 2017"
@@ -169,7 +175,7 @@ class DateAnnotatorTest(unittest.TestCase):
         Deaths / 7 / 33 / 17 / 15 / 65
         ''')
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['dates']), 0)
+        self.assertEqual(doc.tiers['dates'].spans, [])
 
     def test_month_of_year(self):
         example = "Dengue cases were increasing in the 3rd month of the year [2017]."
