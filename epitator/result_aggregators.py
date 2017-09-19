@@ -106,9 +106,10 @@ def combine(results_lists, prefer="first"):
 
     def num_spans_and_no_linebreaks(x):
         """
-        Same as num_spans, but linebreaks are avoided as a secondary objective.
+        Same as num_spans, but linebreaks are avoided as a secondary objective,
+        and overall text length is minimized as a third objective.
         """
-        return num_spans(x), int("\n" not in x.text)
+        return num_spans(x), int("\n" not in x.text), -len(x)
 
     if prefer == "first":
         prefunc = first

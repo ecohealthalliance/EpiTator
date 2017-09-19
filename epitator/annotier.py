@@ -20,7 +20,9 @@ class AnnoTier(object):
             self.spans = sorted(spans)
 
     def __repr__(self):
-        return six.text_type([six.text_type(span) for span in self.spans])
+        return ('AnnoTier([' +
+                ', '.join([six.text_type(span) for span in self.spans]) +
+                '])')
 
     def __len__(self):
         return len(self.spans)
@@ -95,7 +97,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(4, 7, doc, 'even'),
         ...                  AnnoSpan(8, 13, doc, 'odd')])
         >>> tier.with_label("odd")
-        [u'0-3:odd', u'8-13:odd']
+        AnnoTier([0-3:odd, 8-13:odd])
         """
         return AnnoTier([span for span in self if span.label == label])
 
@@ -112,7 +114,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(3, 13, doc, 'long_span'),
         ...                  AnnoSpan(8, 13, doc, 'odd')])
         >>> tier.optimal_span_set()
-        [u'0-3:odd', u'3-13:long_span']
+        AnnoTier([0-3:odd, 3-13:long_span])
         """
         return AnnoTier(ra.combine([self.spans], prefer=prefer))
 
@@ -147,7 +149,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(8, 13, doc),
         ...                  AnnoSpan(14, 18, doc)])
         >>> tier.combined_adjacent_spans()
-        [u'SpanGroup(text=one, label=None, 0-3:one)', u'SpanGroup(text=three four, label=None, 8-13:three, 14-18:four)']
+        AnnoTier([SpanGroup(text=one, label=None, 0-3:one), SpanGroup(text=three four, label=None, 8-13:three, 14-18:four)])
         """
         prev_span = None
         span_groups = []

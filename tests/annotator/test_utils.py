@@ -35,7 +35,7 @@ def assertHasProps(d, props):
     missing_props = []
     for kpath, v in nested_items(props):
         dv = get_path(d, kpath)
-        if not dv or dv != v:
+        if dv != v:
             missing_props.append(kpath)
 
     if len(missing_props) > 0:

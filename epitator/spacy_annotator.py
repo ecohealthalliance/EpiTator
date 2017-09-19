@@ -5,6 +5,7 @@ from .annotator import Annotator, AnnoSpan, AnnoTier
 import re
 from .spacy_nlp import spacy_nlp
 
+
 class TokenSpan(AnnoSpan):
     def __init__(self, token, doc):
         self.doc = doc

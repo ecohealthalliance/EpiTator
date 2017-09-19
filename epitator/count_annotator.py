@@ -53,7 +53,7 @@ def is_valid_count(count_string):
     or are extremely large
     """
     value = utils.parse_spelled_number(count_string)
-    if count_string[0] == '0':
+    if count_string[0] == '0' and len(count_string) > 1:
         return False
     try:
         if int(value) != value:
@@ -155,25 +155,29 @@ class CountAnnotator(Annotator):
             results = results.without_overlaps(person_and_place_nes)
             count_descriptions += count_descriptions.with_nearby_spans_from(results)
         case_descriptions = AnnoTier(
-            ra.label('death',
-                search_lemmas([
+            search_lemmas(
+                [
                     'death',
                     'die',
                     'kill',
                     'claim',
                     'fatality',
-                    'deceased'])) +
-            ra.label('hospitalization',
-                search_lemmas([
+                    'deceased'
+                ], 'death') +
+            search_lemmas(
+                [
                     'hospitalization',
                     'hospital',
-                    'hospitalize'])) +
-            ra.label('case',
-                search_lemmas([
+                    'hospitalize'
+                ], 'hospitalization') +
+            search_lemmas(['recovery'], 'recovery') +
+            search_lemmas(
+                [
                     'case',
                     'infect',
                     'infection',
-                    'stricken'])))
+                    'stricken'
+                ], 'case'))
         case_statuses = (
             search_lemmas(['suspect'], 'suspected') +
             search_lemmas(['confirm'], 'confirmed'))
@@ -185,7 +189,8 @@ class CountAnnotator(Annotator):
             'patient',
             'life',
             'person'], 'case')
-        case_descriptions += person_descriptions + person_descriptions.with_nearby_spans_from(case_descriptions)
+        case_descriptions += person_descriptions.with_nearby_spans_from(case_descriptions)
+        case_descriptions += person_descriptions
         case_descriptions_with_counts = case_descriptions.with_nearby_spans_from(
             count_descriptions,
             max_dist=50)
@@ -196,7 +201,7 @@ class CountAnnotator(Annotator):
             for t_span in token_group:
                 token = t_span.token
                 if token.tag_ == 'NN' and any(c.lower_ in determiner_lemmas
-                                             for c in token.children):
+                                              for c in token.children):
                     singular_case_spans.append(cd_span)
                     break
         # Use word sense disabiguation to omit phrases like "In the case of"
@@ -240,6 +245,7 @@ class CountAnnotator(Annotator):
             # count units
             'case',
             'death',
+            'recovery',
             'hospitalization',
             # count periods
             'annual',
@@ -253,7 +259,9 @@ class CountAnnotator(Annotator):
                 attr for attr in attributes
                 if attr in match_dict
             ])
-            if 'death' in matching_attributes or 'hospitalization' in matching_attributes:
+            if set(['death',
+                    'hospitalization',
+                    'recovery']).intersection(matching_attributes):
                 matching_attributes.add('case')
             if 'count' in match_dict:
                 count = utils.parse_spelled_number(match_dict['count'][0].text)

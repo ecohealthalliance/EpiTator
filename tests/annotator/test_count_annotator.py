@@ -192,6 +192,24 @@ Ongoing cases: 7
         self.assertHasCounts('The average number of cases reported annually is 600',
                              [{'count': 600, 'attributes': ['annual', 'average', 'case']}])
 
+    def test_attributes_3(self):
+        self.assertHasCounts("""
+As of [Thu 7 Sep 2017], there have been a total of:
+
+1715 laboratory-confirmed cases of MERS-CoV infection, including
+
+690 deaths [reported case fatality rate 40.2 percent],
+
+1003 recoveries, and
+
+0 currently active cases/infections
+        """, [
+            {'count': 1715, 'attributes': ['case', 'confirmed', 'cumulative']},
+            {'count': 690, 'attributes': ['case', 'death']},
+            {'count': 1003, 'attributes': ['case', 'recovery']},
+            {'count': 0, 'attributes': ['case', 'ongoing']}
+        ])
+
     def test_misc(self):
         sent = """How many cases occured with 3.2 miles of Katanga Province?
                   Three fatalities have been reported."""
