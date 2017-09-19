@@ -41,7 +41,7 @@ class DateAnnotatorTest(unittest.TestCase):
     def test_duration_with_years(self):
         text = 'I lived there for three years, from 1999 until late 2001'
         doc = AnnoDoc(text)
-        doc.add_tier(self.annotator)
+        doc.add_tier(DateAnnotator(include_end_date=False))
         self.assertEqual(len(doc.tiers['dates'].spans), 1)
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
@@ -55,7 +55,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2009, 5, 1),
-             datetime.datetime(2009, 8, 1)])
+             datetime.datetime(2009, 9, 1)])
 
     def test_1950s(self):
         text = 'Adenoviruses, first isolated in the 1950s from explanted adenoid tissue.'
@@ -87,7 +87,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2010, 1, 1),
-             datetime.datetime(2010, 1, 2)])
+             datetime.datetime(2010, 1, 3)])
 
     def test_dashes_2(self):
         text = 'First seen between 2010-1-1 - 2011-1-1'
@@ -96,7 +96,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2010, 1, 1),
-             datetime.datetime(2011, 1, 1)])
+             datetime.datetime(2011, 1, 2)])
 
     def test_dateparser_bug(self):
         # This triggers an exception in the dateparser library described in this
@@ -115,7 +115,7 @@ class DateAnnotatorTest(unittest.TestCase):
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2017, 7, 13),
-             datetime.datetime(2017, 7, 14)])
+             datetime.datetime(2017, 7, 15)])
 
     def test_formatted_date(self):
         text = "08-FEB-17"
@@ -154,7 +154,7 @@ class DateAnnotatorTest(unittest.TestCase):
              datetime.datetime(2017, 8, 20)])
 
     def test_week_parsing(self):
-        text = "AES had taken 13 lives by the 2nd week of August [2017]."
+        text = "AES had taken 13 lives in the 2nd week of August [2017]."
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
         self.assertEqual(

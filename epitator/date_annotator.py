@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-"""
-This annotates and parses dates and date ranges.
-All dates are parsed as datetime ranges. For instance, a date like "11-6-87"
-would be parsed as a range from the start of the day to the end of the day,
-while a month like "December 2011" would be parsed as a range from the start
-of December 1st to the end of December.
-"""
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
@@ -64,6 +57,9 @@ class DateSpan(AnnoSpan):
         self.end = base_span.end
         self.doc = base_span.doc
         self.label = base_span.doc.text[base_span.start:base_span.end]
+        # The date span's datetime range is the time interval represented by
+        # the span. The interval ends at the final datetime, and does not
+        # include the day, minute or second of the final datetime.
         self.datetime_range = datetime_range
 
     def to_dict(self):
@@ -73,6 +69,21 @@ class DateSpan(AnnoSpan):
 
 
 class DateAnnotator(Annotator):
+    """
+    DateAnnotator annotates and parses dates and date ranges.
+    All dates are parsed as datetime ranges. For instance, a date like "11-6-87"
+    would be parsed as a range from the start of the day to the end of the day,
+    while a month like "December 2011" would be parsed as a range from the start
+    of December 1st ending at the start of January 1st 2012.
+    
+    Args:
+        include_end_date (bool): Indicates whether a date range like "Monday to
+        Wednesday" should be parsed as ending at the start of Wednesday
+        or the start of Thursday.
+    """
+    def __init__(self, include_end_date=True):
+        self.include_end_date = include_end_date
+
     def annotate(self, doc):
         doc_date = doc.date or datetime.datetime.now()
         strict_parser = DateDataParser(['en'], settings={
@@ -258,10 +269,11 @@ class DateAnnotator(Annotator):
                 elif datetime_range_b is None:
                     datetime_range = datetime_range_a
                 else:
-                    # Treat the span's daterange as ending at the start of the
-                    # second date component unless a word like "through" is used
-                    # with the second component.
-                    if re.search(r"\bthrough\b", date_span.text) or\
+                    # If include_end_date is False treat the span's daterange
+                    # as ending at the start of the second date component unless
+                    # a word like "through" is used in the second component.
+                    if self.include_end_date or\
+                       re.search(r"\bthrough\b", date_span.text) or\
                        re.search(r"\b(late|end of)\b", range_components[1]):
                         datetime_range = [
                             datetime_range_a[0],
