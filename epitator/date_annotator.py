@@ -51,6 +51,7 @@ ordinal_date_re = re.compile(
     r"(?P<rest>.{3,})", re.I)
 ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
 
+
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
         self.start = base_span.start
@@ -81,7 +82,7 @@ class DateAnnotator(Annotator):
     would be parsed as a range from the start of the day to the end of the day,
     while a month like "December 2011" would be parsed as a range from the start
     of December 1st ending at the start of January 1st 2012.
-    
+
     Args:
         include_end_date (bool): Indicates whether a date range like "Monday to
         Wednesday" should be parsed as ending at the start of Wednesday
@@ -222,7 +223,8 @@ class DateAnnotator(Annotator):
         since_tokens = ra.label('since_token', [
             t_span for t_span in doc.tiers['spacy.tokens']
             if 'since' == t_span.token.lemma_])
-        since_date_spans = ra.label('since_date',
+        since_date_spans = ra.label(
+            'since_date',
             ra.follows([since_tokens, date_span_tier], allow_overlap=True) +
             date_span_tier.with_contained_spans_from(since_tokens).spans)
         tier_spans = []

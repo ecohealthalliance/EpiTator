@@ -212,5 +212,6 @@ For the 1st time since 1998, a case of yellow fever has been confirmed.
             [datetime.datetime(1998, 1, 1),
              datetime.datetime(2017, 12, 10)])
 
+
 if __name__ == '__main__':
     unittest.main()
