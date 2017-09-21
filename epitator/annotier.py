@@ -131,6 +131,19 @@ class AnnoTier(object):
                 result.append(span)
         return AnnoTier(result)
 
+    def with_contained_spans_from(self, other_tier, allow_partial_containment=False):
+        """
+        Create a new tier from pairs spans in this tier and the other tier
+        where the span in this tier contains one in the other tier.
+        """
+        span_groups = self.group_spans_by_containing_span(other_tier,
+                                                          allow_partial_containment=allow_partial_containment)
+        result = []
+        for span, group in span_groups:
+            for other_span in group:
+                result.append(SpanGroup([span, other_span]))
+        return AnnoTier(result)
+
     def with_nearby_spans_from(self, other_tier, max_dist=100):
         """
         Create a new tier from pairs spans in this tier and the other tier
