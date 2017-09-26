@@ -51,6 +51,7 @@ ordinal_date_re = re.compile(
     r"(?P<rest>.{3,})", re.I)
 ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
 
+
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
         self.start = base_span.start
@@ -81,7 +82,7 @@ class DateAnnotator(Annotator):
     would be parsed as a range from the start of the day to the end of the day,
     while a month like "December 2011" would be parsed as a range from the start
     of December 1st ending at the start of January 1st 2012.
-    
+
     Args:
         include_end_date (bool): Indicates whether a date range like "Monday to
         Wednesday" should be parsed as ending at the start of Wednesday
@@ -98,11 +99,13 @@ class DateAnnotator(Annotator):
             'STRICT_PARSING': True})
 
         def clean_date_str(text):
-            # strip extra words from the date string
-            text = re.sub(r"^(from\s)?(the\s)?"
-                          r"((beginning|middle|start|end)\sof)?"
-                          r"(between\s)?"
-                          r"(late|mid|early)?\s?", "", text, re.I)
+            # strip extra words from the beginning of the date string
+            text = re.split(r"(\b(since|from|between)\s)?"
+                            r"(^the\s(month|year)\sof\s)?"
+                            r"(^the\s)?"
+                            r"((beginning|middle|start|end)\sof\s)?"
+                            r"((late|mid|early)\s)?", text, re.I)
+            text = text[-1]
             # remove extra characters
             text = re.sub(r"\[|\]", "", text)
             return text
@@ -217,12 +220,13 @@ class DateAnnotator(Annotator):
                          t_span.text,
                          re.I)],
             date_span_tier], max_dist=1, label='date_range')
-        since_date_spans = ra.follows([
-            [t_span for t_span in doc.tiers['spacy.tokens']
-             if 'since' == t_span.token.lemma_],
-            date_span_tier],
-            label='since_date')
-
+        since_tokens = ra.label('since_token', [
+            t_span for t_span in doc.tiers['spacy.tokens']
+            if 'since' == t_span.token.lemma_])
+        since_date_spans = ra.label(
+            'since_date',
+            ra.follows([since_tokens, date_span_tier], allow_overlap=True) +
+            date_span_tier.with_contained_spans_from(since_tokens).spans)
         tier_spans = []
         all_date_spans = AnnoTier(
             date_range_spans +
@@ -256,7 +260,8 @@ class DateAnnotator(Annotator):
                 continue
             elif len(range_components) == 1:
                 if date_span.label == 'since_date':
-                    date_str = date_span.base_spans[1].text
+                    date_str = [span for span in date_span.base_spans
+                                if span.label != 'since_token'][0].text
                     datetime_range = date_to_datetime_range(date_str)
                     if datetime_range is None:
                         continue
