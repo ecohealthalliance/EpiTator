@@ -86,6 +86,7 @@ def location_contains(loc_outer, loc_inner):
         return 0
     return outer_feature_level
 
+
 class GeoSpan(AnnoSpan):
     def __init__(self, start, end, doc, geoname):
         self.start = start
@@ -114,6 +115,7 @@ GEONAME_ATTRS = [
     'population',
     'names_used',
     'name_count']
+
 
 class GeonameRow(object):
     __slots__ = GEONAME_ATTRS + [

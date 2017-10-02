@@ -9,7 +9,7 @@ from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
 import logging
 import six
-#logging.getLogger('epitator.geoname_annotator').setLevel(logging.INFO)
+logging.getLogger('epitator.geoname_annotator').setLevel(logging.ERROR)
 
 
 class GeonameAnnotatorTest(unittest.TestCase):
@@ -58,6 +58,11 @@ class GeonameAnnotatorTest(unittest.TestCase):
         ], [
             'England', 'France', 'Germany', 'Italy'
         ])
+
+    def test_multipart_names_4(self):
+        doc = AnnoDoc(u"I'm from Fairview, Oregon and also Duluth, Minnesota.")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['geonames'].spans), 2)
 
     def test_bug_causing_sentence(self):
         text = u"""
@@ -193,6 +198,7 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
     def test_slow_edge_case(self):
         doc = AnnoDoc(u"Outbreak 1: San Pedro, San Pedro, San Pedro, San Pedro [Bas-Sassandra District]")
         doc.add_tier(self.annotator)
+
 
 if __name__ == '__main__':
     unittest.main()
