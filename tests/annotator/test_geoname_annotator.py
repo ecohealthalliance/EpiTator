@@ -9,7 +9,7 @@ from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
 import logging
 import six
-logging.getLogger('annotator.geoname_annotator').setLevel(logging.ERROR)
+#logging.getLogger('epitator.geoname_annotator').setLevel(logging.INFO)
 
 
 class GeonameAnnotatorTest(unittest.TestCase):
@@ -190,6 +190,9 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
         self.assertEqual(
             doc.tiers['geonames'].spans[0].geoname['geonameid'], '5809844')
 
+    def test_slow_edge_case(self):
+        doc = AnnoDoc(u"Outbreak 1: San Pedro, San Pedro, San Pedro, San Pedro [Bas-Sassandra District]")
+        doc.add_tier(self.annotator)
 
 if __name__ == '__main__':
     unittest.main()
