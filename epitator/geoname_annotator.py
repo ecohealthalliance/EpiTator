@@ -5,7 +5,6 @@ import math
 import re
 import sqlite3
 from collections import defaultdict
-from lazy import lazy
 
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .ngram_annotator import NgramAnnotator
@@ -39,7 +38,19 @@ blocklist = set([
     'National Institutes of Health',
     'Centers for Disease Control',
     'Ministry of Health and Sanitation',
+    '1',
 ])
+
+# Containment levels indicate which properties must match when determing
+# whether a geoname of a given containment level contains another geoname.
+# The admin codes generally correspond to states, provinces and cities.
+CONTAINMENT_LEVELS = [
+    'country_code',
+    'admin1_code',
+    'admin2_code',
+    'admin3_code',
+    'admin4_code'
+]
 
 
 def location_contains(loc_outer, loc_inner):
@@ -52,32 +63,30 @@ def location_contains(loc_outer, loc_inner):
     In order for containment to be detected the outer location must have a
     ADM* or PCL* feature code, which is most countries, states, and districts.
     """
-    props = [
-        'country_code',
-        'admin1_code',
-        'admin2_code',
-        'admin3_code',
-        'admin4_code'
-    ]
-    if loc_outer['geonameid'] == loc_inner['geonameid']:
+    # Test the country code in advance for efficiency. The country code must match for
+    # any level of containment.
+    if loc_outer.country_code != loc_inner.country_code or loc_outer.country_code == '':
         return 0
-    if re.match("^PCL.", loc_outer['feature_code']):
-        outer_feature_level = 1
-    elif loc_outer['feature_code'] == 'ADM1':
+    feature_code = loc_outer.feature_code
+    if feature_code == 'ADM1':
         outer_feature_level = 2
-    elif loc_outer['feature_code'] == 'ADM2':
+    elif feature_code == 'ADM2':
         outer_feature_level = 3
-    elif loc_outer['feature_code'] == 'ADM3':
+    elif feature_code == 'ADM3':
         outer_feature_level = 4
-    elif loc_outer['feature_code'] == 'ADM4':
+    elif feature_code == 'ADM4':
         outer_feature_level = 5
+    elif re.match("^PCL.", feature_code):
+        outer_feature_level = 1
     else:
         return 0
-    for prop in props[:outer_feature_level]:
+    for prop in CONTAINMENT_LEVELS[1:outer_feature_level]:
         if loc_outer[prop] == '':
             return 0
         if loc_outer[prop] != loc_inner[prop]:
             return 0
+    if loc_outer.geonameid == loc_inner.geonameid:
+        return 0
     return outer_feature_level
 
 
@@ -87,7 +96,7 @@ class GeoSpan(AnnoSpan):
         self.end = end
         self.doc = doc
         self.geoname = geoname
-        self.label = geoname['name']
+        self.label = geoname.name
 
     def to_dict(self):
         result = super(GeoSpan, self).to_dict()
@@ -95,33 +104,57 @@ class GeoSpan(AnnoSpan):
         return result
 
 
-class GeonameRow(dict):
+GEONAME_ATTRS = [
+    'geonameid',
+    'name',
+    'feature_code',
+    'country_code',
+    'admin1_code',
+    'admin2_code',
+    'admin3_code',
+    'admin4_code',
+    'longitude',
+    'latitude',
+    'population',
+    'names_used',
+    'name_count']
+
+
+class GeonameRow(object):
+    __slots__ = GEONAME_ATTRS + [
+        'alternate_locations',
+        'spans',
+        'parents',
+        'score',
+        'lat_long',
+        'high_confidence']
+
     def __init__(self, sqlite3_row):
-        for key in sqlite3_row.keys():
-            self[key] = sqlite3_row[key]
+        for key in GEONAME_ATTRS:
+            setattr(self, key, sqlite3_row[key])
+        self.lat_long = (self.latitude, self.longitude,)
         self.alternate_locations = set()
         self.spans = set()
         self.parents = set()
         self.score = None
 
     def add_spans(self, span_text_to_spans):
-        for name in self['names_used'].split(';'):
+        for name in self.names_used.split(';'):
             for span in span_text_to_spans[name.lower().strip()]:
                 self.spans.add(span)
-
-    @lazy
-    def lat_long(self):
-        return (self['latitude'], self['longitude'])
 
     def __hash__(self):
         return id(self)
 
     def __repr__(self):
-        return self['name']
+        return self.name
+
+    def __getitem__(self, key):
+        return getattr(self, key)
 
     def to_dict(self):
         result = {}
-        for key in self.keys():
+        for key in GEONAME_ATTRS:
             result[key] = self[key]
         result['parents'] = [p.to_dict() for p in self.parents]
         result['score'] = self.score
@@ -171,15 +204,15 @@ class GeonameFeatures(object):
         # This will be populated by the add_contextual_features function.
         self.nearby_mentions = set()
         d = {}
-        d['log_population'] = math.log(geoname['population'] + 1)
+        d['log_population'] = math.log(geoname.population + 1)
         # Geonames with lots of alternate names
         # tend to be the ones most commonly referred to.
-        d['name_count'] = geoname['name_count']
+        d['name_count'] = geoname.name_count
         d['num_spans'] = len(geoname.spans)
         d['max_span_length'] = max([
             len(span.text) for span in geoname.spans])
         d['cannonical_name_used'] = 1 if any([
-            span.text == geoname['name'] for span in geoname.spans
+            span.text == geoname.name for span in geoname.spans
         ]) else 0
         loc_NEs_overlap = 0
         other_NEs_overlap = 0
@@ -211,7 +244,7 @@ class GeonameFeatures(object):
         d['other_pos_portion'] = float(other_pos_tags) / pos_tags
         d['num_tokens'] = pos_tags
         d['ambiguity'] = len(geoname.alternate_locations)
-        feature_code = geoname['feature_code']
+        feature_code = geoname.feature_code
         if feature_code.startswith('PPL'):
             d['PPL_feature_code'] = 1
         elif feature_code.startswith('ADM'):
@@ -345,14 +378,16 @@ class GeonameAnnotator(Annotator):
         combined_spans = ra.n_or_more(2, geoname_spans, max_dist=4, limit=4)
         for combined_span in combined_spans:
             leaf_spans = combined_span.iterate_leaf_base_spans()
+            first_spans = next(leaf_spans)
             potential_geonames = {geoname: set()
-                                  for geoname in span_to_geonames[next(leaf_spans)]}
+                                  for geoname in span_to_geonames[first_spans]}
             for leaf_span in leaf_spans:
+                leaf_span_geonames = span_to_geonames[leaf_span]
                 next_potential_geonames = defaultdict(set)
                 for potential_geoname, prev_containing_geonames in potential_geonames.items():
                     containing_geonames = [
                         containing_geoname
-                        for containing_geoname in span_to_geonames[leaf_span]
+                        for containing_geoname in leaf_span_geonames
                         if location_contains(containing_geoname, potential_geoname) > 0]
                     if len(containing_geonames) > 0:
                         next_potential_geonames[potential_geoname] |= prev_containing_geonames | set(containing_geonames)
