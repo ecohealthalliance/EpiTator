@@ -41,6 +41,9 @@ blocklist = set([
     '1',
 ])
 
+# Containment levels indicate which properties must match when determing
+# whether a geoname of a given containment level contains another geoname.
+# The admin codes generally correspond to states, provinces and cities.
 CONTAINMENT_LEVELS = [
     'country_code',
     'admin1_code',
