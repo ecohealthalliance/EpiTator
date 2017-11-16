@@ -213,6 +213,7 @@ class GeonameFeatures(object):
         d['num_spans'] = len(geoname.spans)
         d['max_span_length'] = max([
             len(span.text) for span in geoname.spans])
+
         def cannonical_name_match(span, geoname):
             if hasattr(span, "iterate_leaf_base_spans"):
                 span_text = next(span.iterate_leaf_base_spans()).text
