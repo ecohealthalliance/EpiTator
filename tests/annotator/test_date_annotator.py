@@ -160,13 +160,13 @@ class DateAnnotatorTest(unittest.TestCase):
              datetime.datetime(2017, 8, 20)])
 
     def test_week_parsing(self):
-        text = "AES had taken 13 lives in the 2nd week of August [2017]."
+        text = "AES had taken 13 lives in the 2nd week of October 2017."
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
         self.assertEqual(
             doc.tiers['dates'].spans[0].datetime_range,
-            [datetime.datetime(2017, 8, 6),
-             datetime.datetime(2017, 8, 13)])
+            [datetime.datetime(2017, 10, 8),
+             datetime.datetime(2017, 10, 15)])
 
     def test_count_table(self):
         doc = AnnoDoc('''
@@ -200,7 +200,7 @@ class DateAnnotatorTest(unittest.TestCase):
         # by the current NER.
         doc = AnnoDoc("""
 In the month of August 2017, there were a total of 3 laboratory confirmed cases.
-For the 1st time since 1998, a case of yellow fever has been confirmed.
+For the first time since 1998, a case of yellow fever has been confirmed.
 """, date=datetime.datetime(2017, 12, 10))
         doc.add_tier(self.annotator)
         self.assertEqual(

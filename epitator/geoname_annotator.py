@@ -116,6 +116,7 @@ GEONAME_ATTRS = [
     'longitude',
     'latitude',
     'population',
+    'asciiname',
     'names_used',
     'name_count']
 
@@ -130,8 +131,9 @@ class GeonameRow(object):
         'high_confidence']
 
     def __init__(self, sqlite3_row):
-        for key in GEONAME_ATTRS:
-            setattr(self, key, sqlite3_row[key])
+        for key in sqlite3_row.keys():
+            if key in GEONAME_ATTRS:
+                setattr(self, key, sqlite3_row[key])
         self.lat_long = (self.latitude, self.longitude,)
         self.alternate_locations = set()
         self.spans = set()
@@ -184,7 +186,7 @@ class GeonameFeatures(object):
         'ADM_feature_code',
         'CONT_feature_code',
         'other_feature_code',
-        'min_token_prob',
+        'combined_span_parents',
         # contextual features
         'close_locations',
         'very_close_locations',
@@ -211,9 +213,17 @@ class GeonameFeatures(object):
         d['num_spans'] = len(geoname.spans)
         d['max_span_length'] = max([
             len(span.text) for span in geoname.spans])
-        d['cannonical_name_used'] = 1 if any([
-            span.text == geoname.name for span in geoname.spans
-        ]) else 0
+        def cannonical_name_match(span, geoname):
+            if hasattr(span, "iterate_leaf_base_spans"):
+                span_text = next(span.iterate_leaf_base_spans()).text
+            else:
+                span_text = span.text
+            span_in_name = span_text in geoname.name or span_text in geoname.asciiname
+            return (float(len(span_text)) if span_in_name else 0) / len(geoname.name)
+        d['cannonical_name_used'] = max([
+            cannonical_name_match(span, geoname)
+            for span in geoname.spans
+        ])
         loc_NEs_overlap = 0
         other_NEs_overlap = 0
         total_spans = len(geoname.spans)
@@ -228,7 +238,6 @@ class GeonameFeatures(object):
         noun_pos_tags = 0
         other_pos_tags = 0
         pos_tags = 0
-        min_token_prob = 1.0
         for span in geoname.spans:
             for token_span in span_to_tokens[span]:
                 token = token_span.token
@@ -237,9 +246,7 @@ class GeonameFeatures(object):
                     noun_pos_tags += 1
                 else:
                     other_pos_tags += 1
-                if token.prob < min_token_prob:
-                    min_token_prob = token.prob
-        d['min_token_prob'] = min_token_prob
+        d['combined_span_parents'] = len(geoname.parents)
         d['noun_portion'] = float(noun_pos_tags) / pos_tags
         d['other_pos_portion'] = float(other_pos_tags) / pos_tags
         d['num_tokens'] = pos_tags
@@ -394,10 +401,13 @@ class GeonameAnnotator(Annotator):
                 potential_geonames = next_potential_geonames
             for geoname, containing_geonames in potential_geonames.items():
                 geoname.spans.add(combined_span)
-                span_to_geonames[combined_span].append(geoname)
                 geoname.parents |= containing_geonames
-        logger.info('%s combined spans added' % (
-            len(span_to_geonames) - len(geoname_spans)))
+        # Replace individual spans with combined spans.
+        span_to_geonames = defaultdict(list)
+        for geoname in candidate_geonames:
+            geoname.spans = set(AnnoTier(geoname.spans).optimal_span_set().spans)
+            for span in geoname.spans:
+                span_to_geonames[span].append(geoname)
         # Find locations with overlapping spans
         # Note that is is possible for two valid locations to have
         # overlapping names. For example, Harare Province has
@@ -518,6 +528,7 @@ class GeonameAnnotator(Annotator):
         if len(features) == 0:
             doc.tiers['geonames'] = AnnoTier([])
             return doc
+
         scores = self.geoname_classifier.predict_proba_base([
             list(f.values()) for f in features])
         for geoname, feature, score in zip(candidate_geonames, features, scores):
