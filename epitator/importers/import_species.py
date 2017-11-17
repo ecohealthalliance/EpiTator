@@ -8,8 +8,9 @@ from __future__ import print_function
 import sqlite3
 from StringIO import StringIO
 from zipfile import ZipFile
-from urllib import urlopen
+from urllib2 import urlopen
 from tempfile import NamedTemporaryFile
+import os
 from ..get_database_connection import get_database_connection
 from ..utils import batched
 
@@ -22,7 +23,7 @@ ITIS_URL = "https://www.itis.gov/downloads/itisSqlite.zip"
 def download_itis_database():
     print("Downloading ITIS data from: " + ITIS_URL)
     url = urlopen(ITIS_URL)
-    zipfile = ZipFile(StringIO(url.read()))
+    zipfile = ZipFile(StringIO(url.read(int(url.headers['content-length']))))
     print("Download complete")
     named_temp_file = NamedTemporaryFile()
     itis_version = zipfile.filelist[0].filename.split('/')[0]
@@ -52,7 +53,11 @@ def import_species(drop_previous=False):
     if current_itis_version:
         print("The species data has already been imported. Run this again with --drop-previous to re-import it.")
         return
-    itis_db_file, itis_version = download_itis_database()
+    if os.environ.get('ITIS_DB_PATH'):
+        itis_db_file = open(os.environ.get('ITIS_DB_PATH'))
+        itis_version = os.environ.get('ITIS_VERSION')
+    else:
+        itis_db_file, itis_version = download_itis_database()
     itis_db = sqlite3.connect(itis_db_file.name)
     cur.execute("INSERT INTO metadata VALUES ('itis_version', ?)", (itis_version,))
     itis_cur = itis_db.cursor()
