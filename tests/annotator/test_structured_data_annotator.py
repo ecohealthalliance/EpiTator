@@ -5,6 +5,7 @@ import unittest
 from epitator.annotator import AnnoDoc
 from epitator.structured_data_annotator import StructuredDataAnnotator
 
+
 class TestStructuredDataAnnotator(unittest.TestCase):
 
     def setUp(self):
