@@ -9,7 +9,7 @@ Installation
 .. code:: bash
 
     pip install epitator
-    python -m spacy download en_core_web_md
+    python -m spacy download en_core_web_sm
 
 
 Annotators
@@ -84,7 +84,7 @@ Usage
     doc.add_tiers(ResolvedKeywordAnnotator())
     annotations = doc.tiers["resolved_keywords"].spans
     annotations[0].resolutions
-    # = [{'uri': u'http://purl.obolibrary.org/obo/DOID_8736', 'weight': 3, 'label': u'smallpox'}]
+    # = [{'entity': <sqlite3.Row>, 'entity_id': u'http://purl.obolibrary.org/obo/DOID_8736', 'weight': 3}]
 
 
 Count Annotator
