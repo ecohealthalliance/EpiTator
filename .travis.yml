@@ -23,3 +23,4 @@ script:
   - "python -m unittest discover -p 'test_ne_annotator.py'"
   - "python -m unittest discover -p 'test_pos_annotator.py'"
   - "python -m unittest discover -p 'test_date_annotator.py'"
+  - "python -m unittest discover -p 'test_structured_data_annotator.py'"

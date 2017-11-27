@@ -5,5 +5,5 @@ import os
 if os.environ.get('SPACY_MODEL_SHORTCUT_LINK'):
     spacy_nlp = spacy.load(os.environ.get('SPACY_MODEL_SHORTCUT_LINK'))
 else:
-    import en_core_web_sm as spacy_model
+    import en_core_web_md as spacy_model
     spacy_nlp = spacy_model.load()

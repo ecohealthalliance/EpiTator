@@ -133,7 +133,9 @@ class DateAnnotator(Annotator):
                     week_start = date_to_datetime_range("1 " + rest)[0]
                     week_start = date_to_datetime_range(
                         "Sunday",
-                        relative_base=week_start)[0]
+                        # A day is added because if the base date is on Sunday
+                        # the prior sunday will be used.
+                        relative_base=week_start + relativedelta(days=1))[0]
                     for _ in range(ordinal_number - 1):
                         week_start = date_to_datetime_range(
                             "Sunday",

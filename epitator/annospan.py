@@ -11,10 +11,11 @@ class AnnoSpan(object):
     def __repr__(self):
         return u'{0}-{1}:{2}'.format(self.start, self.end, self.label)
 
-    def __init__(self, start, end, doc, label=None):
+    def __init__(self, start, end, doc, label=None, metadata=None):
         self.start = start
         self.end = end
         self.doc = doc
+        self.metadata = metadata
 
         if label is None:
             self.label = self.text

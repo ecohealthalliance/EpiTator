@@ -91,7 +91,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
             doc.tiers['geonames'].spans[0].geoname['admin1_code'], 'PA')
 
     def test_adjacent_state_name_2(self):
-        doc = AnnoDoc("In the city of Springfield, IL.")
+        doc = AnnoDoc("In the city of Springfield, IL")
         doc.add_tier(self.annotator)
         self.assertEqual(
             doc.tiers['geonames'].spans[0].geoname['geonameid'], '4250542')
@@ -166,7 +166,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
                 self.assertTrue(
                     len(set(alternate.spans).intersection(geoname.spans)) > 0)
             for span in geoname.spans:
-                if span.start == 3 and span.end == 39:
+                if span.start == 3 and span.end == 47:
                     combined_span_found = True
         self.assertTrue(combined_span_found)
 
