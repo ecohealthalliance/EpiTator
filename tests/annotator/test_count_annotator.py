@@ -243,16 +243,6 @@ As of [Thu 7 Sep 2017], there have been a total of:
             sent, counts = example
             self.assertHasCounts(sent, counts)
 
-    def test_internals(self):
-        from epitator.count_annotator import search_spans_for_regex
-        import epitator.result_aggregators as ra
-        doc = AnnoDoc('Deaths: 2')
-        doc.add_tier(self.annotator)
-        ra.follows([
-            search_spans_for_regex(
-                'deaths(\s?:)?', doc.tiers['spacy.tokens'].spans),
-            search_spans_for_regex('\d+', doc.tiers['spacy.tokens'].spans)])
-
     def test_full_article(self):
         """
         Tests a full length article
@@ -343,6 +333,10 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
         # new in New York.
         self.assertHasCounts('5 cases of Dengue in New York.', [
             {'attributes': ['case']}])
+
+    def test_space_delimited_counts(self):
+        self.assertHasCounts('There were 197 000 deaths in 2007.',
+                             [{'count': 197000, 'attributes': ['case', 'death']}])
 
     # Currently failing. Uncomment after spacy model update.
     # def test_counts_with_spaces(self):
