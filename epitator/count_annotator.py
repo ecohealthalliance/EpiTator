@@ -55,15 +55,6 @@ def is_valid_count(count_string):
     return True
 
 
-def search_spans_for_regex(regex_term, spans, match_name=None):
-    regex = re.compile(r'^' + regex_term + r'$', re.I)
-    match_spans = []
-    for span in spans:
-        if regex.match(span.text):
-            match_spans.append(span)
-    return match_spans
-
-
 class CountAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
@@ -90,9 +81,21 @@ class CountAnnotator(Annotator):
                         if is_valid_count(range_end.text):
                             counts.append(SpanGroup([range_end], 'count'))
 
-        def search_regex(regex_term, match_name=None):
-            return ra.label(match_name, search_spans_for_regex(
-                regex_term, spacy_tokens.spans))
+        def search_document(regex_term, match_name=None):
+            regex = re.compile(r'\b' + regex_term + r'\b', re.I)
+            match_spans = []
+            for match in regex.finditer(doc.text):
+                [start, end] = match.span()
+                match_spans.append(AnnoSpan(start, end, doc))
+            return ra.label(match_name, match_spans)
+
+        def search_spans(regex_term, match_name=None):
+            regex = re.compile(r'^' + regex_term + r'$', re.I)
+            match_spans = []
+            for span in spacy_tokens.spans:
+                if regex.match(span.text):
+                    match_spans.append(span)
+            return ra.label(match_name, match_spans)
 
         spacy_lemmas = [span.token.lemma_ for span in spacy_tokens]
 
@@ -105,20 +108,22 @@ class CountAnnotator(Annotator):
             return AnnoTier(ra.label(match_name, match_spans))
 
         # Add purely numeric counts that were not picked up by the NER.
-        counts += AnnoTier(search_regex(r'[1-9]\d{0,6}', 'count')
+        counts += AnnoTier(search_spans(r'[1-9]\d{0,6}', 'count')
                            ).without_overlaps(spacy_nes).spans
+        # Add delimited numbers
+        counts += AnnoTier(search_document(r'[1-9]\d{0,2}((\s\d{3})+|(,\d{3})+)', 'count'))
         # Add count ranges
         ranges = ra.follows([counts,
                              ra.label('range',
-                                      ra.follows([search_regex(r'to|and|or'),
+                                      ra.follows([search_spans(r'to|and|or'),
                                                   counts]))])
         counts_tier = AnnoTier(ranges + counts).optimal_span_set()
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
-            ra.follows([search_regex('age'), search_regex('of'), counts]))
+            ra.follows([search_spans('age'), search_spans('of'), counts]))
         # Remove distances
         counts_tier = counts_tier.without_overlaps(
-            ra.follows([counts, search_regex('kilometers|km|miles|mi')]))
+            ra.follows([counts, search_spans('kilometers|km|miles|mi')]))
         # Remove counts that overlap a date
         counts_tier = counts_tier.without_overlaps(doc.tiers['dates'])
         modifier_lemma_groups = [

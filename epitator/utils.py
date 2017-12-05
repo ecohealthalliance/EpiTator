@@ -72,10 +72,14 @@ def parse_spelled_number(num_str):
         return None
     totals = [0]
     numeric_tokens_found = False
+    prev_digits = False
     for t in cleaned_tokens:
         number = parse_number(t)
         if number is not None:
-            totals[-1] = number
+            if prev_digits:
+                totals[-1] = totals[-1] * 1000 + number
+            else:
+                totals[-1] += number
         elif t in NUMBERS:
             # Ex: twenty one
             totals[-1] += NUMBERS[t]
@@ -96,6 +100,7 @@ def parse_spelled_number(num_str):
                 return None
             else:
                 continue
+        prev_digits = number is not None
         numeric_tokens_found = True
     if numeric_tokens_found:
         return sum(totals)
