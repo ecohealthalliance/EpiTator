@@ -507,7 +507,9 @@ class GeonameAnnotator(Annotator):
         for feature in features:
             feature.set_contextual_features()
 
+    # deprecated
     def cull_geospans(self, geo_spans):
+        print("The cull geospans function has been deprecated.")
         mwis = find_maximum_weight_interval_set([
             Interval(
                 geo_span.start,
@@ -519,7 +521,6 @@ class GeonameAnnotator(Annotator):
             for geo_span in geo_spans
         ])
         retained_spans = [interval.corresponding_object for interval in mwis]
-        logger.info('overlapping geospans removed')
         return retained_spans
 
     def annotate(self, doc):
@@ -553,5 +554,6 @@ class GeonameAnnotator(Annotator):
                 geo_span = GeoSpan(
                     span.start, span.end, doc, geoname)
                 geo_spans.append(geo_span)
-        culled_geospans = self.cull_geospans(geo_spans)
-        return {'geonames': AnnoTier(culled_geospans)}
+        culled_geospans = AnnoTier(geo_spans).optimal_span_set(prefer=lambda x: (x.size(), x.geoname.score,))
+        logger.info('overlapping geospans removed')
+        return {'geonames': culled_geospans}

@@ -105,27 +105,27 @@ class CountAnnotator(Annotator):
             for span, lemma in zip(spacy_tokens, spacy_lemmas):
                 if lemma in lemmas:
                     match_spans.append(span)
-            return AnnoTier(ra.label(match_name, match_spans))
-
+            return AnnoTier(ra.label(match_name, match_spans), presorted=True)
         # Add purely numeric counts that were not picked up by the NER.
-        counts += AnnoTier(search_spans(r'[1-9]\d{0,6}', 'count')
-                           ).without_overlaps(spacy_nes).spans
+        counts += AnnoTier(search_spans(r'[1-9]\d{0,6}', 'count'), presorted=True).without_overlaps(spacy_nes).spans
         # Add delimited numbers
-        counts += AnnoTier(search_document(r'[1-9]\d{0,2}((\s\d{3})+|(,\d{3})+)', 'count'))
-        # Add count ranges
-        ranges = ra.follows([counts,
-                             ra.label('range',
-                                      ra.follows([search_spans(r'to|and|or'),
-                                                  counts]))])
-        counts_tier = AnnoTier(ranges + counts).optimal_span_set()
+        counts += search_document(r'[1-9]\d{0,2}((\s\d{3})+|(,\d{3})+)', 'count')
+        counts_tier = AnnoTier(counts)
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
-            ra.follows([search_spans('age'), search_spans('of'), counts]))
+            AnnoTier(search_spans('age'))
+                .with_following_spans_from(search_spans('of'))
+                .with_following_spans_from(counts_tier))
         # Remove distances
         counts_tier = counts_tier.without_overlaps(
-            ra.follows([counts, search_spans('kilometers|km|miles|mi')]))
+            counts_tier.with_following_spans_from(search_spans('kilometers|km|miles|mi')))
         # Remove counts that overlap a date
         counts_tier = counts_tier.without_overlaps(doc.tiers['dates'])
+        # Add count ranges
+        ranges = counts_tier.with_following_spans_from(
+            ra.label('range',
+                     AnnoTier(search_spans(r'to|and|or'), presorted=True).with_following_spans_from(counts_tier)))
+        counts_tier = (counts_tier + ranges).optimal_span_set()
         modifier_lemma_groups = [
             'average|mean',
             'annual|annually',
@@ -207,7 +207,7 @@ class CountAnnotator(Annotator):
         single_sentence_counts = []
         for sentence, group in spacy_sentences.group_spans_by_containing_span(all_potential_counts):
             single_sentence_counts += group
-        annotated_counts = AnnoTier(single_sentence_counts
+        annotated_counts = AnnoTier(single_sentence_counts, presorted=True
                                     ).optimal_span_set(prefer='num_spans_and_no_linebreaks')
         attributes = [
             # count precisions
@@ -267,4 +267,4 @@ class CountAnnotator(Annotator):
                     'attributes': sorted(list(matching_attributes)),
                     'count': count
                 }))
-        return {'counts': AnnoTier(count_spans)}
+        return {'counts': AnnoTier(count_spans, presorted=True)}
