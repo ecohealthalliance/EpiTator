@@ -114,8 +114,8 @@ class CountAnnotator(Annotator):
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
             AnnoTier(search_spans('age'))
-                .with_following_spans_from(search_spans('of'))
-                .with_following_spans_from(counts_tier))
+            .with_following_spans_from(search_spans('of'))
+            .with_following_spans_from(counts_tier))
         # Remove distances
         counts_tier = counts_tier.without_overlaps(
             counts_tier.with_following_spans_from(search_spans('kilometers|km|miles|mi')))

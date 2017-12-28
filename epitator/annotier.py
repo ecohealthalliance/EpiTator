@@ -175,9 +175,11 @@ class AnnoTier(object):
         span_groups = extended_spans.group_spans_by_containing_span(other_tier,
                                                                     allow_partial_containment=True)
         if allow_overlap:
-            starts_before_f = lambda span_a, span_b: span_a.start < span_b.start
+            def starts_before_f(span_a, span_b):
+                return span_a.start < span_b.start
         else:
-            starts_before_f = lambda span_a, span_b: span_a.end < span_b.start
+            def starts_before_f(span_a, span_b):
+                return span_a.end < span_b.start
         result = []
         for extended_span, span_group in span_groups:
             idx = 0
