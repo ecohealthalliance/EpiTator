@@ -155,7 +155,8 @@ class CountAnnotator(Annotator):
                     'kill',
                     'claim',
                     'fatality',
-                    'decease'
+                    'decease',
+                    'deceased'
                 ], 'death') +
             search_lemmas(
                 [
@@ -169,7 +170,8 @@ class CountAnnotator(Annotator):
                     'case',
                     'infect',
                     'infection',
-                    'strike'
+                    'strike',
+                    'stricken'
                 ], 'case'))
         case_statuses = (
             search_lemmas(['suspect'], 'suspected') +
