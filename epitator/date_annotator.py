@@ -204,14 +204,19 @@ class DateAnnotator(Annotator):
             r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier
-        # Group adjacent date info incase it is parsed as separate chunks.
+        # Group adjacent date info in case it is parsed as separate chunks.
         # ex: Friday, October 7th 2010.
         adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)
         grouped_date_spans = []
+
+        def is_individually_parsable(text):
+            try:
+                return strict_parser.get_date_data(text)['date_obj'] != None
+            except TypeError:
+                return False
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
-            if any(strict_parser.get_date_data(span.text)['date_obj'] is None
-                   for span in date_group_spans):
+            if any(not is_individually_parsable(span.text) for span in date_group_spans):
                 if date_to_datetime_range(date_group.text) is not None:
                     grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
