@@ -23,7 +23,12 @@ class AnnoSpan(object):
             self.label = label
 
     def __lt__(self, other):
-        return self.start < other.start
+        if self.start < other.start:
+            return True
+        elif self.start == other.start:
+            return len(self) < len(other)
+        else:
+            return False
 
     def __len__(self):
         return len(self.text)

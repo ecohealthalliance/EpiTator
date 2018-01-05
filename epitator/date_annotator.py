@@ -204,31 +204,35 @@ class DateAnnotator(Annotator):
             r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier
-        # Group adjacent date info incase it is parsed as separate chunks.
+        # Group adjacent date info in case it is parsed as separate chunks.
         # ex: Friday, October 7th 2010.
         adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)
         grouped_date_spans = []
+
+        def is_individually_parsable(text):
+            try:
+                return strict_parser.get_date_data(text)['date_obj'] != None
+            except TypeError:
+                return False
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
-            if any(strict_parser.get_date_data(span.text)['date_obj'] is None
-                   for span in date_group_spans):
+            if any(not is_individually_parsable(span.text) for span in date_group_spans):
                 if date_to_datetime_range(date_group.text) is not None:
                     grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
-        date_range_spans = ra.follows([
-            date_span_tier,
-            [t_span for t_span in doc.tiers['spacy.tokens']
-             if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$",
-                         t_span.text,
-                         re.I)],
-            date_span_tier], max_dist=1, label='date_range')
-        since_tokens = ra.label('since_token', [
+        date_range_spans = ra.label('date_range',
+                                    date_span_tier.with_following_spans_from(
+                                        [t_span for t_span in doc.tiers['spacy.tokens']
+                                         if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$",
+                                                     t_span.text,
+                                                     re.I)]).with_following_spans_from(date_span_tier))
+        since_tokens = AnnoTier(ra.label('since_token', [
             t_span for t_span in doc.tiers['spacy.tokens']
-            if 'since' == t_span.token.lemma_])
+            if 'since' == t_span.token.lemma_]), presorted=True)
         since_date_spans = ra.label(
             'since_date',
-            ra.follows([since_tokens, date_span_tier], allow_overlap=True) +
-            date_span_tier.with_contained_spans_from(since_tokens).spans)
+            since_tokens.with_following_spans_from(date_span_tier, allow_overlap=True) +
+            date_span_tier.with_contained_spans_from(since_tokens))
         tier_spans = []
         all_date_spans = AnnoTier(
             date_range_spans +
@@ -316,4 +320,4 @@ class DateAnnotator(Annotator):
             # like 2 to 3 weeks ago.
             if datetime_range[0] <= datetime_range[1]:
                 tier_spans.append(DateSpan(date_span, datetime_range))
-        return {'dates': AnnoTier(tier_spans)}
+        return {'dates': AnnoTier(tier_spans, presorted=True)}

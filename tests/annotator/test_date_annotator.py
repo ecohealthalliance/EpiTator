@@ -108,6 +108,15 @@ class DateAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
 
+
+    def test_dateparse_bug_2(self):
+        # The current version of the date annotator tries to parse 72\n1994, which triggers an exception
+        # in the dateparse library.
+        doc = AnnoDoc("""
+        Year Cases Fatal
+        1991 46,320 697\n1992 31,870 208\n1993 6,833 72\n1994 1,785 16\n1995 2,160 23""")
+        doc.add_tier(self.annotator)
+
     def test_relative_date_range(self):
         text = "between Thursday and Friday"
         doc = AnnoDoc(text, date=datetime.datetime(2017, 7, 15))

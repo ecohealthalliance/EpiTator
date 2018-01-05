@@ -4,20 +4,23 @@ from __future__ import absolute_import
 import json
 import six
 from . import result_aggregators as ra
-from .annospan import SpanGroup
+from .annospan import SpanGroup, AnnoSpan
 
 
 class AnnoTier(object):
     """
     A group of AnnoSpans stored sorted by start offset.
     """
-    def __init__(self, spans=None):
+    def __init__(self, spans=None, presorted=False):
         if spans is None:
             self.spans = []
         elif isinstance(spans, AnnoTier):
             self.spans = list(spans.spans)
         else:
-            self.spans = sorted(spans)
+            if presorted:
+                self.spans = spans
+            else:
+                self.spans = sorted(spans)
 
     def __repr__(self):
         return ('AnnoTier([' +
@@ -150,6 +153,43 @@ class AnnoTier(object):
         that are near eachother.
         """
         return AnnoTier(ra.near([self, other_tier], max_dist=max_dist))
+
+    def with_following_spans_from(self, other_tier, max_dist=1, allow_overlap=False):
+        """
+        Create a new tier from pairs of spans where the one in the other tier follows a span from this tier.
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three four')
+        >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc),
+        ...                   AnnoSpan(8, 13, doc)])
+        >>> tier2 = AnnoTier([AnnoSpan(14, 18, doc)])
+        >>> tier1.with_following_spans_from(tier2)
+        AnnoTier([SpanGroup(text=three four, label=None, 8-13:three, 14-18:four)])
+        """
+        extended_spans = []
+        for span in self:
+            extended_spans.append(
+                AnnoSpan(span.start, span.end + max_dist + 1, span.doc, metadata=span))
+        extended_spans = AnnoTier(extended_spans, presorted=True)
+        span_groups = extended_spans.group_spans_by_containing_span(other_tier,
+                                                                    allow_partial_containment=True)
+        if allow_overlap:
+            def starts_before_f(span_a, span_b):
+                return span_a.start < span_b.start
+        else:
+            def starts_before_f(span_a, span_b):
+                return span_a.end < span_b.start
+        result = []
+        for extended_span, span_group in span_groups:
+            idx = 0
+            for span in span_group:
+                if starts_before_f(extended_span.metadata, span):
+                    break
+                idx += 1
+            for span in span_group[idx:]:
+                result.append(SpanGroup([extended_span.metadata, span]))
+        return AnnoTier(result)
 
     def combined_adjacent_spans(self, max_dist=1):
         """
