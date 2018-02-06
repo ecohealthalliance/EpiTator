@@ -238,7 +238,7 @@ class CountAnnotatorAlt(Annotator):
             # added by Toph to differentiate
             'caseLikeWord',
             'caseWord',
-            'personDescription',
+            # 'personDescription',
         ]
         count_spans = []
         for match in annotated_counts:
