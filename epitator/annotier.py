@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 import json
 import six
+from itertools import compress
 from . import result_aggregators as ra
 from .annospan import SpanGroup, AnnoSpan
 
@@ -88,6 +89,43 @@ class AnnoTier(object):
                 span_group.append(other_spans[other_span_idx_2])
                 other_span_idx_2 += 1
             yield span, span_group
+
+
+    def spans_contained_by_span(self, selector_span):
+        """
+        Return a list of spans that are contained by a "selector span".
+
+        >>> from epitator.annospan import AnnoSpan
+        >>> from epitator.annodoc import AnnoDoc
+        >>> from epitator.annotier import AnnoTier
+        >>> doc = AnnoDoc('one two three')
+        >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
+        >>> span1 = AnnoSpan(3, 9, doc)
+        >>> tier1.spans_overlapped_by_span(span1)
+        [4-7:two]
+        """
+        selectors = [selector_span.contains(span) for span in self.spans]
+        return(
+            list(compress(self.spans, selectors))
+        )
+
+    def spans_overlapped_by_span(self, selector_span):
+        """
+        Return a list of spans that overlap a "selector span".
+
+        >>> from epitator.annospan import AnnoSpan
+        >>> from epitator.annodoc import AnnoDoc
+        >>> from epitator.annotier import AnnoTier
+        >>> doc = AnnoDoc('one two three')
+        >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
+        >>> span1 = AnnoSpan(0, 1, doc)
+        >>> tier1.spans_overlapped_by_span(span1)
+        [0-3:one]
+        """
+        selectors = [selector_span.overlaps(span) for span in self.spans]
+        return(
+            list(compress(self.spans, selectors))
+        )
 
     def with_label(self, label):
         """
