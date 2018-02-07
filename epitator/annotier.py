@@ -37,6 +37,9 @@ class AnnoTier(object):
     def __iter__(self):
         return iter(self.spans)
 
+    def __getitem__(self, idx):
+        return self.spans[idx]
+
     def to_json(self):
         docless_spans = []
         for span in self.spans:
