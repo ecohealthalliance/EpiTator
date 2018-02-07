@@ -92,11 +92,10 @@ class AnnoTier(object):
                 other_span_idx_2 += 1
             yield span, span_group
 
-
     def spans_contained_by_span(self, selector_span):
         """
         Return a list of spans that are contained by a "selector span".
-        
+
         >>> from epitator.annospan import AnnoSpan
         >>> from epitator.annodoc import AnnoDoc
         >>> from epitator.annotier import AnnoTier

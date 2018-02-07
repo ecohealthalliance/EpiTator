@@ -211,7 +211,7 @@ class DateAnnotator(Annotator):
 
         def is_individually_parsable(text):
             try:
-                return strict_parser.get_date_data(text)['date_obj'] != None
+                return strict_parser.get_date_data(text)['date_obj'] is not None
             except TypeError:
                 return False
         for date_group in adjacent_date_spans:
