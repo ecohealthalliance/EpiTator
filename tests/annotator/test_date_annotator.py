@@ -108,7 +108,6 @@ class DateAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc(text)
         doc.add_tier(self.annotator)
 
-
     def test_dateparse_bug_2(self):
         # The current version of the date annotator tries to parse 72\n1994, which triggers an exception
         # in the dateparse library.

@@ -36,6 +36,9 @@ class AnnoTier(object):
     def __iter__(self):
         return iter(self.spans)
 
+    def __getitem__(self, idx):
+        return self.spans[idx]
+
     def to_json(self):
         docless_spans = []
         for span in self.spans:
@@ -88,6 +91,40 @@ class AnnoTier(object):
                 span_group.append(other_spans[other_span_idx_2])
                 other_span_idx_2 += 1
             yield span, span_group
+
+    def spans_contained_by_span(self, selector_span):
+        """
+        Return a list of spans that are contained by a "selector span".
+
+        >>> from epitator.annospan import AnnoSpan
+        >>> from epitator.annodoc import AnnoDoc
+        >>> from epitator.annotier import AnnoTier
+        >>> doc = AnnoDoc('one two three')
+        >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
+        >>> span1 = AnnoSpan(3, 9, doc)
+        >>> tier1.spans_contained_by_span(span1)
+        AnnoTier([4-7:two])
+        """
+        return(
+            AnnoTier([span for span in self if selector_span.contains(span)])
+        )
+
+    def spans_overlapped_by_span(self, selector_span):
+        """
+        Return a list of spans that overlap a "selector span".
+
+        >>> from epitator.annospan import AnnoSpan
+        >>> from epitator.annodoc import AnnoDoc
+        >>> from epitator.annotier import AnnoTier
+        >>> doc = AnnoDoc('one two three')
+        >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
+        >>> span1 = AnnoSpan(0, 1, doc)
+        >>> tier1.spans_overlapped_by_span(span1)
+        AnnoTier([0-3:one])
+        """
+        return(
+            AnnoTier([span for span in self if selector_span.overlaps(span)])
+        )
 
     def with_label(self, label):
         """
