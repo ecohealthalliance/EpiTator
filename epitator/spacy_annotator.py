@@ -35,6 +35,8 @@ class SpacyAnnotator(Annotator):
         spacy_doc = spacy_nlp(doc.text)
         tiers['spacy.sentences'] = AnnoTier([
             SentSpan(sent, doc) for sent in spacy_doc.sents])
+        tiers['spacy.noun_chunks'] = AnnoTier([
+            SentSpan(chunk, doc) for chunk in spacy_doc.noun_chunks])
         for token in spacy_doc:
             start = token.idx
             end = token.idx + len(token)
