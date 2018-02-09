@@ -3,6 +3,7 @@
 Annotates counts with the following attributes:
 cumulative, case, death, age, hospitalization, approximate, min, max
 """
+
 import re
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
@@ -185,4 +186,3 @@ class CountAnnotatorNounChunks(Annotator):
                 if len(attributes) is not 0:
                     count_spans.append(CountSpan(count_span, metadata)) # This one includes verbs
         return {'counts_alt.noun_chunks': AnnoTier(count_spans, presorted=True)}
-
