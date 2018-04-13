@@ -66,7 +66,7 @@ attribute_lemmas = {
 
 def generate_metadata_for_words(words, attribute_lemmas = attribute_lemmas):
     """
-    Given an iterable of text words, return a metadata object suitable for a
+    Given an iterable of text words, returns a metadata object suitable for a
     CountSpan(). This is a dict optionally containing a list of "attributes"
     and an integer or double "count". The attributes returned are based on the
     dicts in the attribute_lemmas dict -- different for nouns, verbs, and
@@ -93,10 +93,8 @@ def generate_metadata_for_words(words, attribute_lemmas = attribute_lemmas):
     quant_idx = [i for (i, w) in enumerate(words) if w.ent_type_ in ['CARDINAL', 'QUANTITY'] and w.dep_ == 'nummod']
 
     if len(quant_idx) == 0:
-        # print("No quantity tokens found.")
         pass
     elif len(quant_idx) > 1:
-        # print("More than one quantity token found.")
         # TODO: Handle this!
         pass
     else:
@@ -108,10 +106,9 @@ def generate_metadata_for_words(words, attribute_lemmas = attribute_lemmas):
     # the words in the iterable for category lemmas. We use the words part of
     # speech to select the right lemmas dict.
     for i, w in enumerate(words):
-        for category, lemmas in attribute_lemmas.get(w.pos_, {}).items(): # Clever girl
+        for category, lemmas in attribute_lemmas.get(w.pos_, {}).items():
             if w.lemma_ in lemmas:
                 attributes.append(category)
-                # print("{} ({}) matches {} in category {}".format(w, w.pos_, w.lemma_, category))
 
     metadata['attributes'] = attributes
     return(metadata)
@@ -187,16 +184,7 @@ def count_span_from_noun_chunk(nc):
     end = max([w.idx + len(w) for w in spacy_words])
     anno_span = AnnoSpan(start, end, nc.span.doc)
 
-    # FIXME: This is a little kludgy. But maybe it's as good as it can be.
     merged_metadata = merge_dicts(metadata_dicts, unique=["attributes"], simplify=["count"])
-    # merged_metadata = defaultdict(list)
-    # for d in metadata_dicts:
-    #     for key, value in d.items():
-    #         merged_metadata[key].append(value)
-    # merged_metadata["attributes"] = flatten(merged_metadata["attributes"])
-    # merged_metadata["count"] = flatten(merged_metadata["count"], simplify=True)
-    # merged_metadata = dict(merged_metadata)
-    # merged_metadata["sources"] = sources
 
     count_span = CountSpan(anno_span, merged_metadata)
 
@@ -204,6 +192,7 @@ def count_span_from_noun_chunk(nc):
 
 
 class CountAnnotator2(Annotator):
+
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
@@ -211,10 +200,10 @@ class CountAnnotator2(Annotator):
         spacy_sentences = doc.tiers['spacy.sentences']
         spacy_nes = doc.tiers['spacy.nes']
         noun_chunks = doc.tiers['spacy.noun_chunks']
-        spacy_doc = spacy_tokens[0].token.doc
 
         count_spans = []
         for i, nc in enumerate(noun_chunks):
             count_spans.append(count_span_from_noun_chunk(nc))
         count_spans = [cs for cs in count_spans if cs is not None]
+
         return {'counts': AnnoTier(count_spans, presorted = True)}
