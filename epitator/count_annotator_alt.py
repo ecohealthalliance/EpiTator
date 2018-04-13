@@ -44,10 +44,10 @@ def parse_count_text(count_text, verbose=False):
         pass # Try to parse it as a spelled number
         count = utils.parse_spelled_number(count_text)
     if count == None:
-        print("Could not parse {}.".format(count_text))
+        # print("Could not parse {}.".format(count_text))
         raise(ValueError)
     else:
-        print("Parsed {} as {}.".format(count_text, count)) if verbose == True else None
+        # print("Parsed {} as {}.".format(count_text, count)) if verbose == True else None
         return(count)
 
 
@@ -78,7 +78,7 @@ class CountAnnotatorDepTree(Annotator):
                 try:
                     metadata = {'count': parse_count_text(token.text)}
                 except ValueError:
-                    print("Skipping {}.".format(token.text))
+                    # print("Skipping {}.".format(token.text))
                     continue
 
                 token_list = [token]
