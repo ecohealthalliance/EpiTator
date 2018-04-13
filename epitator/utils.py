@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 import re
+from collections import defaultdict
 
 NUMBERS = {
     'zero': 0,
@@ -118,3 +119,63 @@ def batched(iterable, batch_size=100):
             yield batch
             batch = []
     yield batch
+
+
+def flatten(l, unique=False, simplify=False):
+    """
+    Flattens an arbitrarily deep list or set to a depth-one list.
+
+    simplify -- Simplification is inspired by a similar concept in R, where a
+    value which would otherwise be a length-one list is returned as an atomic
+    value.
+
+    unique -- Removes duplicate values values.
+    """
+    out = []
+    for item in l:
+        if isinstance(item, (list, tuple)):
+            out.extend(flatten(item))
+        else:
+            out.append(item)
+    if unique == True:
+        out = list(set(out))
+    if simplify == True:
+        if len(out) == 0:
+            return None
+        if len(out) == 1:
+            return(out[0])
+        else:
+            pass
+    return out
+
+
+
+def merge_dicts(dicts, unique=False, simplify=False):
+    """
+    Merges a list of dictionaries, returning a single dictionary with combined
+    values from all dictionaries in the list.
+
+    The parameters simplify and unique can be given as boolean, in which case
+    they apply to all keys, or as a list of keys which they apply to.
+
+    simplify -- Simplification is inspired by a similar concept in R, where a
+    value which would otherwise be a length-one list is returned as an atomic
+    value.
+
+    unique -- Removes duplicate values values.
+
+    Note: There is commented-out code for a dict comprehension version which
+    is fancy but actually less understandable.
+    """
+    merged_dicts = defaultdict(list)
+    
+    for d in dicts:
+        for key, value in d.items():
+            merged_dicts[key].append(value)
+    
+    for key, value in merged_dicts.items():
+        u_arg = unique if isinstance(unique, bool) else (key in unique)
+        s_arg = simplify if isinstance(simplify, bool) else (key in simplify)
+        merged_dicts[key] = flatten(value, simplify=s_arg, unique=u_arg)        
+    
+    return(dict(merged_dicts))
