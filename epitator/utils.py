@@ -149,7 +149,6 @@ def flatten(l, unique=False, simplify=False):
     return out
 
 
-
 def merge_dicts(dicts, unique=False, simplify=False):
     """
     Merges a list of dictionaries, returning a single dictionary with combined
@@ -179,3 +178,7 @@ def merge_dicts(dicts, unique=False, simplify=False):
         merged_dicts[key] = flatten(value, simplify=s_arg, unique=u_arg)        
     
     return(dict(merged_dicts))
+
+
+def verboseprint(verbose=False, *args, **kwargs):
+    print(*args, **kwargs) if verbose else lambda *args, **kwargs: None

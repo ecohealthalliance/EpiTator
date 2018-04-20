@@ -8,11 +8,6 @@ from .utils import parse_spelled_number, flatten, merge_dicts
 from lazy import lazy
 
 
-# Perhaps it's better to use a proper logging framework?
-def verboseprint(verbose=False, *args, **kwargs):
-    print(*args, **kwargs) if verbose else lambda *args, **kwargs: None
-
-
 class CountSpan(AnnoSpan):
     def __init__(self, span, metadata):
         self.start = span.start
@@ -39,10 +34,8 @@ def parse_count_text(count_text, verbose=False):
     except ValueError:
         pass
     if count is None:
-        # print("Could not parse {}.".format(count_text))
         raise(ValueError)
     else:
-        verboseprint('Parsed "{}" as "{}".'.format(count_text, count), verbose=verbose)
         return(count)
 
 
