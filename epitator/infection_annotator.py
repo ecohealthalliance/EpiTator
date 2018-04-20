@@ -1,11 +1,8 @@
-from .annodoc import AnnoDoc
-from .annospan import AnnoSpan, SpanGroup
+from .annospan import AnnoSpan
 from .annotier import AnnoTier
 from .annotator import Annotator
-from .spacy_annotator import SpacyAnnotator, SentSpan, TokenSpan
-from .spacy_nlp import spacy_nlp
-from .utils import parse_spelled_number, flatten, merge_dicts
-from lazy import lazy
+from .spacy_annotator import SpacyAnnotator, SentSpan
+from .utils import parse_spelled_number, merge_dicts
 
 
 class CountSpan(AnnoSpan):
@@ -202,9 +199,6 @@ class InfectionAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
-        spacy_tokens = doc.tiers['spacy.tokens']
-        spacy_sentences = doc.tiers['spacy.sentences']
-        spacy_nes = doc.tiers['spacy.nes']
         noun_chunks = doc.tiers['spacy.noun_chunks']
 
         count_spans = []
