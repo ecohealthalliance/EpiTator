@@ -1,11 +1,16 @@
-from epitator.annodoc import AnnoDoc
-from epitator.annospan import AnnoSpan, SpanGroup
-from epitator.annotier import AnnoTier
-from epitator.annotator import Annotator
-from epitator.spacy_annotator import SpacyAnnotator, SentSpan, TokenSpan
-from epitator.spacy_nlp import spacy_nlp
-from epitator.utils import parse_spelled_number, flatten, merge_dicts
+from .annodoc import AnnoDoc
+from .annospan import AnnoSpan, SpanGroup
+from .annotier import AnnoTier
+from .annotator import Annotator
+from .spacy_annotator import SpacyAnnotator, SentSpan, TokenSpan
+from .spacy_nlp import spacy_nlp
+from .utils import parse_spelled_number, flatten, merge_dicts
 from lazy import lazy
+
+
+# Perhaps it's better to use a proper logging framework?
+def verboseprint(verbose=False, *args, **kwargs):
+    print(*args, **kwargs) if verbose else lambda *args, **kwargs: None
 
 
 class CountSpan(AnnoSpan):
@@ -24,38 +29,42 @@ class CountSpan(AnnoSpan):
 
 
 def parse_count_text(count_text, verbose=False):
+    # verboseprint = print if verbose else lambda *a, **k: None
     try:
         count = int(count_text)
     except ValueError:
-        pass # Try to parse it as a float
+        pass  # Try to parse it as a float
     try:
-        count = float(count_text)
-    except ValueError:
-        pass # Try to parse it as a spelled number
         count = parse_spelled_number(count_text)
-    if count == None:
+    except ValueError:
+        pass
+    if count is None:
         # print("Could not parse {}.".format(count_text))
         raise(ValueError)
     else:
-        # print("Parsed {} as {}.".format(count_text, count)) if verbose == True else None
+        verboseprint('Parsed "{}" as "{}".'.format(count_text, count), verbose=verbose)
         return(count)
 
 
 attribute_lemmas = {
     "NOUN": {
         # Patient is included under "infection" and "person"
-        "infection": ["case", "victim", "infection", "instance", "diagnosis", "patient"],
+        "infection": ["case", "victim", "infection", "instance", "diagnosis",
+                      "patient"],
         "death": ["death", "fatality"],
         "hospitalization": ["hospitalization"],
-        # We include "people" because it doesn't lemmatize to "person" for some reason.
-        "person": ["people", "person", "victim", "patient", "man", "woman", "male", "female", "employee"]
+        # We include "people" because it doesn't lemmatize to "person" for
+        # some reason.
+        "person": ["people", "person", "victim", "patient", "man", "woman",
+                   "male", "female", "employee"]
     },
     "ADJ": {
         "infection": ["infected", "sickened"],
         "death": ["dead", "deceased"],
         "hospitalization": ["hospitalized"]
     },
-    # Stricken is in there because of spaCy not getting it as a past participle of "strike".
+    # Stricken is in there because of spaCy not getting it as a past
+    # participle of "strike".
     "VERB": {
         "infection": ["infect", "sicken", "stricken", "strike", "diagnose"],
         "death": ["die"],
@@ -64,7 +73,7 @@ attribute_lemmas = {
 }
 
 
-def generate_metadata_for_words(words, attribute_lemmas = attribute_lemmas):
+def generate_metadata_for_words(words, attribute_lemmas=attribute_lemmas):
     """
     Given an iterable of text words, returns a metadata object suitable for a
     CountSpan(). This is a dict optionally containing a list of "attributes"
@@ -85,7 +94,7 @@ def generate_metadata_for_words(words, attribute_lemmas = attribute_lemmas):
 
     metadata = {}
     attributes = []
-    
+
     # First we handle quantaties and cardinal numbers.
     # FIXME: It's probably silly to do this differently for counts, but I think
     # it's useful to use the index to determine whether we actually have two
@@ -186,13 +195,17 @@ def count_span_from_noun_chunk(nc):
 
     merged_metadata = merge_dicts(metadata_dicts, unique=["attributes"], simplify=["count"])
 
+    # Checks for integrity.
+    # - Is "count" at most one value?
+    if "count" in merged_metadata.values() and isinstance(merged_metadata["count"], list):
+        raise TypeError("Metadata includes multiple count values.")
+
     count_span = CountSpan(anno_span, merged_metadata)
 
     return count_span
 
 
-class CountAnnotator2(Annotator):
-
+class InfectionAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
@@ -206,4 +219,4 @@ class CountAnnotator2(Annotator):
             count_spans.append(count_span_from_noun_chunk(nc))
         count_spans = [cs for cs in count_spans if cs is not None]
 
-        return {'counts': AnnoTier(count_spans, presorted = True)}
+        return {'infections': AnnoTier(count_spans, presorted=True)}
