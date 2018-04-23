@@ -74,6 +74,16 @@ class AnnoSpan(object):
         """
         return SpanGroup([self, other_span], self.label)
 
+    def trimmed(self):
+        start = self.start
+        end = self.end
+        doc_text = self.doc.text
+        while doc_text[start] == " " and start < end:
+            start += 1
+        while doc_text[end - 1] == " " and start < end:
+            end -= 1
+        return AnnoSpan(start, end, self.doc)
+
     def size(self):
         return self.end - self.start
 

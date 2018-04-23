@@ -5,6 +5,16 @@ import unittest
 from epitator.annotator import AnnoDoc
 from epitator.structured_data_annotator import StructuredDataAnnotator
 
+def stringify_data_annospans(structured_data):
+    if structured_data['type'] == 'table':
+        structured_data['data'] = [
+            [value.text for value in row]
+            for row in structured_data['data']]
+    else:
+        structured_data['data'] = {
+            key.text: value.text
+            for key, value in structured_data['data'].items()}
+    return structured_data
 
 class TestStructuredDataAnnotator(unittest.TestCase):
 
@@ -22,7 +32,7 @@ imposed a travel ban to prevent further spread of the animal virus.
 A map can be accessed at: http://example.com
 ''')
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['structuredData'].spans, [])
+        self.assertEqual(doc.tiers['structured_data'].spans, [])
 
     def test_count_table(self):
         doc = AnnoDoc('''
@@ -32,7 +42,11 @@ A map can be accessed at: http://example.com
         *New cases were reported between 25-29 Jun 2014
         ''')
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['structuredData'].spans[0].metadata, {
+        metadatas = [
+            stringify_data_annospans(span.metadata)
+            for span in doc.tiers['structured_data'].spans
+        ]
+        self.assertEqual(metadatas[0], {
             'data': [
                 ['Cases', '22', '544', '140', '75', '759'],
                 ['Deaths', '14', '291', '128', '48', '467']
@@ -59,7 +73,11 @@ Equidae / 6 / 0 / 0 / 0 / 0
 Sheep/goats / 15 / 0 / 0 / 0 / 0
 ''')
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['structuredData'].spans[0].metadata, {
+        metadatas = [
+            stringify_data_annospans(span.metadata)
+            for span in doc.tiers['structured_data'].spans
+        ]
+        self.assertEqual(metadatas[0], {
             'data': {
                 'Date of start of the outbreak': '10 Oct 2017',
                 'Epidemiological unit': 'other',
@@ -68,7 +86,7 @@ Sheep/goats / 15 / 0 / 0 / 0 / 0
             },
             'type': 'keyValuePairs'
         })
-        self.assertEqual(doc.tiers['structuredData'].spans[1].metadata, {
+        self.assertEqual(metadatas[1], {
             'type': 'table',
             'data': [
                 ['Affected animals: species', 'susceptible', 'cases', 'deaths', 'killed and disposed of', 'slaughtered'],
@@ -76,7 +94,7 @@ Sheep/goats / 15 / 0 / 0 / 0 / 0
             ],
             'type': 'table'
         })
-        self.assertEqual(doc.tiers['structuredData'].spans[2].metadata, {
+        self.assertEqual(metadatas[2], {
             'type': 'table',
             'data': [
                 ['species', 'susceptible', 'cases', 'deaths', 'killed and disposed of', 'slaughtered'],
@@ -111,7 +129,11 @@ Boolean County - 1 case (not including the fatality)
 Integer County - 3 cases
 ''')
         doc.add_tier(self.annotator)
-        self.assertEqual(doc.tiers['structuredData'].spans[0].metadata, {
+        metadatas = [
+            stringify_data_annospans(span.metadata)
+            for span in doc.tiers['structured_data'].spans
+        ]
+        self.assertEqual(metadatas[0], {
             'type': 'keyValuePairs',
             'data': {
                 'ArithmeticError County': '1 case',
