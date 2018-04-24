@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
+from .structured_data_annotator import StructuredDataAnnotator
 from . import result_aggregators as ra
 from dateparser.date import DateDataParser
 from dateutil.relativedelta import relativedelta
@@ -130,7 +131,10 @@ class DateAnnotator(Annotator):
                 elif unit == 'week':
                     if ordinal_number > 4:
                         return
-                    week_start = date_to_datetime_range("1 " + rest)[0]
+                    parsed_remainder = date_to_datetime_range("1 " + rest)
+                    if not parsed_remainder:
+                        return
+                    week_start = parsed_remainder[0]
                     week_start = date_to_datetime_range(
                         "Sunday",
                         # A day is added because if the base date is on Sunday
@@ -184,6 +188,8 @@ class DateAnnotator(Annotator):
                 # base date was used when parsing so the date is relative.
                 return result[0]
 
+        if 'structured_data' not in doc.tiers:
+            doc.add_tiers(StructuredDataAnnotator())
         if 'spacy.nes' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
         # Create a combine tier of nes and regex dates
@@ -192,16 +198,17 @@ class DateAnnotator(Annotator):
         regex = re.compile(
             r"\b("
             # date MonthName yyyy
-            r"(\d{1,2}\s\w{3,}\s\d{4})|"
+            r"(\d{1,2}\s[a-zA-Z]{3,}\s\d{4})|"
             # dd-mm-yyyy
             r"(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})|"
             # yyyy-MMM-dd
-            r"(\d{1,4}\s?[\/\-]\s?\w{3,4}\s?[\/\-]\s?\d{1,4})|"
+            r"(\d{1,4}\s?[\/\-]\s?[a-z]{3,4}\s?[\/\-]\s?\d{1,4})|"
             # yyyy-mm-dd
             r"(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})"
             # Negative lookahead to prevent matches on other types of slash
             # separated data.
-            r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
+            # r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
+            r")\b", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier
         # Group adjacent date info in case it is parsed as separate chunks.
@@ -209,14 +216,17 @@ class DateAnnotator(Annotator):
         adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)
         grouped_date_spans = []
 
-        def is_individually_parsable(text):
+        def can_combine(text):
+            if re.match(r"\d{4}", text, re.I):
+                # year only date
+                return True
             try:
-                return strict_parser.get_date_data(text)['date_obj'] is not None
+                return strict_parser.get_date_data(text)['date_obj'] is None
             except TypeError:
-                return False
+                return True
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
-            if any(not is_individually_parsable(span.text) for span in date_group_spans):
+            if any(can_combine(span.text) for span in date_group_spans):
                 if date_to_datetime_range(date_group.text) is not None:
                     grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
@@ -239,7 +249,16 @@ class DateAnnotator(Annotator):
             grouped_date_spans +
             date_span_tier.spans +
             since_date_spans)
-        all_date_spans = all_date_spans.optimal_span_set(prefer='text_length')
+        
+        date_spans_without_structured_data = all_date_spans.without_overlaps(doc.tiers['structured_data'])
+        date_spans_in_structured_data = []
+        dates_by_structured_value = doc.tiers['structured_data.values']\
+            .group_spans_by_containing_span(all_date_spans, allow_partial_containment=False)
+        for value_span, date_spans in dates_by_structured_value:
+            date_spans_in_structured_data += date_spans
+        all_date_spans = AnnoTier(
+            date_spans_without_structured_data.spans + date_spans_in_structured_data
+        ).optimal_span_set(prefer='text_length')
         for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.

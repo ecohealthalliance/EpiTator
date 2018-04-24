@@ -43,14 +43,16 @@ class StructuredDataAnnotator(Annotator):
 
     def annotate(self, doc):
         spans = []
+        value_spans = []
         for token, start, end in table_parser.scanString(doc.text):
-                data = [[
-                    AnnoSpan(value_start, value_end, doc).trimmed()
-                    for ((value_start, value), (value_end, _)) in row] for row in token]
-                spans.append(AnnoSpan(start, end, doc, "table", metadata={
+            data = [[
+                AnnoSpan(value_start, value_end, doc).trimmed()
+                for ((value_start, value), (value_end, _)) in row] for row in token]
+            spans.append(AnnoSpan(start, end, doc, "table", metadata={
                 "type": "table",
                 "data": data
             }))
+            value_spans += [value for row in data for value in row]
         for token, start, end in key_value_list_parser.scanString(doc.text):
             data = {
                 AnnoSpan(key_start, key_end, doc).trimmed(): AnnoSpan(value_start, value_end, doc).trimmed()
@@ -60,4 +62,8 @@ class StructuredDataAnnotator(Annotator):
                 "type": "keyValuePairs",
                 "data": data
             }))
-        return {'structured_data': AnnoTier(spans)}
+            value_spans += data.values()
+        return {
+            'structured_data': AnnoTier(spans),
+            'structured_data.values': AnnoTier(value_spans)
+        }

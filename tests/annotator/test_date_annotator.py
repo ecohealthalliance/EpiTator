@@ -185,6 +185,23 @@ class DateAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertEqual(doc.tiers['dates'].spans, [])
 
+    def test_date_table(self):
+        doc = AnnoDoc('''
+        Cumulative case data
+        Report date / Cases / Deaths
+        26 Jun 2017 / 190 / 10
+        15 Sep 2017 / 319 / 14
+        ''')
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2017, 6, 26),
+             datetime.datetime(2017, 6, 27)])
+        self.assertEqual(
+            doc.tiers['dates'].spans[1].datetime_range,
+            [datetime.datetime(2017, 9, 15),
+             datetime.datetime(2017, 9, 16)])
+
     def test_month_of_year(self):
         example = "Dengue cases were increasing in the 3rd month of the year [2017]."
         doc = AnnoDoc(example)
@@ -220,6 +237,10 @@ For the first time since 1998, a case of yellow fever has been confirmed.
             [datetime.datetime(1998, 1, 1),
              datetime.datetime(2017, 12, 10)])
 
+    def test_incorrect_date_grouping_bug(self):
+        doc = AnnoDoc('''
+A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung Hospital the 1st week of September [2016]. In July [2016], a 62-year-old man had died of the disease in northwest Delhi's Jyoti Nagar.''')
+        doc.add_tier(self.annotator)
 
 if __name__ == '__main__':
     unittest.main()

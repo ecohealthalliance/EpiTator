@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.structured_incident_annotator import StructuredIncidentAnnotator
+import datetime
 
 def remove_empty_props(d):
     return {
@@ -31,8 +32,6 @@ class TestStructuredIncidentAnnotator(unittest.TestCase):
             remove_empty_props(span.metadata)
             for span in doc.tiers['structured_incidents'].spans
         ]
-        for m in metadatas:
-            print m
         self.assertEqual(metadatas, [{
             # Date/country??
             # Need to include because association rules are different for tables.
@@ -111,3 +110,41 @@ Santa Catarina (SC) / 45 / 22 / 23 / - / -
 Total / 5131 / 2951 / 1023 / 1157 / 342
 """)
         doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents'].spans
+        ]
+        self.assertEqual(metadatas[3], {
+            'value': 8,
+            'type': 'caseCount',
+            'attributes': [],
+            'location': {
+                # TODO
+            }
+        })
+
+    def test_date_count_table(self):
+        doc = AnnoDoc("""
+Cumulative case data
+Report date / Cases / Deaths / New cases per week
+26 Jun 2017 / 190 / 10 /
+15 Sep 2017 / 319 / 14 /
+6 Oct 2017 / 376 / 14 /
+13 Oct 2017 / 397 / 15 / 21
+20 Oct 2017 / 431 / 17 / 34
+27 Oct 2017 / 457 / 18 / 26
+3 Nov 2017 / 486 / 19 / 29
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents'].spans
+        ]
+        self.assertEqual(metadatas[-2], {
+            'value': 19,
+            'type': 'deathCount',
+            'attributes': [],
+            'dateRange': [
+                datetime.datetime(2017, 11, 3),
+                datetime.datetime(2017, 11, 4)]
+        })
