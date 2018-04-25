@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 import re
 from collections import defaultdict
+from itertools import compress
 
 NUMBERS = {
     'zero': 0,
@@ -149,7 +150,7 @@ def flatten(l, unique=False, simplify=False):
     return out
 
 
-def merge_dicts(dicts, unique=False, simplify=False):
+def merge_dicts(dicts, unique=False, simplify=None):
     """
     Merges a list of dictionaries, returning a single dictionary with combined
     values from all dictionaries in the list.
@@ -157,11 +158,13 @@ def merge_dicts(dicts, unique=False, simplify=False):
     The parameters simplify and unique can be given as boolean, in which case
     they apply to all keys, or as a list of keys which they apply to.
 
+    TODO: Which is the proper default value?
+    unique -- Removes duplicate values values.
+
     simplify -- Simplification is inspired by a similar concept in R, where a
     value which would otherwise be a length-one list is returned as an atomic
-    value.
-
-    unique -- Removes duplicate values values.
+    value. If no argument is provided, attempts to simplify a key if any
+    instances of that key in the original dictionaries is not a list.
 
     Note: There is commented-out code for a dict comprehension version which
     is fancy but actually less understandable.
@@ -174,7 +177,17 @@ def merge_dicts(dicts, unique=False, simplify=False):
     
     for key, value in merged_dicts.items():
         u_arg = unique if isinstance(unique, bool) else (key in unique)
-        s_arg = simplify if isinstance(simplify, bool) else (key in simplify)
+
+        # s_arg = simplify if isinstance(simplify, bool) else (key in simplify)
+        if simplify is None:
+            has_key = [key in d.keys() for d in dicts]
+            values = [d[key] for d in compress(dicts, has_key)]
+            s_arg = any([not isinstance(value, list) for value in values])
+        elif isinstance(simplify, bool):
+            s_arg = simplify
+        else:
+            (key in simplify)
+
         merged_dicts[key] = flatten(value, simplify=s_arg, unique=u_arg)        
     
     return(dict(merged_dicts))
