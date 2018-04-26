@@ -120,6 +120,9 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
             'attributes': [],
             'location': {
                 # TODO
+            },
+            'dateRange': {
+                
             }
         })
 
@@ -140,7 +143,7 @@ Report date / Cases / Deaths / New cases per week
             remove_empty_props(span.metadata)
             for span in doc.tiers['structured_incidents'].spans
         ]
-        self.assertEqual(metadatas[-2], {
+        self.assertEqual(metadatas[-1], {
             'value': 19,
             'type': 'deathCount',
             'attributes': [],

@@ -11,9 +11,10 @@ from . import utils
 import re
 
 class Table():
-    def __init__(self, column_definitions, rows):
+    def __init__(self, column_definitions, rows, metadata=None):
         self.column_definitions = column_definitions
         self.rows = rows
+        self.metadata = metadata or {}
 
 def is_valid_number(num_string):
     """
@@ -95,13 +96,13 @@ class StructuredIncidentAnnotator(Annotator):
             'incident_status': AnnoTier(search_spans(r'suspected|confirmed'), presorted=True)
         }
 
-        # TODO: add columns based on surrounding text
-        #__section_title
-        #__last_location_mentioned
-        #__last_date_mentioned
         tables = []
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table': continue
+            # Add columns based on surrounding text
+            __section_title = doc.tiers['spacy.sentences'].nearest_prior_span(span)
+            __last_geoname_mentioned = geonames.nearest_prior_span(span)
+            __last_date_mentioned = dates.nearest_prior_span(span)
             rows = span.metadata['data']
             # Detect header
             all_entities = [value
@@ -118,7 +119,7 @@ class StructuredIncidentAnnotator(Annotator):
             else:
                 data_rows = rows
 
-            # determine column types
+            # Determine column types
             table_by_column = zip(*data_rows)
             column_types = []
             parsed_column_entities = []
@@ -163,7 +164,6 @@ class StructuredIncidentAnnotator(Annotator):
                 column_definitions = [
                     {'type': column_type}
                     for column_type in column_types]
-
             # Adjust columns
             # median_num_cols = median(map(len, rows))
             # for row in rows:
@@ -182,13 +182,19 @@ class StructuredIncidentAnnotator(Annotator):
             #     # TODO: Check matching column types
 
             rows = zip(*parsed_column_entities)
-            tables.append(Table(column_definitions, rows))
+            tables.append(Table(
+                column_definitions,
+                rows,
+                metadata=dict(
+                    __section_title=__section_title,
+                    __last_geoname_mentioned=__last_geoname_mentioned,
+                    __last_date_mentioned=__last_date_mentioned)))
 
         incidents = []
         for table in tables:
             for row_idx, row in enumerate(table.rows):
-                row_incident_date = None
-                row_incident_location = None
+                row_incident_date = table.metadata.get('__last_date_mentioned')
+                row_incident_location = table.metadata.get('__last_geoname_mentioned')
                 row_incident_base_type = None
                 row_incident_status = None
                 row_incident_aggregation = None
@@ -236,16 +242,16 @@ class StructuredIncidentAnnotator(Annotator):
                             incident_aggregation = "cumulative"
                         elif "new" in column_name:
                             incident_aggregation = "incremental"
-                        count = utils.parse_spelled_number(value.text)
-                        location = row_incident_location
-                        date = row_incident_date
+                        incident_count = utils.parse_spelled_number(value.text)
+                        incident_location = row_incident_location
+                        incident_date = row_incident_date
                         row_incidents.append(AnnoSpan(value.start, value.end, doc, metadata={
                             'base_type': incident_base_type,
                             'aggregation': incident_aggregation,
-                            'value': count,
+                            'value': incident_count,
                             'attributes': filter(lambda x:x, [count_status]),
-                            'location': location,
-                            'dateRange': date
+                            'location': incident_location.combined_metadata()['geoname'].to_dict() if incident_location else None,
+                            'dateRange': incident_date.combined_metadata()['datetime_range'] if incident_date else None
                         }))
                 # If a count is marked as incremental any count in the row above
                 # that value is considered cumulative.

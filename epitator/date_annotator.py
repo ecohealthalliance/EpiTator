@@ -55,10 +55,13 @@ ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
 
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
-        self.start = base_span.start
-        self.end = base_span.end
-        self.doc = base_span.doc
-        self.label = base_span.doc.text[base_span.start:base_span.end]
+        super(DateSpan, self).__init__(
+            base_span.start,
+            base_span.end,
+            base_span.doc,
+            metadata={
+                'datetime_range': datetime_range
+            })
         # The date span's datetime range is the time interval represented by
         # the span. The interval ends at the final datetime, and does not
         # include the day, minute or second of the final datetime.

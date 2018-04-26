@@ -92,9 +92,13 @@ def location_contains(loc_outer, loc_inner):
 
 class GeoSpan(AnnoSpan):
     def __init__(self, start, end, doc, geoname):
-        self.start = start
-        self.end = end
-        self.doc = doc
+        super(GeoSpan, self).__init__(
+            start,
+            end,
+            doc,
+            metadata={
+                'geoname': geoname
+            })
         self.geoname = geoname
         self.label = geoname.name
 
@@ -215,8 +219,9 @@ class GeonameFeatures(object):
             len(span.text) for span in geoname.spans])
 
         def cannonical_name_match(span, geoname):
-            if hasattr(span, "iterate_leaf_base_spans"):
-                span_text = next(span.iterate_leaf_base_spans()).text
+            first_leaf = next(span.iterate_leaf_base_spans(), None)
+            if first_leaf:
+                span_text = first_leaf.text
             else:
                 span_text = span.text
             span_in_name = span_text in geoname.name or span_text in geoname.asciiname
@@ -332,6 +337,7 @@ class GeonameAnnotator(Annotator):
         """
         if 'ngrams' not in doc.tiers:
             doc.add_tiers(NgramAnnotator())
+        logger.info('Ngrams annotated')
         if 'nes' not in doc.tiers:
             doc.add_tiers(NEAnnotator())
         logger.info('Named entities annotated')

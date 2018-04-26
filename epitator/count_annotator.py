@@ -21,11 +21,11 @@ in_case_token = spacy_nlp(u"Break glass in case of emergency.")[3]
 
 class CountSpan(AnnoSpan):
     def __init__(self, span, metadata):
-        self.start = span.start
-        self.end = span.end
-        self.doc = span.doc
-        self.label = span.text
-        self.metadata = metadata
+        super(CountSpan, self).__init__(
+            span.start,
+            span.end,
+            span.doc,
+            metadata=metadata)
 
     def to_dict(self):
         result = super(CountSpan, self).to_dict()
