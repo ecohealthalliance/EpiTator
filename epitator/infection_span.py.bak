@@ -6,7 +6,6 @@ from .spacy_annotator import SpacyAnnotator, SentSpan, TokenSpan
 from .spacy_nlp import spacy_nlp
 from .utils import parse_spelled_number, flatten, merge_dicts
 from .infection_annotator import attribute_lemmas, parse_count_text
-from lazy import lazy
 
 
 # Alternate version scratch
