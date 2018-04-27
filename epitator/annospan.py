@@ -8,8 +8,6 @@ class AnnoSpan(object):
     """
     A span of text with an annotation applied to it.
     """
-    def __repr__(self):
-        return u'{0}-{1}:{2}'.format(self.start, self.end, self.label)
 
     def __init__(self, start, end, doc, label=None, metadata=None):
         self.start = start
@@ -21,6 +19,9 @@ class AnnoSpan(object):
             self.label = self.text
         else:
             self.label = label
+
+    def __repr__(self):
+        return u'AnnoSpan({}, {}, {}, {})'.format(self.start, self.end, self.doc, self.label)
 
     def __lt__(self, other):
         if self.start < other.start:

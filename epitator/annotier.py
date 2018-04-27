@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 import json
 import six
+from textwrap import indent
 from . import result_aggregators as ra
 from .annospan import SpanGroup, AnnoSpan
 
@@ -24,8 +25,14 @@ class AnnoTier(object):
 
     def __repr__(self):
         return ('AnnoTier([' +
-                ', '.join([six.text_type(span) for span in self.spans]) +
+                ', '.join([span.__repr__() for span in self.spans]) +
                 '])')
+
+    def __str__(self):
+        text = "spans:\n"
+        for i, span in enumerate(self.spans):
+            text += "{}:\n{}\n".format(i, indent(span.__str__(), prefix = "    "))
+        return(text)
 
     def __len__(self):
         return len(self.spans)
