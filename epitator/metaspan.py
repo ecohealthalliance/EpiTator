@@ -1,4 +1,4 @@
-from .annospan import AnnoSpan
+from .annospan import AnnoSpan, SpanGroup
 from .utils import flatten, merge_dicts
 
 
