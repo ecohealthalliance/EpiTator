@@ -108,6 +108,22 @@ def parse_spelled_number(num_str):
         return sum(totals)
 
 
+def parse_count_text(count_text, verbose=False):
+    # verboseprint = print if verbose else lambda *a, **k: None
+    try:
+        count = int(count_text)
+    except ValueError:
+        pass  # Try to parse it as a float
+    try:
+        count = parse_spelled_number(count_text)
+    except ValueError:
+        pass
+    if count is None:
+        raise(ValueError)
+    else:
+        return(count)
+
+
 def batched(iterable, batch_size=100):
     """
     Sequentially yield segments of the iterable in lists of the given size.
