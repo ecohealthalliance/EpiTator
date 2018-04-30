@@ -4,7 +4,6 @@ from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
 from .structured_data_annotator import StructuredDataAnnotator
-from . import result_aggregators as ra
 from dateparser.date import DateDataParser
 from dateutil.relativedelta import relativedelta
 import re
@@ -233,26 +232,28 @@ class DateAnnotator(Annotator):
                 if date_to_datetime_range(date_group.text) is not None:
                     grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
-        date_range_spans = ra.label('date_range',
-                                    date_span_tier.with_following_spans_from(
-                                        [t_span for t_span in doc.tiers['spacy.tokens']
-                                         if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$",
-                                                     t_span.text,
-                                                     re.I)]).with_following_spans_from(date_span_tier))
-        since_tokens = AnnoTier(ra.label('since_token', [
+        
+        date_range_joiners = [
             t_span for t_span in doc.tiers['spacy.tokens']
-            if 'since' == t_span.token.lemma_]), presorted=True)
-        since_date_spans = ra.label(
-            'since_date',
+            if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$", t_span.text, re.I)]
+        date_range_tier = date_span_tier.label_spans('start')\
+                .with_following_spans_from(date_range_joiners)\
+                .with_following_spans_from(date_span_tier.label_spans('end'))\
+                .label_spans('date_range')
+        since_tokens = AnnoTier([
+            t_span for t_span in doc.tiers['spacy.tokens']
+            if 'since' == t_span.token.lemma_], presorted=True).label_spans('since_token')
+        since_date_tier = (
             since_tokens.with_following_spans_from(date_span_tier, allow_overlap=True) +
-            date_span_tier.with_contained_spans_from(since_tokens))
+            date_span_tier.with_contained_spans_from(since_tokens)
+        ).label_spans('since_date')
         tier_spans = []
         all_date_spans = AnnoTier(
-            date_range_spans +
+            date_range_tier.spans +
             grouped_date_spans +
             date_span_tier.spans +
-            since_date_spans)
-        
+            since_date_tier.spans)
+
         date_spans_without_structured_data = all_date_spans.without_overlaps(doc.tiers['structured_data'])
         date_spans_in_structured_data = []
         dates_by_structured_value = doc.tiers['structured_data.values']\
@@ -265,10 +266,12 @@ class DateAnnotator(Annotator):
         for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.
-            if_span_group = isinstance(date_span, SpanGroup)
-            if if_span_group and date_span.label == 'date_range':
-                range_components = [span.text
-                                    for span in date_span.base_spans[0::2]]
+            #is_span_group = isinstance(date_span, SpanGroup)
+            if date_span.label == 'date_range':
+                range_component_dict = date_span.groupdict()
+                range_components = [
+                    range_component_dict['start'][0].text,
+                    range_component_dict['end'][0].text]
             else:
                 range_components = re.split(r"\b(?:" + DATE_RANGE_JOINERS + r")\b",
                                             date_span.text,

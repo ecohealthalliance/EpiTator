@@ -216,7 +216,7 @@ class AnnoTier(object):
                 return span_a.start < span_b.start
         else:
             def starts_before_f(span_a, span_b):
-                return span_a.end < span_b.start
+                return span_a.end <= span_b.start
         result = []
         for extended_span, span_group in span_groups:
             idx = 0
@@ -276,3 +276,10 @@ class AnnoTier(object):
                 break
             closest_span = span
         return closest_span
+
+    def label_spans(self, label):
+        """
+        Create a new tier based on this one 
+        with labeled spans that can be looked up by groupdict.
+        """
+        return AnnoTier([SpanGroup([span], label) for span in self], presorted=True)

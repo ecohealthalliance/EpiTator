@@ -98,6 +98,15 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2010, 1, 1),
              datetime.datetime(2011, 1, 2)])
 
+
+    def test_dashes_3(self):
+        doc = AnnoDoc('Distribution of reported yellow fever cases from 1 Jul 2017-17 Apr 2018')
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,[
+                datetime.datetime(2017, 7, 1),
+                datetime.datetime(2018, 4, 18)])
+
     def test_dateparser_bug(self):
         # This triggers an exception in the dateparser library described in this
         # bug report:

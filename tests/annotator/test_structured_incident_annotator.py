@@ -114,17 +114,12 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
             remove_empty_props(span.metadata)
             for span in doc.tiers['structured_incidents'].spans
         ]
-        self.assertEqual(metadatas[3], {
-            'value': 8,
-            'type': 'caseCount',
-            'attributes': [],
-            'location': {
-                # TODO
-            },
-            'dateRange': {
-                
-            }
-        })
+        self.assertEqual(metadatas[2]['value'], 8)
+        self.assertEqual(metadatas[2]['type'], 'caseCount')
+        self.assertEqual(metadatas[2]['location']['geonameid'], '3408096')
+        self.assertEqual(metadatas[2]['dateRange'], [
+                datetime.datetime(2017, 7, 1),
+                datetime.datetime(2018, 4, 18)])
 
     def test_date_count_table(self):
         doc = AnnoDoc("""
