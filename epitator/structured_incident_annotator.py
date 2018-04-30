@@ -7,23 +7,14 @@ from .geoname_annotator import GeonameAnnotator
 from .resolved_keyword_annotator import ResolvedKeywordAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
+from .raw_number_annotator import RawNumberAnnotator
 from . import utils
-import re
 
 class Table():
     def __init__(self, column_definitions, rows, metadata=None):
         self.column_definitions = column_definitions
         self.rows = rows
         self.metadata = metadata or {}
-
-def is_valid_number(num_string):
-    """
-    Check that number can be parsed and does not begin with 0.
-    """
-    if num_string[0] == '0' and len(num_string) > 1:
-        return False
-    value = utils.parse_spelled_number(num_string)
-    return value is not None
 
 def is_null(val_string):
     val_string = val_string.strip()
@@ -53,47 +44,23 @@ class StructuredIncidentAnnotator(Annotator):
             doc.add_tiers(ResolvedKeywordAnnotator())
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
+        if 'raw_numbers' not in doc.tiers:
+            doc.add_tiers(RawNumberAnnotator())
 
         geonames = doc.tiers['geonames']
         dates = doc.tiers['dates']
         resolved_keywords = doc.tiers['resolved_keywords']
         spacy_tokens = doc.tiers['spacy.tokens']
         spacy_nes = doc.tiers['spacy.nes']
-        numbers = []
-        for ne_span in spacy_nes:
-            if ne_span.label in ['QUANTITY', 'CARDINAL']:
-                if is_valid_number(ne_span.text):
-                    numbers.append(SpanGroup([ne_span], 'count'))
-                else:
-                    joiner_offsets = [m.span()
-                                      for m in re.finditer(r'\s(?:to|and|or)\s',
-                                                           ne_span.text)]
-                    if len(joiner_offsets) == 1:
-                        range_start = AnnoSpan(ne_span.start, ne_span.start + joiner_offsets[0][0], doc)
-                        range_end = AnnoSpan(ne_span.start + joiner_offsets[0][1], ne_span.end, doc)
-                        if is_valid_number(range_start.text):
-                            numbers.append(SpanGroup([range_start], 'count'))
-                        if is_valid_number(range_end.text):
-                            numbers.append(SpanGroup([range_end], 'count'))
+        numbers = doc.tiers['raw_numbers']
 
-        def search_spans(regex_term, match_name=None):
-            regex = re.compile(r'^' + regex_term + r'$', re.I)
-            match_spans = []
-            for span in spacy_tokens.spans:
-                if regex.match(span.text):
-                    match_spans.append(SpanGroup([span], match_name))
-            return match_spans
-        # Add purely numeric numbers that were not picked up by the NER.
-        numbers += AnnoTier(search_spans(r'[1-9]\d{0,6}', 'count'), presorted=True).without_overlaps(spacy_nes).spans
-        numbers = AnnoTier(numbers)
-        
         entities_by_type = {
             'geoname': geonames,
             'date': dates,
             'resolved_keyword': resolved_keywords,
             'number': numbers,
-            'incident_type': AnnoTier(search_spans(r'(case|death)s?'), presorted=True),
-            'incident_status': AnnoTier(search_spans(r'suspected|confirmed'), presorted=True)
+            'incident_type': spacy_tokens.search_spans(r'(case|death)s?'),
+            'incident_status': spacy_tokens.search_spans(r'suspected|confirmed'),
         }
 
         tables = []

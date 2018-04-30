@@ -7,7 +7,7 @@ import json
 from . import maximum_weight_interval_set as mwis
 import six
 import re
-from .annospan import AnnoSpan
+from .annospan import AnnoSpan, SpanGroup
 from .annotier import AnnoTier
 
 
@@ -36,15 +36,18 @@ class AnnoDoc(object):
             self.tiers.update(result)
         return self
 
-    def create_regex_tier(self, regex):
+    def create_regex_tier(self, regex, label=None):
         """
         Create an AnnoTier from all the spans of text that match the regex.
         """
-        return AnnoTier([AnnoSpan(match.start(),
-                                  match.end(),
-                                  self,
-                                  match.group(0))
-                         for match in re.finditer(regex, self.text)])
+        spans = []
+        for match in re.finditer(regex, self.text):
+            spans.append(
+                SpanGroup([AnnoSpan(match.start(),
+                    match.end(),
+                    self,
+                    match.group(0))], label))
+        return AnnoTier(spans, presorted=True)
 
     def to_json(self):
         json_obj = {'text': self.text,

@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 import json
 import six
+import re
 from . import result_aggregators as ra
 from .annospan import SpanGroup, AnnoSpan
 
@@ -283,3 +284,11 @@ class AnnoTier(object):
         with labeled spans that can be looked up by groupdict.
         """
         return AnnoTier([SpanGroup([span], label) for span in self], presorted=True)
+
+    def search_spans(self, regex, label=None):
+        regex = re.compile(regex + r'$', re.I)
+        match_spans = []
+        for span in self:
+            if regex.match(span.text):
+                match_spans.append(SpanGroup([span], label))
+        return AnnoTier(match_spans, presorted=True)

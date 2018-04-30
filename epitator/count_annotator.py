@@ -4,11 +4,11 @@ Annotates counts with the following attributes:
 cumulative, case, death, age, hospitalization, approximate, min, max
 """
 from __future__ import absolute_import
-import re
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
+from .raw_number_annotator import RawNumberAnnotator
 from . import result_aggregators as ra
 from . import utils
 from .spacy_nlp import spacy_nlp
@@ -61,41 +61,12 @@ class CountAnnotator(Annotator):
             doc.add_tiers(SpacyAnnotator())
         if 'dates' not in doc.tiers:
             doc.add_tiers(DateAnnotator())
+        if 'raw_numbers' not in doc.tiers:
+            doc.add_tiers(RawNumberAnnotator())
         spacy_tokens = doc.tiers['spacy.tokens']
         spacy_sentences = doc.tiers['spacy.sentences']
         spacy_nes = doc.tiers['spacy.nes']
-        counts = []
-        for ne_span in spacy_nes:
-            if ne_span.label in ['QUANTITY', 'CARDINAL']:
-                if is_valid_count(ne_span.text):
-                    counts.append(SpanGroup([ne_span], 'count'))
-                else:
-                    joiner_offsets = [m.span()
-                                      for m in re.finditer(r'\s(?:to|and|or)\s',
-                                                           ne_span.text)]
-                    if len(joiner_offsets) == 1:
-                        range_start = AnnoSpan(ne_span.start, ne_span.start + joiner_offsets[0][0], doc)
-                        range_end = AnnoSpan(ne_span.start + joiner_offsets[0][1], ne_span.end, doc)
-                        if is_valid_count(range_start.text):
-                            counts.append(SpanGroup([range_start], 'count'))
-                        if is_valid_count(range_end.text):
-                            counts.append(SpanGroup([range_end], 'count'))
-
-        def search_document(regex_term, match_name=None):
-            regex = re.compile(r'\b' + regex_term + r'\b', re.I)
-            match_spans = []
-            for match in regex.finditer(doc.text):
-                [start, end] = match.span()
-                match_spans.append(AnnoSpan(start, end, doc))
-            return ra.label(match_name, match_spans)
-
-        def search_spans(regex_term, match_name=None):
-            regex = re.compile(r'^' + regex_term + r'$', re.I)
-            match_spans = []
-            for span in spacy_tokens.spans:
-                if regex.match(span.text):
-                    match_spans.append(span)
-            return ra.label(match_name, match_spans)
+        counts = doc.tiers['raw_numbers']
 
         spacy_lemmas = [span.token.lemma_ for span in spacy_tokens]
 
@@ -106,25 +77,20 @@ class CountAnnotator(Annotator):
                 if lemma in lemmas:
                     match_spans.append(span)
             return AnnoTier(ra.label(match_name, match_spans), presorted=True)
-        # Add purely numeric counts that were not picked up by the NER.
-        counts += AnnoTier(search_spans(r'[1-9]\d{0,6}', 'count'), presorted=True).without_overlaps(spacy_nes).spans
-        # Add delimited numbers
-        counts += search_document(r'[1-9]\d{0,2}((\s\d{3})+|(,\d{3})+)', 'count')
-        counts_tier = AnnoTier(counts)
+
+        counts_tier = AnnoTier(count for count in counts if is_valid_count(count.text))
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
-            AnnoTier(search_spans('age'))
-            .with_following_spans_from(search_spans('of'))
+            spacy_tokens.search_spans('age')
+            .with_following_spans_from(spacy_tokens.search_spans('of'))
             .with_following_spans_from(counts_tier))
         # Remove distances
         counts_tier = counts_tier.without_overlaps(
-            counts_tier.with_following_spans_from(search_spans('kilometers|km|miles|mi')))
-        # Remove counts that overlap a date
-        counts_tier = counts_tier.without_overlaps(doc.tiers['dates'])
+            counts_tier.with_following_spans_from(spacy_tokens.search_spans('kilometers|km|miles|mi')))
         # Add count ranges
         ranges = counts_tier.with_following_spans_from(
             ra.label('range',
-                     AnnoTier(search_spans(r'to|and|or'), presorted=True).with_following_spans_from(counts_tier)))
+                     spacy_tokens.search_spans(r'to|and|or').with_following_spans_from(counts_tier)))
         counts_tier = (counts_tier + ranges).optimal_span_set()
         modifier_lemma_groups = [
             'average|mean',
