@@ -13,7 +13,7 @@ pypar.ParserElement.setDefaultWhitespaceChars(" \t")
 table_parser = pypar.NoMatch()
 table_cell_separators = ["|", "/", ","]
 for separator in table_cell_separators:
-    value = pypar.Combine(word_token_regex(separator) * (1, 10), joinString=' ', adjacent=False)
+    value = pypar.Combine(word_token_regex(separator) * (0, 10), joinString=' ', adjacent=False)
     value.setParseAction(lambda start, tokens: (start, tokens[0]))
     empty = pypar.Empty()
     empty.setParseAction(lambda start, tokens: (start, tokens))
@@ -51,12 +51,12 @@ class StructuredDataAnnotator(Annotator):
                 AnnoSpan(value_start, value_end, doc).trimmed()
                 for ((value_start, value), (value_end, _)) in row] for row in token]
             new_value_spans = [value for row in data for value in row]
-            # Skip tables with one row and numeric columns since they are likely
+            # Skip tables with one row and numeric/empty columns since they are likely
             # to be confused with unstructured text punctuation.
             if len(data) == 1:
                 if len(new_value_spans) < 3:
                     continue
-                elif any(re.match(r"\d+", value.text) for value in new_value_spans):
+                elif any(re.match(r"\d*$", value.text) for value in new_value_spans):
                     continue
             spans.append(AnnoSpan(start, end, doc, "table", metadata={
                 "type": "table",
