@@ -6,12 +6,14 @@ from epitator.annotator import AnnoDoc
 from epitator.structured_incident_annotator import StructuredIncidentAnnotator
 import datetime
 
+
 def remove_empty_props(d):
     return {
         k: v
         for k, v in d.items()
         if v is not None
     }
+
 
 class TestStructuredIncidentAnnotator(unittest.TestCase):
 
@@ -26,7 +28,6 @@ class TestStructuredIncidentAnnotator(unittest.TestCase):
         Cases / 3 / 293 / 88 / 32 / 413
         Deaths / 5 / 193 / 82 / 28 / 303
         ''')
-        
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
@@ -117,9 +118,10 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
         self.assertEqual(metadatas[2]['value'], 8)
         self.assertEqual(metadatas[2]['type'], 'caseCount')
         self.assertEqual(metadatas[2]['location']['geonameid'], '3408096')
-        self.assertEqual(metadatas[2]['dateRange'], [
-                datetime.datetime(2017, 7, 1),
-                datetime.datetime(2018, 4, 18)])
+        self.assertEqual(
+            metadatas[2]['dateRange'],
+            [datetime.datetime(2017, 7, 1),
+             datetime.datetime(2018, 4, 18)])
 
     def test_date_count_table(self):
         doc = AnnoDoc("""

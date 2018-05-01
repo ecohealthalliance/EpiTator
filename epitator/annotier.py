@@ -60,7 +60,7 @@ class AnnoTier(object):
         >>> tier_a = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
         >>> tier_b = AnnoTier([AnnoSpan(0, 1, doc)])
         >>> list(tier_a.group_spans_by_containing_span(tier_b))
-        [(0-3:one, [0-1:o]), (4-7:two, [])]
+        [(AnnoSpan(0-3, one), [AnnoSpan(0-1, o)]), (AnnoSpan(4-7, two), [])]
         """
         if isinstance(other_tier, AnnoTier):
             other_spans = other_tier.spans
@@ -104,7 +104,7 @@ class AnnoTier(object):
         >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
         >>> span1 = AnnoSpan(3, 9, doc)
         >>> tier1.spans_contained_by_span(span1)
-        AnnoTier([4-7:two])
+        AnnoTier([AnnoSpan(4-7, two)])
         """
         return(
             AnnoTier([span for span in self if selector_span.contains(span)])
@@ -121,7 +121,7 @@ class AnnoTier(object):
         >>> tier1 = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])
         >>> span1 = AnnoSpan(0, 1, doc)
         >>> tier1.spans_overlapped_by_span(span1)
-        AnnoTier([0-3:one])
+        AnnoTier([AnnoSpan(0-3, one)])
         """
         return(
             AnnoTier([span for span in self if selector_span.overlaps(span)])
@@ -138,7 +138,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(4, 7, doc, 'even'),
         ...                  AnnoSpan(8, 13, doc, 'odd')])
         >>> tier.with_label("odd")
-        AnnoTier([0-3:odd, 8-13:odd])
+        AnnoTier([AnnoSpan(0-3, odd), AnnoSpan(8-13, odd)])
         """
         return AnnoTier([span for span in self if span.label == label])
 
@@ -155,7 +155,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(3, 13, doc, 'long_span'),
         ...                  AnnoSpan(8, 13, doc, 'odd')])
         >>> tier.optimal_span_set()
-        AnnoTier([0-3:odd, 3-13:long_span])
+        AnnoTier([AnnoSpan(0-3, odd), AnnoSpan(3-13, long_span)])
         """
         return AnnoTier(ra.combine([self.spans], prefer=prefer))
 
@@ -203,7 +203,7 @@ class AnnoTier(object):
         ...                   AnnoSpan(8, 13, doc)])
         >>> tier2 = AnnoTier([AnnoSpan(14, 18, doc)])
         >>> tier1.with_following_spans_from(tier2)
-        AnnoTier([SpanGroup(text=three four, label=None, 8-13:three, 14-18:four)])
+        AnnoTier([SpanGroup(text=three four, label=None, AnnoSpan(8-13, three), AnnoSpan(14-18, four))])
         """
         extended_spans = []
         for span in self:
@@ -240,7 +240,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(8, 13, doc),
         ...                  AnnoSpan(14, 18, doc)])
         >>> tier.combined_adjacent_spans()
-        AnnoTier([SpanGroup(text=one, label=None, 0-3:one), SpanGroup(text=three four, label=None, 8-13:three, 14-18:four)])
+        AnnoTier([SpanGroup(text=one, label=None, AnnoSpan(0-3, one)), SpanGroup(text=three four, label=None, AnnoSpan(8-13, three), AnnoSpan(14-18, four))])
         """
         prev_span = None
         span_groups = []
@@ -269,7 +269,7 @@ class AnnoTier(object):
         ...                  AnnoSpan(8, 13, doc),
         ...                  AnnoSpan(14, 18, doc)])
         >>> tier.nearest_prior_span(AnnoSpan(4, 7, doc))
-        AnnoSpan(text=one)
+        AnnoSpan(0-3, one)
         """
         closest_span = None
         for span in self:
@@ -280,12 +280,15 @@ class AnnoTier(object):
 
     def label_spans(self, label):
         """
-        Create a new tier based on this one 
+        Create a new tier based on this one
         with labeled spans that can be looked up by groupdict.
         """
         return AnnoTier([SpanGroup([span], label) for span in self], presorted=True)
 
     def search_spans(self, regex, label=None):
+        """
+        Search spans for one that matches the given regular expression.
+        """
         regex = re.compile(regex + r'$', re.I)
         match_spans = []
         for span in self:

@@ -232,14 +232,13 @@ class DateAnnotator(Annotator):
                 if date_to_datetime_range(date_group.text) is not None:
                     grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
-        
         date_range_joiners = [
             t_span for t_span in doc.tiers['spacy.tokens']
             if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$", t_span.text, re.I)]
         date_range_tier = date_span_tier.label_spans('start')\
-                .with_following_spans_from(date_range_joiners)\
-                .with_following_spans_from(date_span_tier.label_spans('end'))\
-                .label_spans('date_range')
+            .with_following_spans_from(date_range_joiners)\
+            .with_following_spans_from(date_span_tier.label_spans('end'))\
+            .label_spans('date_range')
         since_tokens = AnnoTier([
             t_span for t_span in doc.tiers['spacy.tokens']
             if 'since' == t_span.token.lemma_], presorted=True).label_spans('since_token')
@@ -266,7 +265,7 @@ class DateAnnotator(Annotator):
         for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.
-            #is_span_group = isinstance(date_span, SpanGroup)
+            # is_span_group = isinstance(date_span, SpanGroup)
             if date_span.label == 'date_range':
                 range_component_dict = date_span.groupdict()
                 range_components = [

@@ -43,7 +43,8 @@ class AnnoDoc(object):
         spans = []
         for match in re.finditer(regex, self.text):
             spans.append(
-                SpanGroup([AnnoSpan(match.start(),
+                SpanGroup([AnnoSpan(
+                    match.start(),
                     match.end(),
                     self,
                     match.group(0))], label))

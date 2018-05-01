@@ -10,15 +10,18 @@ from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
 from . import utils
 
+
 class Table():
     def __init__(self, column_definitions, rows, metadata=None):
         self.column_definitions = column_definitions
         self.rows = rows
         self.metadata = metadata or {}
 
+
 def is_null(val_string):
     val_string = val_string.strip()
     return val_string == "" or val_string == "-"
+
 
 def median(li):
     mid_idx = (len(li) - 1) / 2
@@ -28,9 +31,10 @@ def median(li):
     else:
         return (li[mid_idx] + li[mid_idx + 1]) / 2
 
+
 class StructuredIncidentAnnotator(Annotator):
     """
-    The structured incident annotator will find groupings of case counts and incidents 
+    The structured incident annotator will find groupings of case counts and incidents
     """
 
     def annotate(self, doc):
@@ -51,7 +55,6 @@ class StructuredIncidentAnnotator(Annotator):
         dates = doc.tiers['dates']
         resolved_keywords = doc.tiers['resolved_keywords']
         spacy_tokens = doc.tiers['spacy.tokens']
-        spacy_nes = doc.tiers['spacy.nes']
         numbers = doc.tiers['raw_numbers']
 
         entities_by_type = {
@@ -96,7 +99,6 @@ class StructuredIncidentAnnotator(Annotator):
                 # Choose column type based on greatest percent match,
                 # if under 30, choose text.
                 max_matches = 0
-                matching_values = None
                 matching_column_entities = None
                 column_type = "text"
                 for value_type, value_spans in entities_by_type.items():
@@ -113,7 +115,6 @@ class StructuredIncidentAnnotator(Annotator):
                     if num_non_null_rows > 0 and float(num_matches) / num_non_null_rows > 0.3:
                         if num_matches > max_matches:
                             max_matches = num_matches
-                            matching_values = value_spans
                             matching_column_entities = column_entities
                             column_type = value_type
                     if matching_column_entities is None:
@@ -216,7 +217,7 @@ class StructuredIncidentAnnotator(Annotator):
                             'base_type': incident_base_type,
                             'aggregation': incident_aggregation,
                             'value': incident_count,
-                            'attributes': filter(lambda x:x, [count_status]),
+                            'attributes': filter(lambda x: x, [count_status]),
                             'location': incident_location.combined_metadata()['geoname'].to_dict() if incident_location else None,
                             'dateRange': incident_date.combined_metadata()['datetime_range'] if incident_date else None
                         }))

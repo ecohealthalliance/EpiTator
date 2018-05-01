@@ -4,8 +4,10 @@ from .annotator import Annotator, AnnoTier, AnnoSpan
 import re
 import pyparsing as pypar
 
+
 def word_token_regex(disallowed_delimiter):
     return pypar.Regex(r"[^\s\n" + re.escape(disallowed_delimiter) + r"]+")
+
 
 pypar.ParserElement.setDefaultWhitespaceChars(" \t")
 table_parser = pypar.NoMatch()
@@ -35,6 +37,7 @@ for separator in key_value_separators:
         "\n").suppress() + pypar.Optional("\n").suppress())
     key_value_list_parser ^= row * (2, None)
 
+
 class StructuredDataAnnotator(Annotator):
     """
     Annotates tables and key value lists embedded in documents.
@@ -51,7 +54,7 @@ class StructuredDataAnnotator(Annotator):
             # Skip tables with one row and numeric columns since they are likely
             # to be confused with unstructured text punctuation.
             if len(data) == 1:
-                if new_value_spans < 3:
+                if len(new_value_spans) < 3:
                     continue
                 elif any(re.match(r"\d+", value.text) for value in new_value_spans):
                     continue

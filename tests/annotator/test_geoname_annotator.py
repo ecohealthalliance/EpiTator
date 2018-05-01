@@ -3,7 +3,6 @@
 """Tests for the GeonameAnnotator that annotates a sentence with locations from
 the Geonames dataset."""
 from __future__ import absolute_import
-import os
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
@@ -152,6 +151,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
         self.assertEqual(len(doc.tiers['geonames'].spans), 0)
 
     # def test_very_long_article(self):
+    #     import os
     #     with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
     #         doc = AnnoDoc(file.read())
     #         doc.add_tier(self.annotator)

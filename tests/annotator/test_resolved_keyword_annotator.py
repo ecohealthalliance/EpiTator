@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
-import os
 import unittest
 from . import test_utils
 from epitator.annotator import AnnoDoc
@@ -68,6 +67,7 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             {'id': 'http://purl.obolibrary.org/obo/DOID_635'})
 
     # def test_very_long_article(self):
+    #     import os
     #     path = os.path.dirname(__file__) + "/resources/WhereToItaly.txt"
     #     with open(path) as file:
     #         doc = AnnoDoc(file.read())

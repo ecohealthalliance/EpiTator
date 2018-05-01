@@ -5,7 +5,6 @@ cumulative, case, death, age, hospitalization, approximate, min, max
 """
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoTier, AnnoSpan
-from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator

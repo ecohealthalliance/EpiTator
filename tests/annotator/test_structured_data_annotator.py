@@ -5,6 +5,7 @@ import unittest
 from epitator.annotator import AnnoDoc
 from epitator.structured_data_annotator import StructuredDataAnnotator
 
+
 def stringify_data_annospans(structured_data):
     if structured_data['type'] == 'table':
         structured_data['data'] = [
@@ -15,6 +16,7 @@ def stringify_data_annospans(structured_data):
             key.text: value.text
             for key, value in structured_data['data'].items()}
     return structured_data
+
 
 class TestStructuredDataAnnotator(unittest.TestCase):
 

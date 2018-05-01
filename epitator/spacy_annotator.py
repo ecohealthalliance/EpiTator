@@ -8,6 +8,7 @@ from .spacy_nlp import spacy_nlp
 
 class TokenSpan(AnnoSpan):
     __slots__ = ['token']
+
     def __init__(self, token, doc):
         super(TokenSpan, self).__init__(
             token.idx,
@@ -15,8 +16,10 @@ class TokenSpan(AnnoSpan):
             doc)
         self.token = token
 
+
 class SentSpan(AnnoSpan):
     __slots__ = ['span']
+
     def __init__(self, span, doc):
         super(SentSpan, self).__init__(
             span.start_char,

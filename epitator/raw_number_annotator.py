@@ -7,6 +7,7 @@ from .date_annotator import DateAnnotator
 from . import utils
 import re
 
+
 def is_valid_number(num_string):
     """
     Check that number can be parsed and does not begin with 0.
@@ -16,10 +17,8 @@ def is_valid_number(num_string):
     value = utils.parse_spelled_number(num_string)
     return value is not None
 
+
 class RawNumberAnnotator(Annotator):
-    """
-    The structured incident annotator will find groupings of case counts and incidents 
-    """
 
     def annotate(self, doc):
         if 'dates' not in doc.tiers:

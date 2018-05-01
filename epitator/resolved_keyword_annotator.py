@@ -44,8 +44,7 @@ class ResolvedKeywordAnnotator(Annotator):
     def __init__(self):
         self.connection = get_database_connection()
         self.connection.row_factory = sqlite3.Row
-        cursor = self.connection.cursor()
-    
+
     @property
     def synonyms(self):
         cursor = self.connection.cursor()
