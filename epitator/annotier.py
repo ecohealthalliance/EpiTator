@@ -258,7 +258,7 @@ class AnnoTier(object):
             span_groups.append(SpanGroup(span_group))
         return AnnoTier(span_groups)
 
-    def nearest_prior_span(self, target_span):
+    def span_before(self, target_span):
         """
         Find the nearest span that comes before the target span.
 
@@ -268,15 +268,25 @@ class AnnoTier(object):
         >>> tier = AnnoTier([AnnoSpan(0, 3, doc),
         ...                  AnnoSpan(8, 13, doc),
         ...                  AnnoSpan(14, 18, doc)])
-        >>> tier.nearest_prior_span(AnnoSpan(4, 7, doc))
+        >>> tier.span_before(AnnoSpan(4, 7, doc))
         AnnoSpan(0-3, one)
         """
         closest_span = None
         for span in self:
-            if span.start >= target_span.end:
+            if span.start > target_span.start:
                 break
             closest_span = span
         return closest_span
+
+    def span_after(self, target_span):
+        """
+        Find the nearest span that comes after the target span.
+        """
+        span = None
+        for span in self:
+            if span.start >= target_span.end:
+                break
+        return span
 
     def label_spans(self, label):
         """
