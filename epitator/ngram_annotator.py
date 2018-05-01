@@ -8,7 +8,7 @@ from six.moves import range
 
 class NgramAnnotator(Annotator):
 
-    def annotate(self, doc, n_min=1, n_max=7):
+    def annotate(self, doc, n_min=1, n_max=5):
 
         if 'tokens' not in doc.tiers:
             doc.add_tiers(TokenAnnotator())

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from .annotator import Annotator, AnnoTier, AnnoSpan
 from .annospan import SpanGroup
 from .spacy_annotator import SpacyAnnotator
-from . import result_aggregators as ra
+from .structured_data_annotator import StructuredDataAnnotator
 from dateparser.date import DateDataParser
 from dateutil.relativedelta import relativedelta
 import re
@@ -54,10 +54,13 @@ ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
 
 class DateSpan(AnnoSpan):
     def __init__(self, base_span, datetime_range):
-        self.start = base_span.start
-        self.end = base_span.end
-        self.doc = base_span.doc
-        self.label = base_span.doc.text[base_span.start:base_span.end]
+        super(DateSpan, self).__init__(
+            base_span.start,
+            base_span.end,
+            base_span.doc,
+            metadata={
+                'datetime_range': datetime_range
+            })
         # The date span's datetime range is the time interval represented by
         # the span. The interval ends at the final datetime, and does not
         # include the day, minute or second of the final datetime.
@@ -130,7 +133,10 @@ class DateAnnotator(Annotator):
                 elif unit == 'week':
                     if ordinal_number > 4:
                         return
-                    week_start = date_to_datetime_range("1 " + rest)[0]
+                    parsed_remainder = date_to_datetime_range("1 " + rest)
+                    if not parsed_remainder:
+                        return
+                    week_start = parsed_remainder[0]
                     week_start = date_to_datetime_range(
                         "Sunday",
                         # A day is added because if the base date is on Sunday
@@ -184,6 +190,8 @@ class DateAnnotator(Annotator):
                 # base date was used when parsing so the date is relative.
                 return result[0]
 
+        if 'structured_data' not in doc.tiers:
+            doc.add_tiers(StructuredDataAnnotator())
         if 'spacy.nes' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
         # Create a combine tier of nes and regex dates
@@ -192,16 +200,17 @@ class DateAnnotator(Annotator):
         regex = re.compile(
             r"\b("
             # date MonthName yyyy
-            r"(\d{1,2}\s\w{3,}\s\d{4})|"
+            r"(\d{1,2}\s[a-zA-Z]{3,}\s\d{4})|"
             # dd-mm-yyyy
             r"(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})|"
             # yyyy-MMM-dd
-            r"(\d{1,4}\s?[\/\-]\s?\w{3,4}\s?[\/\-]\s?\d{1,4})|"
+            r"(\d{1,4}\s?[\/\-]\s?[a-z]{3,4}\s?[\/\-]\s?\d{1,4})|"
             # yyyy-mm-dd
             r"(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})"
             # Negative lookahead to prevent matches on other types of slash
             # separated data.
-            r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
+            # r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
+            r")\b", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier
         # Group adjacent date info in case it is parsed as separate chunks.
@@ -209,44 +218,59 @@ class DateAnnotator(Annotator):
         adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)
         grouped_date_spans = []
 
-        def is_individually_parsable(text):
+        def can_combine(text):
+            if re.match(r"\d{4}", text, re.I):
+                # year only date
+                return True
             try:
-                return strict_parser.get_date_data(text)['date_obj'] is not None
+                return strict_parser.get_date_data(text)['date_obj'] is None
             except TypeError:
-                return False
+                return True
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
-            if any(not is_individually_parsable(span.text) for span in date_group_spans):
+            if any(can_combine(span.text) for span in date_group_spans):
                 if date_to_datetime_range(date_group.text) is not None:
                     grouped_date_spans.append(date_group)
         # Find date ranges by looking for joiner words between dates.
-        date_range_spans = ra.label('date_range',
-                                    date_span_tier.with_following_spans_from(
-                                        [t_span for t_span in doc.tiers['spacy.tokens']
-                                         if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$",
-                                                     t_span.text,
-                                                     re.I)]).with_following_spans_from(date_span_tier))
-        since_tokens = AnnoTier(ra.label('since_token', [
+        date_range_joiners = [
             t_span for t_span in doc.tiers['spacy.tokens']
-            if 'since' == t_span.token.lemma_]), presorted=True)
-        since_date_spans = ra.label(
-            'since_date',
+            if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$", t_span.text, re.I)]
+        date_range_tier = date_span_tier.label_spans('start')\
+            .with_following_spans_from(date_range_joiners)\
+            .with_following_spans_from(date_span_tier.label_spans('end'))\
+            .label_spans('date_range')
+        since_tokens = AnnoTier([
+            t_span for t_span in doc.tiers['spacy.tokens']
+            if 'since' == t_span.token.lemma_], presorted=True).label_spans('since_token')
+        since_date_tier = (
             since_tokens.with_following_spans_from(date_span_tier, allow_overlap=True) +
-            date_span_tier.with_contained_spans_from(since_tokens))
+            date_span_tier.with_contained_spans_from(since_tokens)
+        ).label_spans('since_date')
         tier_spans = []
         all_date_spans = AnnoTier(
-            date_range_spans +
+            date_range_tier.spans +
             grouped_date_spans +
             date_span_tier.spans +
-            since_date_spans)
-        all_date_spans = all_date_spans.optimal_span_set(prefer='text_length')
+            since_date_tier.spans)
+
+        date_spans_without_structured_data = all_date_spans.without_overlaps(doc.tiers['structured_data'])
+        date_spans_in_structured_data = []
+        dates_by_structured_value = doc.tiers['structured_data.values']\
+            .group_spans_by_containing_span(all_date_spans, allow_partial_containment=False)
+        for value_span, date_spans in dates_by_structured_value:
+            date_spans_in_structured_data += date_spans
+        all_date_spans = AnnoTier(
+            date_spans_without_structured_data.spans + date_spans_in_structured_data
+        ).optimal_span_set(prefer='text_length')
         for date_span in all_date_spans:
             # Parse the span text into one or two components depending on
             # whether it contains multiple dates for specifying a range.
-            if_span_group = isinstance(date_span, SpanGroup)
-            if if_span_group and date_span.label == 'date_range':
-                range_components = [span.text
-                                    for span in date_span.base_spans[0::2]]
+            # is_span_group = isinstance(date_span, SpanGroup)
+            if date_span.label == 'date_range':
+                range_component_dict = date_span.groupdict()
+                range_components = [
+                    range_component_dict['start'][0].text,
+                    range_component_dict['end'][0].text]
             else:
                 range_components = re.split(r"\b(?:" + DATE_RANGE_JOINERS + r")\b",
                                             date_span.text,
