@@ -2,12 +2,12 @@
 requests
 unicodecsv
 lazy
-numpy==1.13.0
+numpy==1.14.1
 geopy
 python-dateutil
 dateparser
 rdflib
 six
-spacy==2.0.5
+spacy==2.0.11
 pyparsing==2.2.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_md-2.0.0/en_core_web_md-2.0.0.tar.gz

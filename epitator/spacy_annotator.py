@@ -7,20 +7,24 @@ from .spacy_nlp import spacy_nlp
 
 
 class TokenSpan(AnnoSpan):
+    __slots__ = ['token']
+
     def __init__(self, token, doc):
-        self.doc = doc
-        self.start = token.idx
-        self.end = token.idx + len(token)
-        self.label = token.text
+        super(TokenSpan, self).__init__(
+            token.idx,
+            token.idx + len(token),
+            doc)
         self.token = token
 
 
 class SentSpan(AnnoSpan):
+    __slots__ = ['span']
+
     def __init__(self, span, doc):
-        self.doc = doc
-        self.start = span.start_char
-        self.end = span.end_char
-        self.label = span.text
+        super(SentSpan, self).__init__(
+            span.start_char,
+            span.end_char,
+            doc)
         self.span = span
 
 

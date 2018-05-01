@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 
 class ResolvedKeywordSpan(AnnoSpan):
     def __init__(self, span, resolutions):
-        self.__dict__ = dict(span.__dict__)
+        super(ResolvedKeywordSpan, self).__init__(
+            span.start,
+            span.end,
+            span.doc,
+            metadata={
+                'resolutions': resolutions
+            })
         self.resolutions = resolutions
 
     def __repr__(self):
@@ -38,14 +44,18 @@ class ResolvedKeywordAnnotator(Annotator):
     def __init__(self):
         self.connection = get_database_connection()
         self.connection.row_factory = sqlite3.Row
+
+    @property
+    def synonyms(self):
         cursor = self.connection.cursor()
-        self.synonyms = list(cursor.execute("""
-        SELECT * FROM synonyms ORDER BY synonym"""))
+        return cursor.execute("""
+        SELECT * FROM synonyms ORDER BY synonym""")
 
     def annotate(self, doc):
+        logger.info('start resolved keyword annotator')
         if 'ngrams' not in doc.tiers:
             doc.add_tiers(NgramAnnotator())
-            logger.info('ngrams')
+            logger.info('%s ngrams' % len(doc.tiers['ngrams']))
         span_text_to_spans = defaultdict(list)
         for ngram_span in doc.tiers['ngrams'].spans:
             span_text = ngram_span.text
