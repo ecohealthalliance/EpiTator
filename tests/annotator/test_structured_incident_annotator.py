@@ -145,7 +145,7 @@ Report date / Cases / Deaths / New cases per week
                 datetime.datetime(2017, 11, 4)]
         })
 
-    def test_non_incident_counts(self):
+    def test_non_incident_counts_and_species(self):
         doc = AnnoDoc("""
 Species / Morbidity / Mortality / Susceptible / Cases / Deaths / Killed and disposed of / Slaughtered
 Orange Spotted Snakehead (_Channa aurantimaculata_) / 100% / 1% / 32 / 30 / 1 / 28 / 3
@@ -156,7 +156,17 @@ Orange Spotted Snakehead (_Channa aurantimaculata_) / 100% / 1% / 32 / 30 / 1 / 
             for span in doc.tiers['structured_incidents'].spans
         ]
         self.assertEqual(metadatas, [{
-            'attributes': [], 'type': 'caseCount', 'value': 30
+            'attributes': [],
+            'type': 'caseCount',
+            'value': 30,
+            'species': {
+                'id': 'tsn:642745',
+                'label': 'Channa aurantimaculata'}
         }, {
-            'attributes': [], 'type': 'deathCount', 'value': 1
+            'attributes': [],
+            'type': 'deathCount',
+            'value': 1,
+            'species': {
+                'id': 'tsn:642745',
+                'label': 'Channa aurantimaculata'}
         }])

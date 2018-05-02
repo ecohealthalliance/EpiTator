@@ -135,17 +135,20 @@ class AnnoSpan(object):
             if not isinstance(span, SpanGroup):
                 yield span
 
-    def combined_metadata(self):
+    def combined_metadata(self, merge_function=None):
         """
         Return the merged metadata dictionaries from all descendant spans.
         Presedence of matching properties follows the order of a pre-order tree traversal.
         """
+        def default_merge_function(sofar, next_value):
+            return dict(next_value, **sofar)
+        if merge_function is None:
+            merge_function = default_merge_function
         leaf_spans = list(self.iterate_base_spans())
-        leaf_spans.reverse()
         result = {}
-        for leaf_span in leaf_spans + [self]:
+        for leaf_span in [self] + leaf_spans:
             if leaf_span.metadata:
-                result.update(leaf_span.metadata)
+                result = merge_function(result, leaf_span.metadata)
         return result
 
 
