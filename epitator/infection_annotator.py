@@ -72,10 +72,9 @@ def generate_counts(tokens):
 class InfectionSpan(AnnoSpan):
     def __init__(self, source_span):
         """
-        Given a SentSpan containing a spaCy noun chunk, this will attempt to
-        construct a AnnoSpan. We generate attributes for three things: the noun
-        chunk, the remainder of the subtree, and its ancestors in the parse tree,
-        based on the attribute lemmas dict.
+        Initialized by passing in an AnnoSpan, this class will return a new
+        span based on that AnnoSpan, but with 'attributes' and 'count'
+        metadata slots populated, if appropriate.
 
         If the noun chunk contains a word related to infection, we include it and
         stop looking, because we assume that the noun chunk refers to a
@@ -101,17 +100,16 @@ class InfectionSpan(AnnoSpan):
         if "spacy.noun_chunks" not in doc.tiers:
             doc.add_tier(SpacyAnnotator())
 
-        start = source_span.start
-        end = source_span.end
         ncs = doc.tiers["spacy.noun_chunks"].spans_contained_by_span(source_span)
         if len(ncs) is 0:
-            warning("Source span does not contain a noun chunk.")
+            raise ValueError("Source span does not contain a noun chunk.")
         elif len(ncs) > 1:
             warning("Source span contains more than one noun chunk.")
+            nugget = ncs[0]
         else:
-            nc = ncs[0]
+            nugget = ncs[0]
 
-        tokens = [token for token in nc.span]
+        tokens = [token for token in nugget.span]
         metadata = merge_dicts([
             generate_attributes(tokens),
             generate_counts(tokens)
@@ -124,12 +122,12 @@ class InfectionSpan(AnnoSpan):
         elif "person" in metadata["attributes"]:
             sources = ["noun_chunk"]
 
-            disjoint_subtree = [w for w in nc.span.subtree if w.i not in [w.i for w in nc.span]]
+            disjoint_subtree = [w for w in nugget.span.subtree if w.i not in [w.i for w in nugget.span]]
             subtree_metadata = merge_dicts([
                 generate_attributes(disjoint_subtree),
                 generate_counts(disjoint_subtree)
             ], unique=True)
-            ancestors = [a for a in nc.span.root.ancestors]
+            ancestors = [a for a in nugget.span.root.ancestors]
             ancestor_metadata = merge_dicts([
                 generate_attributes(ancestors),
                 generate_counts(ancestors)
@@ -154,8 +152,7 @@ class InfectionSpan(AnnoSpan):
                 ], unique=True)
                 sources.append("ancestors")
 
-        # Checks for integrity.
-        # - Is "count" at most one value?
+        # Is "count" at most one value?
         if "count" in metadata.values() and isinstance(metadata["count"], list):
             raise TypeError("Metadata includes multiple count values.")
 
