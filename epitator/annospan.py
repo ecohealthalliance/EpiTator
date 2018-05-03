@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 EMPTY_LIST = []
 
+DEFAULT_LABEL = object()
 
 class AnnoSpan(object):
     """
@@ -12,7 +13,7 @@ class AnnoSpan(object):
     """
     __slots__ = ["start", "end", "doc", "metadata", "label", "base_spans"]
 
-    def __init__(self, start, end, doc, label=None, metadata=None):
+    def __init__(self, start, end, doc, label=DEFAULT_LABEL, metadata=None):
         self.start = start
         self.end = end
         self.doc = doc
@@ -20,7 +21,7 @@ class AnnoSpan(object):
         # Base spans is only non-empty on span groups.
         self.base_spans = EMPTY_LIST
 
-        if label is None:
+        if label is DEFAULT_LABEL:
             self.label = self.text
         else:
             self.label = label
@@ -135,36 +136,21 @@ class AnnoSpan(object):
             if not isinstance(span, SpanGroup):
                 yield span
 
-    def combined_metadata(self, merge_function=None):
-        """
-        Return the merged metadata dictionaries from all descendant spans.
-        Presedence of matching properties follows the order of a pre-order tree traversal.
-        """
-        def default_merge_function(sofar, next_value):
-            return dict(next_value, **sofar)
-        if merge_function is None:
-            merge_function = default_merge_function
-        leaf_spans = list(self.iterate_base_spans())
-        result = {}
-        for leaf_span in [self] + leaf_spans:
-            if leaf_span.metadata:
-                result = merge_function(result, leaf_span.metadata)
-        return result
-
 
 class SpanGroup(AnnoSpan):
     """
     A AnnoSpan that extends through a group of AnnoSpans.
     """
-    def __init__(self, base_spans, label=None):
+    def __init__(self, base_spans, label=None, metadata=None):
         assert isinstance(base_spans, list)
         assert len(base_spans) > 0
         super(SpanGroup, self).__init__(
             min(s.start for s in base_spans),
             max(s.end for s in base_spans),
-            base_spans[0].doc)
+            base_spans[0].doc,
+            label,
+            metadata)
         self.base_spans = base_spans
-        self.label = label
 
     def __repr__(self):
         return ("SpanGroup("

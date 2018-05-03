@@ -46,9 +46,11 @@ class RawNumberAnnotator(Annotator):
                             numbers.append(SpanGroup([range_end], 'count'))
 
         # Add purely numeric numbers that were not picked up by the NER.
-        numbers += spacy_tokens.search_spans(r'[1-9]\d{0,6}', 'count').without_overlaps(spacy_nes).spans
+        numbers += spacy_tokens.search_spans(r'[1-9]\d{0,6}', 'count')\
+            .without_overlaps(spacy_nes.without_overlaps(dates)).spans
         # Add delimited numbers
-        numbers += doc.create_regex_tier(r'[1-9]\d{1,3}((\s\d{3})+|(,\d{3})+)', 'count').spans
+        numbers += doc.create_regex_tier(
+            r'[1-9]\d{1,3}((\s\d{3})+|(,\d{3})+)', 'count').spans
         # Remove counts that overlap a date
         numbers = AnnoTier(numbers).without_overlaps(dates)
         return {'raw_numbers': numbers}

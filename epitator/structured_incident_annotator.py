@@ -10,7 +10,10 @@ from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
 from . import utils
 import re
-
+import datetime
+import logging
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
+logger = logging.getLogger(__name__)
 
 class Table():
     def __init__(self, column_definitions, rows, metadata=None):
@@ -32,6 +35,40 @@ def median(li):
     else:
         return (li[mid_idx] + li[mid_idx + 1]) / 2
 
+
+def merge_metadata(sofar, child_metadata):
+    # prefer highest weighted species
+    if "species" in sofar and "species" in child_metadata:
+        if sofar['species']['weight'] < child_metadata['species']['weight']:
+            return dict(child_metadata, **dict(sofar, species=child_metadata['species']))
+    return dict(child_metadata, **sofar)
+
+
+def combine_metadata(spans):
+    """
+    Return the merged metadata dictionaries from all descendant spans.
+    Presedence of matching properties follows the order of a pre-order tree traversal.
+    """
+    result = {}
+    for span in spans:
+        child_metadata = combine_metadata(span.base_spans)
+        if span.metadata:
+            child_metadata = merge_metadata(span.metadata, child_metadata)
+        result = merge_metadata(result, child_metadata)
+    return result
+
+
+def split_list(li):
+    group = []
+    for value in li:
+        if value:
+            group.append(value)
+        else:
+            if len(group) > 0:
+                yield group
+                group = []
+    if len(group) > 0:
+        yield group
 
 class StructuredIncidentAnnotator(Annotator):
     """
@@ -75,7 +112,6 @@ class StructuredIncidentAnnotator(Annotator):
             'incident_type': spacy_tokens.search_spans(r'(case|death)s?'),
             'incident_status': spacy_tokens.search_spans(r'suspected|confirmed'),
         }
-
         tables = []
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table':
@@ -96,6 +132,8 @@ class StructuredIncidentAnnotator(Annotator):
             #     for value_group in entities_by_type.values()
             #     for value in value_group]
             first_row = AnnoTier(rows[0])
+            logger.info("header")
+            logger.info(first_row)
             header_entities = list(first_row.group_spans_by_containing_span(numbers))
             if all(len(entity_spans) == 0 for header_span, entity_spans in header_entities):
                 has_header = True
@@ -105,6 +143,10 @@ class StructuredIncidentAnnotator(Annotator):
                 data_rows = rows[1:]
             else:
                 data_rows = rows
+
+            # Remove rows without the right number of columns
+            median_num_cols = median(map(len, rows))
+            data_rows = [row for row in rows if len(row) == median_num_cols]
 
             # Determine column types
             table_by_column = zip(*data_rows)
@@ -123,7 +165,7 @@ class StructuredIncidentAnnotator(Annotator):
                     if value_type == "number":
                         filtered_value_spans = value_spans.without_overlaps(dates)
                     column_entities = [
-                        SpanGroup(contained_spans) if len(contained_spans) > 0 else None
+                        SpanGroup(contained_spans, metadata=combine_metadata(contained_spans)) if len(contained_spans) > 0 else None
                         for group_span, contained_spans in column_values.group_spans_by_containing_span(filtered_value_spans)]
                     num_matches = sum(
                         contained_spans is not None
@@ -148,32 +190,29 @@ class StructuredIncidentAnnotator(Annotator):
                 column_definitions = [
                     {'type': column_type}
                     for column_type in column_types]
-            # Adjust columns
-            # median_num_cols = median(map(len, rows))
-            # for row in rows:
-            #     if len(row) > median_num_cols:
-            #         combine cols with unexpected types
-            #     elif len(row) < median_num_cols:
-            #         add empty cols or remove row
-            #     else:
-            #         good
 
-            # prior_table = None
-            # if len(tables) > 0:
-            #     prior_table = tables[-1]
-            # //combine with previous table
-            # if not has_header and prior_table and len(prior_table.header) == median_num_cols:
-            #     # TODO: Check matching column types
             rows = zip(*parsed_column_entities)
+            logger.info("%s rows" % len(rows))
+            date_period = None
+            for column_def, entities in zip(column_definitions, parsed_column_entities):
+                if column_def['type'] == 'date':
+                    date_diffs = []
+                    for entity_group in split_list(entities):
+                        date_diffs += [
+                            abs(d.metadata['datetime_range'][0] - next_d.metadata['datetime_range'][0])
+                            for d, next_d in zip(entity_group, entity_group[1:])]
+                    # TODO: Remove outliers
+                    date_period = sum(date_diffs, datetime.timedelta(0)) / len(date_diffs)
+                    break
             tables.append(Table(
                 column_definitions,
                 rows,
                 metadata=dict(
                     title=table_title,
+                    date_period=date_period,
                     aggregation="cumulative" if re.search("cumulative", table_title.text, re.I) else None,
                     last_geoname_mentioned=last_geoname_mentioned,
                     last_date_mentioned=last_date_mentioned)))
-
         incidents = []
         for table in tables:
             for row_idx, row in enumerate(table.rows):
@@ -238,25 +277,26 @@ class StructuredIncidentAnnotator(Annotator):
                         incident_date = row_incident_date
                         if not incident_base_type:
                             continue
-                        def prefer_highest_weight_species(sofar, next_metadata):
-                            if "species" in sofar and "species" in next_metadata:
-                                if sofar['species']['weight'] < next_metadata['species']['weight']:
-                                    return dict(next_metadata, **dict(sofar, species=next_metadata['species']))
-                            return dict(next_metadata, **sofar)
                         if incident_species:
-                            species_entity = incident_species.combined_metadata(
-                                merge_function=prefer_highest_weight_species)['species']['entity']
+                            species_entity = incident_species.metadata['species']['entity']
                             incident_species = {
                                 'id': species_entity['id'],
                                 'label': species_entity['label'],
                             }
+                        if incident_date:
+                            incident_date = incident_date.metadata['datetime_range']
+                        if table.metadata.get('date_period'):
+                            if incident_aggregation != "cumulative":
+                                incident_date = [
+                                    incident_date[0] - table.metadata.get('date_period'),
+                                    incident_date[0]]
                         row_incidents.append(AnnoSpan(value.start, value.end, doc, metadata={
                             'base_type': incident_base_type,
                             'aggregation': incident_aggregation,
                             'value': incident_count,
                             'attributes': filter(lambda x: x, [count_status]),
-                            'location': incident_location.combined_metadata()['geoname'].to_dict() if incident_location else None,
-                            'dateRange': incident_date.combined_metadata()['datetime_range'] if incident_date else None,
+                            'location': incident_location.metadata['geoname'].to_dict() if incident_location else None,
+                            'dateRange': incident_date,
                             'species': incident_species
                         }))
                 # If a count is marked as incremental any count in the row above

@@ -5,6 +5,19 @@ import unittest
 from epitator.annotator import AnnoDoc
 from epitator.structured_incident_annotator import StructuredIncidentAnnotator
 import datetime
+import logging
+
+
+def with_log_level(logger, level):
+    old_level = logger.level or logging.ERROR
+    def decorator(fun):
+        def logged_fun(*args, **kwargs):
+            logger.setLevel(level)
+            result = fun(*args, **kwargs)
+            logger.setLevel(old_level)
+            return result
+        return logged_fun
+    return decorator
 
 
 def remove_empty_props(d):
@@ -31,7 +44,7 @@ class TestStructuredIncidentAnnotator(unittest.TestCase):
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
-            for span in doc.tiers['structured_incidents'].spans
+            for span in doc.tiers['structured_incidents']
         ]
         self.assertEqual(metadatas, [{
             # Date/country??
@@ -109,7 +122,7 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
-            for span in doc.tiers['structured_incidents'].spans
+            for span in doc.tiers['structured_incidents']
         ]
         self.assertEqual(metadatas[1]['value'], 8)
         self.assertEqual(metadatas[1]['type'], 'caseCount')
@@ -119,6 +132,7 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
             [datetime.datetime(2017, 7, 1),
              datetime.datetime(2018, 4, 18)])
 
+    #@with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
     def test_date_count_table(self):
         doc = AnnoDoc("""
 Cumulative case data
@@ -126,7 +140,7 @@ Report date / Cases / Deaths / New cases per week
 26 Jun 2017 / 190 / 10 /
 15 Sep 2017 / 319 / 14 /
 6 Oct 2017 / 376 / 14 /
-13 Oct 2017 / 397 / 15 / 21
+13 Oct 2017 /
 20 Oct 2017 / 431 / 17 / 34
 27 Oct 2017 / 457 / 18 / 26
 3 Nov 2017 / 486 / 19 / 29
@@ -134,7 +148,7 @@ Report date / Cases / Deaths / New cases per week
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
-            for span in doc.tiers['structured_incidents'].spans
+            for span in doc.tiers['structured_incidents']
         ]
         self.assertEqual(metadatas[-2], {
             'value': 19,
@@ -145,6 +159,41 @@ Report date / Cases / Deaths / New cases per week
                 datetime.datetime(2017, 11, 4)]
         })
 
+    def test_date_count_table_2(self):
+        doc = AnnoDoc("""
+| Report date | Cases |
+| 6 Oct 2017  | 26    |
+| 13 Oct 2017 | 29    |
+| 20 Oct 2017 | 34    |
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas, [{
+            'value': 26,
+            'type': 'caseCount',
+            'attributes': [],
+            'dateRange': [
+                datetime.datetime(2017, 9, 29),
+                datetime.datetime(2017, 10, 6)]
+        }, {
+            'value': 29,
+            'type': 'caseCount',
+            'attributes': [],
+            'dateRange': [
+                datetime.datetime(2017, 10, 6),
+                datetime.datetime(2017, 10, 13)]
+        }, {
+            'value': 34,
+            'type': 'caseCount',
+            'attributes': [],
+            'dateRange': [
+                datetime.datetime(2017, 10, 13),
+                datetime.datetime(2017, 10, 20)]
+        }])
+
     def test_non_incident_counts_and_species(self):
         doc = AnnoDoc("""
 Species / Morbidity / Mortality / Susceptible / Cases / Deaths / Killed and disposed of / Slaughtered
@@ -153,7 +202,7 @@ Orange Spotted Snakehead (_Channa aurantimaculata_) / 100% / 1% / 32 / 30 / 1 / 
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
-            for span in doc.tiers['structured_incidents'].spans
+            for span in doc.tiers['structured_incidents']
         ]
         self.assertEqual(metadatas, [{
             'attributes': [],

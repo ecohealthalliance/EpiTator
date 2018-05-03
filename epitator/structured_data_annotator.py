@@ -19,7 +19,7 @@ for separator in table_cell_separators:
     empty.setParseAction(lambda start, tokens: (start, tokens))
     value = pypar.Group(value + empty)
     row = pypar.Group(pypar.Optional(separator).suppress() +
-                      (value + pypar.Literal(separator).suppress()) * (2, None) +
+                      (value + pypar.Literal(separator).suppress()) * (1, None) +
                       pypar.Optional(value) +
                       pypar.Literal("\n").suppress() +
                       pypar.Optional("\n").suppress())
