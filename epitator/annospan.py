@@ -7,6 +7,7 @@ EMPTY_LIST = []
 
 DEFAULT_LABEL = object()
 
+
 class AnnoSpan(object):
     """
     A span of text with an annotation applied to it.
@@ -82,6 +83,16 @@ class AnnoSpan(object):
         return SpanGroup([self, other_span], self.label)
 
     def trimmed(self):
+        """
+        Create a new AnnoSpan based on this one with the offsets adjusted
+        so that there is no white space at the beginning or end.
+
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> original_span = AnnoSpan(3, 8, doc)
+        >>> original_span.trimmed()
+        AnnoSpan(4-7, two)
+        """
         start = self.start
         end = self.end
         doc_text = self.doc.text
@@ -110,6 +121,14 @@ class AnnoSpan(object):
     def groupdict(self):
         """
         Return a dict with all the labeled matches.
+
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two wolf')
+        >>> number_span_g = SpanGroup([AnnoSpan(0, 3, doc, 'number'),
+        ...                            AnnoSpan(4, 7, doc, 'number'),
+        ...                            AnnoSpan(8, 12, doc, 'animal')])
+        >>> number_span_g.groupdict()
+        {'number': [AnnoSpan(0-3, number), AnnoSpan(4-7, number)], 'animal': [AnnoSpan(8-12, animal)]}
         """
         out = {}
         for base_span in self.base_spans:

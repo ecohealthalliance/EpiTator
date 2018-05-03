@@ -15,6 +15,7 @@ import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
+
 class Table():
     def __init__(self, column_definitions, rows, metadata=None):
         self.column_definitions = column_definitions
@@ -69,6 +70,7 @@ def split_list(li):
                 group = []
     if len(group) > 0:
         yield group
+
 
 class StructuredIncidentAnnotator(Annotator):
     """

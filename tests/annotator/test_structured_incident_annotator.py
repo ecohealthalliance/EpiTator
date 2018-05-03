@@ -10,6 +10,7 @@ import logging
 
 def with_log_level(logger, level):
     old_level = logger.level or logging.ERROR
+
     def decorator(fun):
         def logged_fun(*args, **kwargs):
             logger.setLevel(level)
@@ -132,7 +133,7 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
             [datetime.datetime(2017, 7, 1),
              datetime.datetime(2018, 4, 18)])
 
-    #@with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
+    # @with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
     def test_date_count_table(self):
         doc = AnnoDoc("""
 Cumulative case data
