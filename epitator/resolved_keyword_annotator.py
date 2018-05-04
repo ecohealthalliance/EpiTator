@@ -75,8 +75,16 @@ class ResolvedKeywordAnnotator(Annotator):
                 while ngram < result['synonym']:
                     ngram = next(ordered_ngram_iter)
                 if ngram == result['synonym']:
+                    # increase the weight of entities matching longer spans of text
+                    # as they are less likely to be false positives.
+                    if len(ngram) > 12:
+                        match_weight = 2
+                    elif len(ngram) > 10:
+                        match_weight = 1
+                    else:
+                        match_weight = 0
                     for span in span_text_to_spans[ngram]:
-                        spans_to_resolved_keywords[span].append(result)
+                        spans_to_resolved_keywords[span].append(dict(result, weight=result['weight'] + match_weight))
                         entity_ids.add(result['entity_id'])
         except StopIteration:
             pass
@@ -93,7 +101,7 @@ class ResolvedKeywordAnnotator(Annotator):
         spans = []
         for span, resolved_keywords in spans_to_resolved_keywords.items():
             sorted_resolved_keywords = sorted(resolved_keywords,
-                                              key=lambda k: k['weight'])
+                                              key=lambda k: -k['weight'])
             resolutions = []
             span_entitiy_ids = set()
             for keyword in sorted_resolved_keywords:
