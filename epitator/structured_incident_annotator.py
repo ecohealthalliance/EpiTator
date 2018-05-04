@@ -205,7 +205,7 @@ class StructuredIncidentAnnotator(Annotator):
                 metadata=dict(
                     title=table_title,
                     date_period=date_period,
-                    aggregation="cumulative" if re.search("cumulative", table_title.text, re.I) else None,
+                    aggregation="cumulative" if table_title and re.search("cumulative", table_title.text, re.I) else None,
                     last_geoname_mentioned=last_geoname_mentioned,
                     last_date_mentioned=last_date_mentioned)))
         incidents = []
