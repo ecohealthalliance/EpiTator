@@ -9,7 +9,6 @@ from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
 import re
-import datetime
 import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
