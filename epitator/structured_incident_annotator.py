@@ -8,7 +8,6 @@ from .resolved_keyword_annotator import ResolvedKeywordAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
-from . import utils
 import re
 import datetime
 import logging
@@ -129,10 +128,6 @@ class StructuredIncidentAnnotator(Annotator):
             last_date_mentioned = dates.span_before(span)
             rows = span.metadata['data']
             # Detect header
-            # all_entities = [
-            #     value
-            #     for value_group in entities_by_type.values()
-            #     for value in value_group]
             first_row = AnnoTier(rows[0])
             logger.info("header")
             logger.info(first_row)
@@ -203,8 +198,7 @@ class StructuredIncidentAnnotator(Annotator):
                         date_diffs += [
                             abs(d.metadata['datetime_range'][0] - next_d.metadata['datetime_range'][0])
                             for d, next_d in zip(entity_group, entity_group[1:])]
-                    # TODO: Remove outliers
-                    date_period = sum(date_diffs, datetime.timedelta(0)) / len(date_diffs)
+                    date_period = median(date_diffs)
                     break
             tables.append(Table(
                 column_definitions,
@@ -273,7 +267,7 @@ class StructuredIncidentAnnotator(Annotator):
                             incident_aggregation = "cumulative"
                         elif "new" in column_name:
                             incident_aggregation = "incremental"
-                        incident_count = utils.parse_spelled_number(value.text)
+                        incident_count = value.metadata['number']
                         incident_location = row_incident_location
                         incident_species = row_incident_species
                         incident_date = row_incident_date
