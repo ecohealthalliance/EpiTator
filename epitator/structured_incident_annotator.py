@@ -27,6 +27,8 @@ def is_null(val_string):
 
 
 def median(li):
+    if len(li) == 0:
+        return None
     mid_idx = (len(li) - 1) / 2
     li = sorted(li)
     if len(li) % 2 == 1:
