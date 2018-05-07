@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import csv
 import unicodecsv
+import re
 from StringIO import StringIO
 from zipfile import ZipFile
 from urllib import urlopen
@@ -69,6 +70,7 @@ def import_geonames(drop_previous=False):
         cur.execute("""DROP TABLE IF EXISTS 'alternatenames'""")
         cur.execute("""DROP TABLE IF EXISTS 'alternatename_counts'""")
         cur.execute("""DROP INDEX IF EXISTS 'alternatename_index'""")
+        cur.execute("""DROP TABLE IF EXISTS 'adminnames'""")
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='geonames'"""))) > 0
     if table_exists:
@@ -81,19 +83,32 @@ def import_geonames(drop_previous=False):
         for k, sqltype in geonames_field_mappings if sqltype]) + ")")
     cur.execute('''CREATE TABLE alternatenames
                  (geonameid text, alternatename text, alternatename_lemmatized text)''')
+    cur.execute('''CREATE TABLE adminnames
+                 (name text,
+                  country_code text, admin1_code text, admin2_code text, admin3_code text,
+                  PRIMARY KEY (country_code, admin1_code, admin2_code, admin3_code))''')
     i = 0
     geonames_insert_command = 'INSERT INTO geonames VALUES (' + ','.join([
         '?' for x, sqltype in geonames_field_mappings if sqltype]) + ')'
     alternatenames_insert_command = 'INSERT INTO alternatenames VALUES (?, ?, ?)'
+    adminnames_insert_command = 'INSERT OR IGNORE INTO adminnames VALUES (?, ?, ?, ?, ?)'
     for batch in batched(read_geonames_csv()):
         geoname_tuples = []
         alternatename_tuples = []
+        adminname_tuples = []
         for geoname in batch:
             i += 1
             total_row_estimate = 11000000
             if i % (total_row_estimate / 40) == 0:
                 print(i, '/', total_row_estimate, '+ geonames imported')
                 connection.commit()
+            if re.match(r"ADM[1-3]$", geoname['feature_code']) or re.match(r"PCL[IH]$", geoname['feature_code']):
+                adminname_tuples.append((
+                    geoname['name'],
+                    geoname['country_code'],
+                    geoname['admin1_code'],
+                    geoname['admin2_code'],
+                    geoname['admin3_code'],))
             geoname_tuples.append(
                 tuple(geoname[field]
                       for field, sqltype in geonames_field_mappings
@@ -105,6 +120,7 @@ def import_geonames(drop_previous=False):
                     alternatename.lower().strip()))
         cur.executemany(geonames_insert_command, geoname_tuples)
         cur.executemany(alternatenames_insert_command, alternatename_tuples)
+        cur.executemany(adminnames_insert_command, adminname_tuples)
     print("Creating indexes...")
     cur.execute('''
     CREATE INDEX alternatename_index

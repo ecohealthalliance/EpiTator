@@ -287,12 +287,15 @@ class StructuredIncidentAnnotator(Annotator):
                                 incident_date = [
                                     incident_date[0] - table.metadata.get('date_period'),
                                     incident_date[0]]
+                        if incident_location:
+                            incident_location = incident_location.metadata['geoname'].to_dict()
+                            del incident_location['parents']
                         row_incidents.append(AnnoSpan(value.start, value.end, doc, metadata={
                             'base_type': incident_base_type,
                             'aggregation': incident_aggregation,
                             'value': incident_count,
                             'attributes': filter(lambda x: x, [count_status]),
-                            'location': incident_location.metadata['geoname'].to_dict() if incident_location else None,
+                            'location': incident_location,
                             'dateRange': incident_date,
                             'species': incident_species
                         }))
