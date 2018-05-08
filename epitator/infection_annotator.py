@@ -1,4 +1,20 @@
+#!/usr/bin/env python
+"""
+Annotates noun chunks with:
+- 'attribute' metadata for:
+    infection, death, hospitalization, person
+- 'count' metadata
+
+TODO:
+- list noun chunks with definite and indefinite articles as ['count': 1]
+- implement 'attribute' metadata for:
+    cumulative, age, approximate, min, max
+
+These could be added in this annotator, but might be better suited elsewhere.
+"""
 from logging import warning
+from itertools import groupby
+from operator import itemgetter
 from .annospan import AnnoSpan
 from .annotier import AnnoTier
 from .annotator import Annotator
@@ -17,7 +33,7 @@ attribute_lemmas = {
         # We include "people" because it doesn't lemmatize to "person" for
         # some reason.
         "person": ["people", "person", "victim", "patient", "man", "woman",
-                   "male", "female", "employee"]
+                   "male", "female", "employee", "child"]
     },
     "ADJ": {
         "infection": ["infected", "sickened"],
@@ -27,7 +43,7 @@ attribute_lemmas = {
     # Stricken is in there because of spaCy not getting it as a past
     # participle of "strike".
     "VERB": {
-        "infection": ["infect", "sicken", "stricken", "strike", "diagnose"],
+        "infection": ["infect", "sicken", "stricken", "strike", "diagnose", "afflict"],
         "death": ["die"],
         "hospitalization": ["hospitalize", "admit"]
     }
@@ -55,17 +71,66 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
-def generate_counts(tokens):
+def generate_counts(tokens, strict=False):
     metadata = {}
     quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] and t.dep_ == 'nummod']
-    if len(quant_idx) == 0:
-        return {}
+    if len(quant_idx) == 1:
+        count_text = tokens[quant_idx[0]].text
+        metadata["count"] = parse_count_text(count_text)
     elif len(quant_idx) > 1:
-        # TODO: Handle this!
-        warning("Multiple separate counts may exist, and the result may be incorrect.")
-    count_text = tokens[quant_idx[0]].text
-    metadata["count"] = parse_count_text(count_text)
-    metadata["attributes"] = ["count"]
+        # This loop groups consecutive indices into sub-lists.
+        groups = []
+        for k, g in groupby(enumerate(quant_idx), lambda ix: ix[0] - ix[1]):
+            groups.append(list(map(itemgetter(1), list(g))))
+        if len(groups) == 1:
+            count_text = " ".join([tokens[i].text for i in groups[0]])
+            metadata["count"] = parse_count_text(count_text)
+            metadata["attributes"] = ["JOINED_CONSECUTIVE_TOKENS"]
+        elif len(groups) > 1:
+            # FIXME: This should operate on "groups"
+            warning("Multiple separate counts may exist, and the result may be incorrect.")
+            count_texts = [tokens[i].text for i in quant_idx]
+            counts = []
+            for t in count_texts:
+                counts.append(parse_count_text(t))
+            metadata["count"] = counts
+            metadata["attributes"] = ["MULTIPLE_COUNT_WARNING"]
+    elif len(quant_idx) == 0:
+        if strict is True:
+            return {}
+        elif strict is False:
+            warning("Using lax metadata generation.")
+            metadata = generate_lax_counts(tokens)
+    return(metadata)
+
+# TODO: Fix this pattern
+def generate_lax_counts(tokens):
+    metadata = {}
+    quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
+    if len(quant_idx) == 1:
+        count_text = tokens[quant_idx[0]].text
+        metadata["count"] = parse_count_text(count_text)
+    elif len(quant_idx) > 1:
+        # This loop groups consecutive indices into sub-lists.
+        groups = []
+        for k, g in groupby(enumerate(quant_idx), lambda ix: ix[0] - ix[1]):
+            groups.append(list(map(itemgetter(1), list(g))))
+        if len(groups) == 1:
+            count_text = " ".join([tokens[i].text for i in groups[0]])
+            metadata["count"] = parse_count_text(count_text)
+            metadata["attributes"] = ["JOINED_CONSECUTIVE_TOKENS"]
+        elif len(groups) > 1:
+            # FIXME: This should operate on "groups"
+            warning("Multiple separate counts may exist, and the result may be incorrect.")
+            count_texts = [tokens[i].text for i in quant_idx]
+            counts = []
+            for t in count_texts:
+                counts.append(parse_count_text(t))
+            metadata["count"] = counts
+            metadata["attributes"] = ["MULTIPLE_COUNT_WARNING"]
+    elif len(quant_idx) == 0:
+        return {}
+    metadata["attributes"].append("LAX")
     return(metadata)
 
 
@@ -152,6 +217,9 @@ class InfectionSpan(AnnoSpan):
                 ], unique=True)
                 sources.append("ancestors")
 
+        if "count" not in metadata.keys() and tokens[0].dep_ == "det":
+            metadata["count"] = 1
+
         # Is "count" at most one value?
         if "count" in metadata.values() and isinstance(metadata["count"], list):
             raise TypeError("Metadata includes multiple count values.")
@@ -164,6 +232,9 @@ class InfectionSpan(AnnoSpan):
 
 
 class InfectionAnnotator(Annotator):
+    def __init__(self, inclusion_filter=["infection", "death", "hospitalization"]):
+        self.inclusion_filter = inclusion_filter
+
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
@@ -171,7 +242,12 @@ class InfectionAnnotator(Annotator):
 
         spans = []
         for i, nc in enumerate(noun_chunks):
-            spans.append(InfectionSpan(nc))
-        spans = [span for span in spans if "infection" in span.metadata["attributes"]]
+            candidate_span = InfectionSpan(nc)
+            if self.inclusion_filter is None:
+                spans.append(candidate_span)
+            elif any([attribute in candidate_span.metadata["attributes"]
+                     for attribute in self.inclusion_filter]):
+                spans.append(candidate_span)
+        spans = [span for span in spans if len(span.metadata['attributes']) is not 0]
 
         return {'infections': AnnoTier(spans, presorted=True)}
