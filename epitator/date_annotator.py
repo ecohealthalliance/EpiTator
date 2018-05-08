@@ -199,16 +199,13 @@ class DateAnnotator(Annotator):
         regex = re.compile(
             r"\b("
             # date MonthName yyyy
-            r"(\d{1,2}\s[a-zA-Z]{3,}\s\d{4})|"
+            r"(\d{1,2} [a-zA-Z]{3,} \d{4})|"
             # dd-mm-yyyy
-            r"(\d{1,2}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,4})|"
+            r"(\d{1,2} ?[\/\-] ?\d{1,2} ?[\/\-] ?\d{1,4})|"
             # yyyy-MMM-dd
-            r"(\d{1,4}\s?[\/\-]\s?[a-z]{3,4}\s?[\/\-]\s?\d{1,4})|"
+            r"(\d{1,4} ?[\/\-] ?[a-z]{3,4} ?[\/\-] ?\d{1,4})|"
             # yyyy-mm-dd
-            r"(\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{1,2})"
-            # Negative lookahead to prevent matches on other types of slash
-            # separated data.
-            # r")\b(?!\s?[\/\-]\s?\d{1,})", re.I)
+            r"(\d{1,4} ?[\/\-] ?\d{1,2} ?[\/\-] ?\d{1,2})"
             r")\b", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier

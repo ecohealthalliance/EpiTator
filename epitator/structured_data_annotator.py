@@ -21,7 +21,7 @@ for separator in table_cell_separators:
     row = pypar.Group(pypar.Optional(separator).suppress() +
                       (value + pypar.Literal(separator).suppress()) * (1, None) +
                       pypar.Optional(value) +
-                      pypar.Literal("\n").suppress() +
+                      (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
                       pypar.Optional("\n").suppress())
     table_parser ^= row * (1, None)
 
@@ -33,8 +33,9 @@ for separator in key_value_separators:
     empty = pypar.Empty()
     empty.setParseAction(lambda start, tokens: (start, tokens))
     value = pypar.Group(value + empty)
-    row = pypar.Group(value + pypar.Literal(separator).suppress() + value + pypar.Literal(
-        "\n").suppress() + pypar.Optional("\n").suppress())
+    row = pypar.Group(value + pypar.Literal(separator).suppress() + value +
+    (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
+    pypar.Optional("\n").suppress())
     key_value_list_parser ^= row * (2, None)
 
 

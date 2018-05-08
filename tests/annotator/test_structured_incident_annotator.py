@@ -14,9 +14,13 @@ def with_log_level(logger, level):
     def decorator(fun):
         def logged_fun(*args, **kwargs):
             logger.setLevel(level)
-            result = fun(*args, **kwargs)
-            logger.setLevel(old_level)
-            return result
+            try:
+                result = fun(*args, **kwargs)
+                logger.setLevel(old_level)
+                return result
+            except:
+                logger.setLevel(old_level)
+                raise
         return logged_fun
     return decorator
 
@@ -144,8 +148,7 @@ Report date / Cases / Deaths / New cases per week
 13 Oct 2017 /
 20 Oct 2017 / 431 / 17 / 34
 27 Oct 2017 / 457 / 18 / 26
-3 Nov 2017 / 486 / 19 / 29
-""")
+3 Nov 2017 / 486 / 19 / 29""")
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
