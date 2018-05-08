@@ -103,6 +103,7 @@ def generate_counts(tokens, strict=False):
             metadata = generate_lax_counts(tokens)
     return(metadata)
 
+
 # TODO: Fix this pattern
 def generate_lax_counts(tokens):
     metadata = {}
