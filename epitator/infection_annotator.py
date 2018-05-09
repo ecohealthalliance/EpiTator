@@ -71,8 +71,9 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
-def generate_counts(tokens, strict=False):
+def generate_counts(tokens, strict=True):
     metadata = {}
+    metadata["attributes"] = []
     quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] and t.dep_ == 'nummod']
     if len(quant_idx) == 1:
         count_text = tokens[quant_idx[0]].text
@@ -94,23 +95,29 @@ def generate_counts(tokens, strict=False):
             for t in count_texts:
                 counts.append(parse_count_text(t))
             metadata["count"] = counts
-            metadata["attributes"] = ["MULTIPLE_COUNT_WARNING"]
+            metadata["attributes"].append("MULTIPLE_COUNT_WARNING")
     elif len(quant_idx) == 0:
         if strict is True:
             return {}
         elif strict is False:
-            warning("Using lax metadata generation.")
-            metadata = generate_lax_counts(tokens)
+            try:
+                metadata = generate_lax_counts(tokens)
+            except ValueError as e:
+                metadata = {}
     return(metadata)
 
 
 # TODO: Fix this pattern
+# This is lax because the spacy tokens it looks for are "or".
 def generate_lax_counts(tokens):
     metadata = {}
+    metadata["attributes"] = []
     quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
-    if len(quant_idx) == 1:
-        count_text = tokens[quant_idx[0]].text
-        metadata["count"] = parse_count_text(count_text)
+    if len(quant_idx) == 1 or len(quant_idx) == 0:
+        # If there is only one count token and it has only one of the above
+        # properties, we assume that it is because it is some other entity
+        # type, like  a year, so we return nothing for 'count'.
+        return {}
     elif len(quant_idx) > 1:
         # This loop groups consecutive indices into sub-lists.
         groups = []
@@ -128,10 +135,9 @@ def generate_lax_counts(tokens):
             for t in count_texts:
                 counts.append(parse_count_text(t))
             metadata["count"] = counts
-            metadata["attributes"] = ["MULTIPLE_COUNT_WARNING"]
-    elif len(quant_idx) == 0:
-        return {}
+            metadata["attributes"].append("MULTIPLE_COUNT_WARNING")
     metadata["attributes"].append("LAX")
+    warning("Using lax metadata generation.")
     return(metadata)
 
 
@@ -218,8 +224,20 @@ class InfectionSpan(AnnoSpan):
                 ], unique=True)
                 sources.append("ancestors")
 
+        # If we haven't already extracted a count, and there is an article in
+        # the noun chunk, we check to see if the chunk is plural. To do that,
+        # we look at all the tokens, and if a token is a noun (e.g.
+        # "patients") we check to see if the lower case version of it is the
+        # lemma (i.e. canonical singular) version of it. If none of the tokens
+        # are plural, we assume the noun phrase is singular and add a "1" to
+        # the count metadata. Otherwise, we assume that it must be a phrase
+        # like "some patients" and do nothing.
         if "count" not in metadata.keys() and tokens[0].dep_ == "det":
-            metadata["count"] = 1
+            token_is_not_lemma = [token.lower_ != token.lemma_ for token in tokens]
+            token_is_noun = [token.pos_ == 'NOUN' for token in tokens]
+            token_is_plural = ([l and n for l, n in zip(token_is_not_lemma, token_is_noun)])
+            if not any(token_is_plural):
+                metadata["count"] = 1
 
         # Is "count" at most one value?
         if "count" in metadata.values() and isinstance(metadata["count"], list):
@@ -251,4 +269,6 @@ class InfectionAnnotator(Annotator):
                 spans.append(candidate_span)
         spans = [span for span in spans if len(span.metadata['attributes']) is not 0]
 
-        return {'infections': AnnoTier(spans, presorted=True)}
+        tier = AnnoTier(spans, presorted=True).optimal_span_set()
+
+        return {'infections': tier}
