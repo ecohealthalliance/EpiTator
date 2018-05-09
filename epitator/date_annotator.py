@@ -168,7 +168,7 @@ class DateAnnotator(Annotator):
             })
             try:
                 date_data = parser.get_date_data(text)
-            except TypeError:
+            except (TypeError, ValueError):
                 return
             if date_data['date_obj']:
                 date = date_data['date_obj']
