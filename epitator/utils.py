@@ -185,6 +185,9 @@ def merge_dicts(dicts, unique=False, simplify=None):
     Note: There is commented-out code for a dict comprehension version which
     is fancy but actually less understandable.
     """
+    if not isinstance(dicts, list):
+        raise ValueError("first argument must be a list of dicts")
+
     merged_dicts = defaultdict(list)
     
     for d in dicts:

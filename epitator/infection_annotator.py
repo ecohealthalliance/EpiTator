@@ -71,7 +71,7 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
-def generate_counts(tokens, strict=True):
+def generate_counts(tokens, strict=False):
     metadata = {}
     metadata["attributes"] = []
     quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] and t.dep_ == 'nummod']
@@ -96,48 +96,49 @@ def generate_counts(tokens, strict=True):
                 counts.append(parse_count_text(t))
             metadata["count"] = counts
             metadata["attributes"].append("MULTIPLE_COUNT_WARNING")
-    elif len(quant_idx) == 0:
-        if strict is True:
-            return {}
-        elif strict is False:
-            try:
-                metadata = generate_lax_counts(tokens)
-            except ValueError as e:
-                metadata = {}
-    return(metadata)
 
+    # If we haven't already extracted a count, and there is an article in
+    # the noun chunk, we check to see if the chunk is plural. To do that,
+    # we look at all the tokens, and if a token is a noun (e.g.
+    # "patients") we check to see if the lower case version of it is the
+    # lemma (i.e. canonical singular) version of it. If none of the tokens
+    # are plural, we assume the noun phrase is singular and add a "1" to
+    # the count metadata. Otherwise, we assume that it must be a phrase
+    # like "some patients" and do nothing.
+    if "count" not in metadata.keys() and tokens[0].dep_ == "det":
+        token_is_not_lemma = [token.lower_ != token.lemma_ for token in tokens]
+        token_is_noun = [token.pos_ == 'NOUN' for token in tokens]
+        token_is_plural = ([l and n for l, n in zip(token_is_not_lemma, token_is_noun)])
+        if not any(token_is_plural):
+            metadata["count"] = 1
+            # metadata["attributes"].append("INFERRED_FROM_SINGULAR_NC")
 
-# TODO: Fix this pattern
-# This is lax because the spacy tokens it looks for are "or".
-def generate_lax_counts(tokens):
-    metadata = {}
-    metadata["attributes"] = []
-    quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
-    if len(quant_idx) == 1 or len(quant_idx) == 0:
-        # If there is only one count token and it has only one of the above
-        # properties, we assume that it is because it is some other entity
-        # type, like  a year, so we return nothing for 'count'.
-        return {}
-    elif len(quant_idx) > 1:
-        # This loop groups consecutive indices into sub-lists.
-        groups = []
-        for k, g in groupby(enumerate(quant_idx), lambda ix: ix[0] - ix[1]):
-            groups.append(list(map(itemgetter(1), list(g))))
-        if len(groups) == 1:
-            count_text = " ".join([tokens[i].text for i in groups[0]])
-            metadata["count"] = parse_count_text(count_text)
-            metadata["attributes"] = ["JOINED_CONSECUTIVE_TOKENS"]
-        elif len(groups) > 1:
-            # FIXME: This should operate on "groups"
-            warning("Multiple separate counts may exist, and the result may be incorrect.")
-            count_texts = [tokens[i].text for i in quant_idx]
-            counts = []
-            for t in count_texts:
-                counts.append(parse_count_text(t))
-            metadata["count"] = counts
-            metadata["attributes"].append("MULTIPLE_COUNT_WARNING")
-    metadata["attributes"].append("LAX")
-    warning("Using lax metadata generation.")
+    # Lax metadata generation.
+    # This is lax because the spacy tokens it looks for are "or".
+    if "count" not in metadata.keys() and strict is False:
+        try:
+            lax_quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
+            if len(lax_quant_idx) > 1:
+                warning("Using lax metadata generation.")
+                # This loop groups consecutive indices into sub-lists.
+                groups = []
+                for k, g in groupby(enumerate(lax_quant_idx), lambda ix: ix[0] - ix[1]):
+                    groups.append(list(map(itemgetter(1), list(g))))
+                if len(groups) == 1:
+                    count_text = " ".join([tokens[i].text for i in groups[0]])
+                    metadata["count"] = parse_count_text(count_text)
+                    metadata["attributes"].append("JOINED_CONSECUTIVE_TOKENS", "LAX")
+                elif len(groups) > 1:
+                    # FIXME: This should operate on "groups"
+                    warning("Multiple separate counts may exist -- even after joining consecutives -- and the result may be incorrect.")
+                    count_texts = [tokens[i].text for i in lax_quant_idx]
+                    counts = []
+                    for t in count_texts:
+                        counts.append(parse_count_text(t))
+                    metadata["count"] = counts
+                    metadata["attributes"].append("MULTIPLE_COUNT_WARNING", "JOINED_CONSECUTIVE_TOKENS", "LAX")
+        except ValueError as e:
+            metadata = {}
     return(metadata)
 
 
@@ -181,10 +182,11 @@ class InfectionSpan(AnnoSpan):
         else:
             nugget = ncs[0]
 
-        tokens = [token for token in nugget.span]
+        nc_tokens = [token for token in nugget.span]
+        tokens = nc_tokens
         metadata = merge_dicts([
             generate_attributes(tokens),
-            generate_counts(tokens)
+            # generate_counts(tokens)
         ], unique=True)
 
         if any([lemma in metadata["attributes"]
@@ -197,12 +199,12 @@ class InfectionSpan(AnnoSpan):
             disjoint_subtree = [w for w in nugget.span.subtree if w.i not in [w.i for w in nugget.span]]
             subtree_metadata = merge_dicts([
                 generate_attributes(disjoint_subtree),
-                generate_counts(disjoint_subtree)
+                # generate_counts(disjoint_subtree)
             ], unique=True)
             ancestors = [a for a in nugget.span.root.ancestors]
             ancestor_metadata = merge_dicts([
                 generate_attributes(ancestors),
-                generate_counts(ancestors)
+                # generate_counts(ancestors)
             ], unique=True)
 
             if any([lemma in subtree_metadata["attributes"]
@@ -224,20 +226,9 @@ class InfectionSpan(AnnoSpan):
                 ], unique=True)
                 sources.append("ancestors")
 
-        # If we haven't already extracted a count, and there is an article in
-        # the noun chunk, we check to see if the chunk is plural. To do that,
-        # we look at all the tokens, and if a token is a noun (e.g.
-        # "patients") we check to see if the lower case version of it is the
-        # lemma (i.e. canonical singular) version of it. If none of the tokens
-        # are plural, we assume the noun phrase is singular and add a "1" to
-        # the count metadata. Otherwise, we assume that it must be a phrase
-        # like "some patients" and do nothing.
-        if "count" not in metadata.keys() and tokens[0].dep_ == "det":
-            token_is_not_lemma = [token.lower_ != token.lemma_ for token in tokens]
-            token_is_noun = [token.pos_ == 'NOUN' for token in tokens]
-            token_is_plural = ([l and n for l, n in zip(token_is_not_lemma, token_is_noun)])
-            if not any(token_is_plural):
-                metadata["count"] = 1
+        # Generate counts from the noun chunk.
+        counts = generate_counts(nc_tokens)
+        metadata = merge_dicts([metadata, counts])
 
         # Is "count" at most one value?
         if "count" in metadata.values() and isinstance(metadata["count"], list):
