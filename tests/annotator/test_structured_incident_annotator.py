@@ -18,7 +18,7 @@ def with_log_level(logger, level):
                 result = fun(*args, **kwargs)
                 logger.setLevel(old_level)
                 return result
-            except:
+            except:  # noqa: E722
                 logger.setLevel(old_level)
                 raise
         return logged_fun
@@ -143,6 +143,8 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
 Cumulative case data
 Report date / Cases / Deaths / New cases per week
 26 Jun 2017 / 190 / 10 /
+8 Sep 2017 / 300 / 12 /
+9 Sep 2017 / 309 / 13 /
 15 Sep 2017 / 319 / 14 /
 6 Oct 2017 / 376 / 14 /
 13 Oct 2017 /
@@ -154,6 +156,14 @@ Report date / Cases / Deaths / New cases per week
             remove_empty_props(span.metadata)
             for span in doc.tiers['structured_incidents']
         ]
+        self.assertEqual(metadatas[-1], {
+            'value': 29,
+            'type': 'caseCount',
+            'attributes': [],
+            'dateRange': [
+                datetime.datetime(2017, 10, 27),
+                datetime.datetime(2017, 11, 3)]
+        })
         self.assertEqual(metadatas[-2], {
             'value': 19,
             'type': 'cumulativeDeathCount',
@@ -223,3 +233,35 @@ Orange Spotted Snakehead (_Channa aurantimaculata_) / 100% / 1% / 32 / 30 / 1 / 
                 'id': 'tsn:642745',
                 'label': 'Channa aurantimaculata'}
         }])
+
+    def test_unknown_species_and_space_delimited_counts(self):
+        doc = AnnoDoc("""
+The epidemiological statistics accumulated since the start of the event are included in the following "outbreak summary":
+
+Species / Susceptible / Cases / Deaths / Killed and disposed of / Slaughtered
+
+Birds / 6 368 632 / 1 303 173 / 1 297 617 / 3 850 608 / 0
+
+Black-crowned night-heron / not available / 1 / 1 / 0 / 0
+
+Passeridae (unidentified) / not available / 2 / 2 / 0 / 0
+
+Pale thrush / not available / 1 / 1 / 0 / 0
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0], {
+            'attributes': [],
+            'type': 'caseCount',
+            'value': 1303173,
+            'species': {'id': 'tsn:174371', 'label': 'Aves'}
+        })
+        self.assertEqual(metadatas[-1], {
+            'attributes': [],
+            'type': 'deathCount',
+            'value': 1,
+            'species': "Cannot parse"
+        })

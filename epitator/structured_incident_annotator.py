@@ -14,6 +14,9 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
 
+CANNOT_PARSE = "Cannot parse"
+
+
 class Table():
     def __init__(self, column_definitions, rows, metadata=None):
         self.column_definitions = column_definitions
@@ -97,6 +100,7 @@ class StructuredIncidentAnnotator(Annotator):
         spacy_tokens = doc.tiers['spacy.tokens']
         numbers = doc.tiers['raw_numbers']
         species_list = []
+        disease_list = []
         for k in resolved_keywords:
             for resolution in k.metadata.get('resolutions', []):
                 if resolution['entity']['type'] == 'species':
@@ -105,6 +109,14 @@ class StructuredIncidentAnnotator(Annotator):
                         k.end,
                         k.doc,
                         metadata={'species': resolution}))
+                    break
+            for resolution in k.metadata.get('resolutions', []):
+                if resolution['entity']['type'] == 'disease':
+                    disease_list.append(AnnoSpan(
+                        k.start,
+                        k.end,
+                        k.doc,
+                        metadata={'disease': resolution}))
                     break
         entities_by_type = {
             'geoname': geonames,
@@ -127,6 +139,8 @@ class StructuredIncidentAnnotator(Annotator):
                     doc)
             last_geoname_mentioned = geonames.span_before(span)
             last_date_mentioned = dates.span_before(span)
+            last_species_mentioned = AnnoTier(species_list, presorted=True).span_before(span)
+            last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
             rows = span.metadata['data']
             # Detect header
             first_row = AnnoTier(rows[0])
@@ -209,6 +223,8 @@ class StructuredIncidentAnnotator(Annotator):
                     date_period=date_period,
                     aggregation="cumulative" if table_title and re.search("cumulative", table_title.text, re.I) else None,
                     last_geoname_mentioned=last_geoname_mentioned,
+                    last_disease_mentioned=last_disease_mentioned,
+                    last_species_mentioned=last_species_mentioned,
                     last_date_mentioned=last_date_mentioned)))
         incidents = []
         for table in tables:
@@ -216,12 +232,13 @@ class StructuredIncidentAnnotator(Annotator):
                 row_incident_date = table.metadata.get('last_date_mentioned')
                 row_incident_location = table.metadata.get('last_geoname_mentioned')
                 row_incident_species = table.metadata.get('last_species_mentioned')
+                row_incident_disease = table.metadata.get('last_disease_mentioned')
                 row_incident_base_type = None
                 row_incident_status = None
                 row_incident_aggregation = table.metadata.get('aggregation')
                 for column, value in zip(table.column_definitions, row):
                     if not value:
-                        continue
+                        value = CANNOT_PARSE
                     if column['type'] == 'date':
                         row_incident_date = value
                     elif column['type'] == 'geoname':
@@ -229,12 +246,16 @@ class StructuredIncidentAnnotator(Annotator):
                     elif column['type'] == 'species':
                         row_incident_species = value
                     elif column['type'] == 'incident_type':
-                        if "case" in value.text.lower():
+                        if value == CANNOT_PARSE:
+                            row_incident_base_type = value
+                        elif "case" in value.text.lower():
                             row_incident_base_type = "caseCount"
                         elif "death" in value.text.lower():
                             row_incident_base_type = "deathCount"
+                        else:
+                            row_incident_base_type = CANNOT_PARSE
                     elif column['type'] == 'incident_status':
-                        row_incident_status = value.text
+                        row_incident_status = value
 
                 row_incidents = []
                 for column, value in zip(table.column_definitions, row):
@@ -250,8 +271,8 @@ class StructuredIncidentAnnotator(Annotator):
                                 incident_base_type = "caseCount"
                             elif "deaths" in column_name:
                                 incident_base_type = "deathCount"
-                        if row_incident_status:
-                            count_status = row_incident_status
+                        if row_incident_status and row_incident_status != CANNOT_PARSE:
+                            count_status = row_incident_status.text
                         else:
                             if "suspect" in column_name or column_name == "reported":
                                 count_status = "suspected"
@@ -264,30 +285,37 @@ class StructuredIncidentAnnotator(Annotator):
                         incident_aggregation = None
                         if row_incident_aggregation is not None:
                             incident_aggregation = row_incident_aggregation
-                        elif "total" in column_name:
+                        if "total" in column_name:
                             incident_aggregation = "cumulative"
-                        elif "new" in column_name:
+                        if "new" in column_name:
                             incident_aggregation = "incremental"
                         incident_count = value.metadata['number']
                         incident_location = row_incident_location
                         incident_species = row_incident_species
+                        incident_disease = row_incident_disease
                         incident_date = row_incident_date
                         if not incident_base_type:
                             continue
-                        if incident_species:
+                        if incident_species and incident_species != CANNOT_PARSE:
                             species_entity = incident_species.metadata['species']['entity']
                             incident_species = {
                                 'id': species_entity['id'],
                                 'label': species_entity['label'],
                             }
-                        if incident_date:
+                        if incident_disease and incident_disease != CANNOT_PARSE:
+                            disease_entity = incident_disease.metadata['disease']['entity']
+                            incident_disease = {
+                                'id': disease_entity['id'],
+                                'label': disease_entity['label'],
+                            }
+                        if incident_date and incident_date != CANNOT_PARSE:
                             incident_date = incident_date.metadata['datetime_range']
                         if table.metadata.get('date_period'):
                             if incident_aggregation != "cumulative":
                                 incident_date = [
                                     incident_date[0] - table.metadata.get('date_period'),
                                     incident_date[0]]
-                        if incident_location:
+                        if incident_location and incident_location != CANNOT_PARSE:
                             incident_location = incident_location.metadata['geoname'].to_dict()
                             del incident_location['parents']
                         row_incidents.append(AnnoSpan(value.start, value.end, doc, metadata={
@@ -296,11 +324,12 @@ class StructuredIncidentAnnotator(Annotator):
                             'value': incident_count,
                             'attributes': filter(lambda x: x, [count_status]),
                             'location': incident_location,
+                            'resolvedDisease': incident_disease,
                             'dateRange': incident_date,
                             'species': incident_species
                         }))
-                # If a count is marked as incremental any count in the row above
-                # that value is considered cumulative.
+                # If a count is marked as incremental if a count in the row greater
+                # than it is cumulative.
                 max_new_cases = -1
                 max_new_deaths = -1
                 for incident_span in row_incidents:

@@ -34,8 +34,8 @@ for separator in key_value_separators:
     empty.setParseAction(lambda start, tokens: (start, tokens))
     value = pypar.Group(value + empty)
     row = pypar.Group(value + pypar.Literal(separator).suppress() + value +
-    (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
-    pypar.Optional("\n").suppress())
+                      (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
+                      pypar.Optional("\n").suppress())
     key_value_list_parser ^= row * (2, None)
 
 

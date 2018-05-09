@@ -53,9 +53,9 @@ class RawNumberAnnotator(Annotator):
             .without_overlaps(spacy_nes.without_overlaps(dates)).spans
         # Add delimited numbers
         numbers += doc.create_regex_tier(
-            r'[1-9]\d{1,3}((\s\d{3})+|(,\d{3})+)').spans
+            r'[1-9]\d{0,2}(( \d{3})+|(,\d{3})+)').spans
         # Remove counts that overlap a date
-        numbers = AnnoTier(numbers).without_overlaps(dates)
+        numbers = AnnoTier(numbers).without_overlaps(dates).optimal_span_set()
         return {
             'raw_numbers': AnnoTier([
                 AnnoSpan(number.start, number.end, doc, metadata={
