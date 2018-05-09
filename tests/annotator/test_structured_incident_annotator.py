@@ -265,3 +265,27 @@ Pale thrush / not available / 1 / 1 / 0 / 0
             'value': 1,
             'species': "Cannot parse"
         })
+
+
+#     def test_multi_section_table(self):
+#         doc = AnnoDoc("""
+# Disease update
+# --------------
+# New* / Confirmed / Probable / Suspect / Totals by country
+# Guinea
+# Cases / 3 / 293 / 88 / 32 / 413
+# Deaths / 5 / 193 / 82 / 28 / 303
+
+# Liberia
+# Cases / 8 / 52 / 21 / 34 / 107
+# Deaths / 7 / 33 / 17 / 15 / 65
+
+# Sierra Leone
+# Cases / 11 / 199 / 31 / 9 / 239
+# Deaths / 2 / 65 / 29 / 5 / 99
+
+# Totals
+# Cases / 22 / 544 / 140 / 75 / 759
+# Deaths / 14 / 291 / 128 / 48 / 467
+# """)
+#         doc.add_tier(self.annotator)

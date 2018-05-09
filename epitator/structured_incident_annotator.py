@@ -139,7 +139,10 @@ class StructuredIncidentAnnotator(Annotator):
                     doc)
             last_geoname_mentioned = geonames.span_before(span)
             last_date_mentioned = dates.span_before(span)
-            last_species_mentioned = AnnoTier(species_list, presorted=True).span_before(span)
+            species = next(iter(AnnoTier(
+                species_list,
+                presorted=True
+            ).spans_contained_by_span(table_title).spans[-1:]), None)
             last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
             rows = span.metadata['data']
             # Detect header
@@ -224,14 +227,14 @@ class StructuredIncidentAnnotator(Annotator):
                     aggregation="cumulative" if table_title and re.search("cumulative", table_title.text, re.I) else None,
                     last_geoname_mentioned=last_geoname_mentioned,
                     last_disease_mentioned=last_disease_mentioned,
-                    last_species_mentioned=last_species_mentioned,
+                    species=species,
                     last_date_mentioned=last_date_mentioned)))
         incidents = []
         for table in tables:
             for row_idx, row in enumerate(table.rows):
                 row_incident_date = table.metadata.get('last_date_mentioned')
                 row_incident_location = table.metadata.get('last_geoname_mentioned')
-                row_incident_species = table.metadata.get('last_species_mentioned')
+                row_incident_species = table.metadata.get('species')
                 row_incident_disease = table.metadata.get('last_disease_mentioned')
                 row_incident_base_type = None
                 row_incident_status = None
