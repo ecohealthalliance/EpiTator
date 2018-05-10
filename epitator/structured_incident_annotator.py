@@ -139,10 +139,12 @@ class StructuredIncidentAnnotator(Annotator):
                     doc)
             last_geoname_mentioned = geonames.span_before(span)
             last_date_mentioned = dates.span_before(span)
-            species = next(iter(AnnoTier(
-                species_list,
-                presorted=True
-            ).spans_contained_by_span(table_title).spans[-1:]), None)
+            species = None
+            if table_title:
+                species = next(iter(AnnoTier(
+                    species_list,
+                    presorted=True
+                ).spans_contained_by_span(table_title).spans[-1:]), None)
             last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
             rows = span.metadata['data']
             # Detect header
