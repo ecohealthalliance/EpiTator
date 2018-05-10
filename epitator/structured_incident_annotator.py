@@ -272,7 +272,7 @@ class StructuredIncidentAnnotator(Annotator):
                 row_incident_status = None
                 row_incident_aggregation = table.metadata.get('aggregation')
                 for column, value in zip(table.column_definitions, row):
-                    if column['name'] == "__implicit_metadata" and not value:
+                    if column.get('name') == "__implicit_metadata" and not value:
                         continue
                     if not value:
                         value = CANNOT_PARSE
