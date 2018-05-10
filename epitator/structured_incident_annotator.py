@@ -137,20 +137,26 @@ class StructuredIncidentAnnotator(Annotator):
                     table_title.start,
                     min(table_title.end, span.start),
                     doc)
-            last_geoname_mentioned = geonames.span_before(span)
-            last_date_mentioned = dates.span_before(span)
+            last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
+            last_geoname_mentioned = None
+            last_date_mentioned = None
             species = None
             if table_title:
                 species = next(iter(AnnoTier(
                     species_list,
                     presorted=True
                 ).spans_contained_by_span(table_title).spans[-1:]), None)
-            last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
+                last_geoname_mentioned = next(iter(AnnoTier(
+                    geonames,
+                    presorted=True
+                ).spans_contained_by_span(table_title).spans[-1:]), None)
+                last_date_mentioned = next(iter(AnnoTier(
+                    dates,
+                    presorted=True
+                ).spans_contained_by_span(table_title).spans[-1:]), None)
             rows = span.metadata['data']
             # Detect header
             first_row = AnnoTier(rows[0])
-            logger.info("header")
-            logger.info(first_row)
             header_entities = list(first_row.group_spans_by_containing_span(numbers))
             if all(len(entity_spans) == 0 for header_span, entity_spans in header_entities):
                 has_header = True
@@ -162,8 +168,8 @@ class StructuredIncidentAnnotator(Annotator):
                 data_rows = rows
 
             # Remove rows without the right number of columns
-            median_num_cols = median(map(len, rows))
-            data_rows = [row for row in rows if len(row) == median_num_cols]
+            median_num_cols = median(map(len, data_rows))
+            data_rows = [row for row in data_rows if len(row) == median_num_cols]
 
             # Determine column types
             table_by_column = zip(*data_rows)
@@ -198,7 +204,7 @@ class StructuredIncidentAnnotator(Annotator):
                 parsed_column_entities.append(matching_column_entities)
             column_definitions = []
             if has_header:
-                for column_type, header_name in zip(column_types, first_row):
+                for column_type, header_name in zip(column_types + len(first_row) * [None], first_row):
                     column_definitions.append({
                         'name': header_name.text,
                         'type': column_type
@@ -207,9 +213,6 @@ class StructuredIncidentAnnotator(Annotator):
                 column_definitions = [
                     {'type': column_type}
                     for column_type in column_types]
-
-            rows = zip(*parsed_column_entities)
-            logger.info("%s rows" % len(rows))
             date_period = None
             for column_def, entities in zip(column_definitions, parsed_column_entities):
                 if column_def['type'] == 'date':
@@ -220,28 +223,57 @@ class StructuredIncidentAnnotator(Annotator):
                             for d, next_d in zip(entity_group, entity_group[1:])]
                     date_period = median(date_diffs)
                     break
-            tables.append(Table(
-                column_definitions,
-                rows,
-                metadata=dict(
-                    title=table_title,
-                    date_period=date_period,
-                    aggregation="cumulative" if table_title and re.search("cumulative", table_title.text, re.I) else None,
-                    last_geoname_mentioned=last_geoname_mentioned,
-                    last_disease_mentioned=last_disease_mentioned,
-                    species=species,
-                    last_date_mentioned=last_date_mentioned)))
+            # Implicit metadata has to come first so values in other rows will
+            # overrite it.
+            parsed_column_entities = [
+                len(data_rows) * [last_geoname_mentioned],
+                len(data_rows) * [last_date_mentioned],
+                len(data_rows) * [last_disease_mentioned],
+                len(data_rows) * [species],
+            ] + parsed_column_entities
+            column_definitions = [
+                {'name': '__implicit_metadata', 'type': 'geoname'},
+                {'name': '__implicit_metadata', 'type': 'date'},
+                {'name': '__implicit_metadata', 'type': 'disease'},
+                {'name': '__implicit_metadata', 'type': 'species'}
+            ] + column_definitions
+            rows = zip(*parsed_column_entities)
+            if not has_header and len(tables) > 0 and len(column_definitions) == len(tables[-1].column_definitions):
+                tables[-1].rows += rows
+                tables[-1].column_definitions = [
+                    {
+                        'type': definition.get('type') or prev_definition.get('type'),
+                        'name': definition.get('name') or prev_definition.get('name')}
+                    for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
+            else:
+                tables.append(Table(
+                    column_definitions,
+                    rows,
+                    metadata=dict(
+                        title=table_title,
+                        date_period=date_period,
+                        aggregation="cumulative" if table_title and re.search("cumulative", table_title.text, re.I) else None,
+                        # last_geoname_mentioned=last_geoname_mentioned,
+                        # last_disease_mentioned=last_disease_mentioned,
+                        # species=species,
+                        # last_date_mentioned=last_date_mentioned
+                    )))
         incidents = []
         for table in tables:
+            logger.info("header:")
+            logger.info(table.column_definitions)
+            logger.info("%s rows" % len(table.rows))
             for row_idx, row in enumerate(table.rows):
-                row_incident_date = table.metadata.get('last_date_mentioned')
-                row_incident_location = table.metadata.get('last_geoname_mentioned')
-                row_incident_species = table.metadata.get('species')
-                row_incident_disease = table.metadata.get('last_disease_mentioned')
+                row_incident_date = None
+                row_incident_location = None
+                row_incident_species = None
+                row_incident_disease = None
                 row_incident_base_type = None
                 row_incident_status = None
                 row_incident_aggregation = table.metadata.get('aggregation')
                 for column, value in zip(table.column_definitions, row):
+                    if column['name'] == "__implicit_metadata" and not value:
+                        continue
                     if not value:
                         value = CANNOT_PARSE
                     if column['type'] == 'date':

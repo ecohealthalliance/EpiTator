@@ -137,7 +137,6 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
             [datetime.datetime(2017, 7, 1),
              datetime.datetime(2018, 4, 18)])
 
-    # @with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
     def test_date_count_table(self):
         doc = AnnoDoc("""
 Cumulative case data
@@ -266,26 +265,35 @@ Pale thrush / not available / 1 / 1 / 0 / 0
             'species': "Cannot parse"
         })
 
+    # @with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
+    def test_multi_section_table(self):
+        doc = AnnoDoc("""
+Disease update
+--------------
+Confirmed, probable, and suspect cases and deaths from Ebola virus disease in Guinea, Liberia, and Sierra Leone, as of 30 Jun 2014
+Type / New* / Confirmed / Probable / Suspect / Totals by country
+Guinea
+Cases / 3 / 293 / 88 / 32 / 413
+Deaths / 5 / 193 / 82 / 28 / 303
 
-#     def test_multi_section_table(self):
-#         doc = AnnoDoc("""
-# Disease update
-# --------------
-# New* / Confirmed / Probable / Suspect / Totals by country
-# Guinea
-# Cases / 3 / 293 / 88 / 32 / 413
-# Deaths / 5 / 193 / 82 / 28 / 303
+Liberia
+Cases / 8 / 52 / 21 / 34 / 107
+Deaths / 7 / 33 / 17 / 15 / 65
 
-# Liberia
-# Cases / 8 / 52 / 21 / 34 / 107
-# Deaths / 7 / 33 / 17 / 15 / 65
+Sierra Leone
+Cases / 11 / 199 / 31 / 9 / 239
+Deaths / 2 / 65 / 29 / 5 / 99
 
-# Sierra Leone
-# Cases / 11 / 199 / 31 / 9 / 239
-# Deaths / 2 / 65 / 29 / 5 / 99
-
-# Totals
-# Cases / 22 / 544 / 140 / 75 / 759
-# Deaths / 14 / 291 / 128 / 48 / 467
-# """)
-#         doc.add_tier(self.annotator)
+Totals
+Cases / 22 / 544 / 140 / 75 / 759
+Deaths / 14 / 291 / 128 / 48 / 467
+*New cases were reported between 25-29 Jun 2014
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[4]['type'], 'cumulativeCaseCount')
+        self.assertEqual(metadatas[4]['value'], 413)
+        self.assertEqual(metadatas[4]['location']['geonameid'], '2420477')

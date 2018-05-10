@@ -23,7 +23,7 @@ for separator in table_cell_separators:
                       pypar.Optional(value) +
                       (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
                       pypar.Optional("\n").suppress())
-    table_parser ^= row * (1, None)
+    table_parser ^= (pypar.StringEnd() | pypar.Literal("\n")).suppress() + row * (1, None)
 
 key_value_separators = [":", "-", ">"]
 key_value_list_parser = pypar.NoMatch()
@@ -36,7 +36,7 @@ for separator in key_value_separators:
     row = pypar.Group(value + pypar.Literal(separator).suppress() + value +
                       (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
                       pypar.Optional("\n").suppress())
-    key_value_list_parser ^= row * (2, None)
+    key_value_list_parser ^= (pypar.StringEnd() | pypar.Literal("\n")).suppress() + row * (2, None)
 
 
 class StructuredDataAnnotator(Annotator):
