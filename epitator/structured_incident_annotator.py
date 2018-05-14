@@ -140,9 +140,9 @@ class StructuredIncidentAnnotator(Annotator):
             last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
             last_geoname_mentioned = None
             last_date_mentioned = None
-            species = None
+            last_species_mentioned = None
             if table_title:
-                species = next(iter(AnnoTier(
+                last_species_mentioned = next(iter(AnnoTier(
                     species_list,
                     presorted=True
                 ).spans_contained_by_span(table_title).spans[-1:]), None)
@@ -229,7 +229,7 @@ class StructuredIncidentAnnotator(Annotator):
                 len(data_rows) * [last_geoname_mentioned],
                 len(data_rows) * [last_date_mentioned],
                 len(data_rows) * [last_disease_mentioned],
-                len(data_rows) * [species],
+                len(data_rows) * [last_species_mentioned],
             ] + parsed_column_entities
             column_definitions = [
                 {'name': '__implicit_metadata', 'type': 'geoname'},
@@ -253,10 +253,14 @@ class StructuredIncidentAnnotator(Annotator):
                         title=table_title,
                         date_period=date_period,
                         aggregation="cumulative" if table_title and re.search("cumulative", table_title.text, re.I) else None,
-                        # last_geoname_mentioned=last_geoname_mentioned,
-                        # last_disease_mentioned=last_disease_mentioned,
-                        # species=species,
-                        # last_date_mentioned=last_date_mentioned
+                        # The default metadata will be used as a final fallback
+                        # for multi-section tables. When values are not specified
+                        # in section titles, the values from the table title
+                        # are used.
+                        default_geoname=last_geoname_mentioned,
+                        default_disease=last_disease_mentioned,
+                        default_species=last_species_mentioned,
+                        default_date=last_date_mentioned
                     )))
         incidents = []
         for table in tables:
@@ -264,10 +268,10 @@ class StructuredIncidentAnnotator(Annotator):
             logger.info(table.column_definitions)
             logger.info("%s rows" % len(table.rows))
             for row_idx, row in enumerate(table.rows):
-                row_incident_date = None
-                row_incident_location = None
-                row_incident_species = None
-                row_incident_disease = None
+                row_incident_date = table.metadata.get('default_date')
+                row_incident_location = table.metadata.get('default_geoname')
+                row_incident_species = table.metadata.get('default_species')
+                row_incident_disease = table.metadata.get('default_disease')
                 row_incident_base_type = None
                 row_incident_status = None
                 row_incident_aggregation = table.metadata.get('aggregation')

@@ -96,9 +96,9 @@ class AnnoSpan(object):
         start = self.start
         end = self.end
         doc_text = self.doc.text
-        while doc_text[start] == " " and start < end:
+        while start < end and doc_text[start] == " ":
             start += 1
-        while doc_text[end - 1] == " " and start < end:
+        while start < end and doc_text[end - 1] == " ":
             end -= 1
         return AnnoSpan(start, end, self.doc)
 

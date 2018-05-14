@@ -177,8 +177,7 @@ Report date / Cases / Deaths / New cases per week
 | Report date | Cases |
 | 6 Oct 2017  | 26    |
 | 13 Oct 2017 | 29    |
-| 20 Oct 2017 | 34    |
-""")
+| 20 Oct 2017 | 34    |""")
         doc.add_tier(self.annotator)
         metadatas = [
             remove_empty_props(span.metadata)
@@ -295,5 +294,8 @@ Deaths / 14 / 291 / 128 / 48 / 467
             for span in doc.tiers['structured_incidents']
         ]
         self.assertEqual(metadatas[4]['type'], 'cumulativeCaseCount')
+        self.assertEqual(metadatas[4]['dateRange'], [
+            datetime.datetime(2014, 6, 30, 0, 0),
+            datetime.datetime(2014, 7, 1, 0, 0)])
         self.assertEqual(metadatas[4]['value'], 413)
         self.assertEqual(metadatas[4]['location']['geonameid'], '2420477')
