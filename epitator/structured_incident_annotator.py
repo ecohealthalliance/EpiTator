@@ -299,7 +299,7 @@ class StructuredIncidentAnnotator(Annotator):
                     if not value:
                         continue
                     if column['type'] == "number":
-                        column_name = column.get('name', '').lower()
+                        column_name = (column.get('name') or '').lower()
                         incident_base_type = None
                         if row_incident_base_type:
                             incident_base_type = row_incident_base_type
