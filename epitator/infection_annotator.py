@@ -143,7 +143,11 @@ def generate_counts(tokens, strict_only=False):
     if "count" not in metadata.keys() and strict_only is False:
         try:
             lax_quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
-            if len(lax_quant_idx) > 1:
+            if len(lax_quant_idx) == 1:
+                count_text = tokens[lax_quant_idx[0]].text
+                metadata["count"] = parse_count_text(count_text)
+                metadata["attributes"].append(["LAX"])
+            elif len(lax_quant_idx) > 1:
                 # warning("Using lax metadata generation.")
                 # This loop groups consecutive indices into sub-lists.
                 groups = []
@@ -220,7 +224,7 @@ class InfectionSpan(AnnoSpan):
         tokens = nc_tokens
         metadata = merge_dicts([
             generate_attributes(tokens),
-            generate_counts(tokens)
+            generate_counts(tokens, strict_only=False)
         ], unique=True)
         sources = []
 
