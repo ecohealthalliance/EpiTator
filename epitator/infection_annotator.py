@@ -59,10 +59,21 @@ def spacy_tokens_for_span(span):
     return(tokens)
 
 
+# FIXME: This should work better. Right now it removes possessives by checking
+# that a token.pos_ == "NOUN" is not token.dep_ == "poss". Previously, it was
+# nice and parsimonious, and just extracted the inner lemma dicts by pos_.
+# It'd be nice to have a consistently applicable approach, where, say, you
+# state a set of conditions and then state a set of lemmas to look for.
+# Another approach would be to break this out of the function and just apply
+# the appropriate lemmas at different points based on the code. Or to change
+# the point of abstraction such that you pass in a sequence of tokens and the
+# inner lemma dict, and then just match without checking for part of speech.
 def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     metadata = {}
     attributes = []
     for i, t in enumerate(tokens):
+        if t.pos_ == "NOUN" and t.dep_ == "poss":
+                continue
         for category, lemmas in attribute_lemmas.get(t.pos_, {}).items():
             if t.lemma_ in lemmas:
                 attributes.append(category)
@@ -287,7 +298,6 @@ class InfectionAnnotator(Annotator):
                  len(span.metadata['attributes']) is not 0 and
                  'count' in span.metadata.keys()]
 
-        tier = AnnoTier(spans, presorted=True)
-        # tier = AnnoTier(spans, presorted=True).optimal_span_set()
+        tier = AnnoTier(spans, presorted=True).optimal_span_set(prefer="num_spans_and_no_linebreaks")
 
         return {'infections': tier}
