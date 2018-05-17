@@ -71,15 +71,23 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
-def generate_counts(tokens, strict=False):
+def generate_counts(tokens, strict_only=False):
+    if len(tokens) == 0:
+        return {}
     metadata = {}
     metadata["attributes"] = []
     quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] and t.dep_ == 'nummod']
     if len(quant_idx) == 1:
         count_text = tokens[quant_idx[0]].text
         metadata["count"] = parse_count_text(count_text)
+
     elif len(quant_idx) > 1:
-        # This loop groups consecutive indices into sub-lists.
+        # If we find multiple tokens, we deal with them thus: First, we group
+        # group consecutive tokens together in sub-lists: [1, 4, 5, 6, 8, 9]
+        # becomes [[1], [4, 5, 6], [8, 9]]. If there is only one of these
+        # groups, we process it as a single number. If there are multiple
+        # groups, we add them all to metadata["count"] as a list. This will
+        # cause InfectionAnnotator() to throw an error, however.
         groups = []
         for k, g in groupby(enumerate(quant_idx), lambda ix: ix[0] - ix[1]):
             groups.append(list(map(itemgetter(1), list(g))))
@@ -87,15 +95,16 @@ def generate_counts(tokens, strict=False):
             count_text = " ".join([tokens[i].text for i in groups[0]])
             metadata["count"] = parse_count_text(count_text)
             metadata["attributes"] = ["JOINED_CONSECUTIVE_TOKENS"]
-        elif len(groups) > 1:
-            # FIXME: This should operate on "groups"
-            warning("Multiple separate counts may exist, and the result may be incorrect.")
-            count_texts = [tokens[i].text for i in quant_idx]
-            counts = []
-            for t in count_texts:
-                counts.append(parse_count_text(t))
-            metadata["count"] = counts
-            metadata["attributes"].append("MULTIPLE_COUNT_WARNING")
+        # This is a bad idea.
+        # elif len(groups) > 1:
+        #     # warning("Multiple separate counts may exist, and the result may be incorrect.")
+        #     counts = []
+        #     for group in groups:
+        #         count_text = "".join([tokens[i].text for i in group])
+        #         for t in count_text:
+        #             counts.append(parse_count_text(t))
+        #     metadata["count"] = counts
+        #     metadata["attributes"].append(["MULTIPLE_COUNT_WARNING", "JOINED_CONSECUTIVE_TOKENS"])
 
     # If we haven't already extracted a count, and there is an article in
     # the noun chunk, we check to see if the chunk is plural. To do that,
@@ -113,37 +122,42 @@ def generate_counts(tokens, strict=False):
             metadata["count"] = 1
             # metadata["attributes"].append("INFERRED_FROM_SINGULAR_NC")
 
-    # Lax metadata generation.
-    # This is lax because the spacy tokens it looks for are "or".
-    if "count" not in metadata.keys() and strict is False:
+    # "Lax metadata generation" -- so-called because it looks for tokens which
+    # are cardinal / quantity OR nummod.  This is meant to mostly cope with
+    # things in ProMED that are formatted like "193 533", which often trip up
+    # spaCy. If it finds a single token matching these criteria, it does
+    # nothing, because these are likely to be things like years or other
+    # single-token things, and this would increase the false positive rate. It
+    # handles multiple tokens in the same manner as above.
+    if "count" not in metadata.keys() and strict_only is False:
         try:
             lax_quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
             if len(lax_quant_idx) > 1:
-                warning("Using lax metadata generation.")
+                # warning("Using lax metadata generation.")
                 # This loop groups consecutive indices into sub-lists.
                 groups = []
                 for k, g in groupby(enumerate(lax_quant_idx), lambda ix: ix[0] - ix[1]):
                     groups.append(list(map(itemgetter(1), list(g))))
                 if len(groups) == 1:
-                    count_text = " ".join([tokens[i].text for i in groups[0]])
+                    count_text = "".join([tokens[i].text for i in groups[0]])
                     metadata["count"] = parse_count_text(count_text)
-                    metadata["attributes"].append("JOINED_CONSECUTIVE_TOKENS", "LAX")
-                elif len(groups) > 1:
-                    # FIXME: This should operate on "groups"
-                    warning("Multiple separate counts may exist -- even after joining consecutives -- and the result may be incorrect.")
-                    count_texts = [tokens[i].text for i in lax_quant_idx]
-                    counts = []
-                    for t in count_texts:
-                        counts.append(parse_count_text(t))
-                    metadata["count"] = counts
-                    metadata["attributes"].append("MULTIPLE_COUNT_WARNING", "JOINED_CONSECUTIVE_TOKENS", "LAX")
+                    metadata["attributes"].append(["JOINED_CONSECUTIVE_TOKENS", "LAX"])
+                # We will not do this.
+                # elif len(groups) > 1:
+                #     counts = []
+                #     for group in groups:
+                #         count_text = "".join([tokens[i].text for i in group])
+                #         for t in count_text:
+                #             counts.append(parse_count_text(t))
+                #     metadata["count"] = counts
+                #     metadata["attributes"].append(["MULTIPLE_COUNT_WARNING", "JOINED_CONSECUTIVE_TOKENS", "LAX"])
         except ValueError as e:
             metadata = {}
     return(metadata)
 
 
 class InfectionSpan(AnnoSpan):
-    def __init__(self, source_span):
+    def __init__(self, source_span, include_sources=False):
         """
         Initialized by passing in an AnnoSpan, this class will return a new
         span based on that AnnoSpan, but with 'attributes' and 'count'
@@ -169,66 +183,77 @@ class InfectionSpan(AnnoSpan):
         attribute-associated AnnoSpans -- say AttribSpans -- as arguments to event
         slots.
         """
+
+        def meets_inclusion_criteria(metadata):
+            has_trigger_lemmas = any([lemma in metadata["attributes"]
+                                     for lemma in ["infection", "death", "hospitalization"]])
+            has_count = "count" in metadata.keys()
+            return any([has_trigger_lemmas, has_count])
+
         doc = source_span.doc
         if "spacy.noun_chunks" not in doc.tiers:
             doc.add_tier(SpacyAnnotator())
 
         ncs = doc.tiers["spacy.noun_chunks"].spans_contained_by_span(source_span)
+
         if len(ncs) is 0:
-            raise ValueError("Source span does not contain a noun chunk.")
-        elif len(ncs) > 1:
-            warning("Source span contains more than one noun chunk.")
-            nugget = ncs[0]
+            warning("Source span does not contain a noun chunk.")
+            nugget = doc.tiers["spacy.tokens"]
+            nc_tokens = []
         else:
+            if len(ncs) > 1:
+                warning("Source span contains more than one noun chunk.")
             nugget = ncs[0]
 
         nc_tokens = [token for token in nugget.span]
         tokens = nc_tokens
         metadata = merge_dicts([
             generate_attributes(tokens),
-            # generate_counts(tokens)
+            generate_counts(tokens)
         ], unique=True)
+        sources = []
 
-        if any([lemma in metadata["attributes"]
-               for lemma in ["infection", "death", "hospitalization"]]):
+        if meets_inclusion_criteria(metadata):
             sources = ["noun_chunk"]
 
-        elif "person" in metadata["attributes"]:
-            sources = ["noun_chunk"]
+        # If the noun chunk is the subject of the root verb, we check the
+        # ancestors for metadata lemmas too.
+            if "nsubj" in [t.dep_ for t in nc_tokens]:
+                ancestors = [a for a in nugget.span.root.ancestors]
+                ancestor_metadata = merge_dicts([
+                    generate_attributes(ancestors),
+                    generate_counts(ancestors)
+                ], unique=True)
+                if meets_inclusion_criteria(ancestor_metadata):
+                    tokens.extend(ancestors)
+                    metadata = merge_dicts([metadata, ancestor_metadata],
+                                           unique=True)
+                    sources.append("ancestors")
 
+        # If the noun chunk's metadata indicates that it refers to a person,
+        # we check the disjoint subtree.
+        if "person" in metadata["attributes"]:
+            sources = ["noun_chunk"]
             disjoint_subtree = [w for w in nugget.span.subtree if w.i not in [w.i for w in nugget.span]]
             subtree_metadata = merge_dicts([
                 generate_attributes(disjoint_subtree),
-                # generate_counts(disjoint_subtree)
-            ], unique=True)
-            ancestors = [a for a in nugget.span.root.ancestors]
-            ancestor_metadata = merge_dicts([
-                generate_attributes(ancestors),
-                # generate_counts(ancestors)
+                generate_counts(disjoint_subtree)
             ], unique=True)
 
-            if any([lemma in subtree_metadata["attributes"]
-                   for lemma in ["infection", "death", "hospitalization"]]):
+            if meets_inclusion_criteria(subtree_metadata):
                 # TODO: Consider iterating through until a triggering word is
                 # found.
                 tokens.extend(disjoint_subtree)
-                metadata = merge_dicts([
-                    metadata,
-                    subtree_metadata
-                ], unique=True)
+                metadata = merge_dicts([metadata, subtree_metadata],
+                                       unique=True)
                 sources.append("subtree")
-            if any([lemma in ancestor_metadata["attributes"]
-                   for lemma in ["infection", "death", "hospitalization"]]):
-                tokens.extend(ancestors)
-                metadata = merge_dicts([
-                    metadata,
-                    ancestor_metadata
-                ], unique=True)
-                sources.append("ancestors")
+
+        if include_sources:
+            metadata["sources"] = sources
 
         # Generate counts from the noun chunk.
-        counts = generate_counts(nc_tokens)
-        metadata = merge_dicts([metadata, counts])
+        # counts = generate_counts(nc_tokens)
+        # metadata = merge_dicts([metadata, counts])
 
         # Is "count" at most one value?
         if "count" in metadata.values() and isinstance(metadata["count"], list):
@@ -258,8 +283,11 @@ class InfectionAnnotator(Annotator):
             elif any([attribute in candidate_span.metadata["attributes"]
                      for attribute in self.inclusion_filter]):
                 spans.append(candidate_span)
-        spans = [span for span in spans if len(span.metadata['attributes']) is not 0]
+        spans = [span for span in spans if
+                 len(span.metadata['attributes']) is not 0 and
+                 'count' in span.metadata.keys()]
 
-        tier = AnnoTier(spans, presorted=True).optimal_span_set()
+        tier = AnnoTier(spans, presorted=True)
+        # tier = AnnoTier(spans, presorted=True).optimal_span_set()
 
         return {'infections': tier}
