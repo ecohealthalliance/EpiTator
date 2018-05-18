@@ -5,8 +5,15 @@ Annotates noun chunks with:
     infection, death, hospitalization, person
 - 'count' metadata
 
+Only includes spans which meet the criteria:
+- Seem like they talk about a hospitalization, infection, or death
+- Seem like they indicate a definite count of a number or refer to an
+  individual (i.e. count: 1)
+
 TODO:
-- list noun chunks with definite and indefinite articles as ['count': 1]
+- decide the pattern we're going to use to contain multiple separate syntactic
+  formulations
+    - break out the "person lemma" and "case word" formulations
 - implement 'attribute' metadata for:
     cumulative, age, approximate, min, max
 
