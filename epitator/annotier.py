@@ -25,7 +25,7 @@ class AnnoTier(object):
 
     def __repr__(self):
         return ('AnnoTier([' +
-                ', '.join([six.text_type(span) for span in self.spans]) +
+                ', '.join([span.__repr__() for span in self.spans]) +
                 '])')
 
     def __len__(self):

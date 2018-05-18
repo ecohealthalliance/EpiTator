@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 import re
+from collections import defaultdict
+from itertools import compress
 
 NUMBERS = {
     'zero': 0,
@@ -106,6 +108,22 @@ def parse_spelled_number(num_str):
         return sum(totals)
 
 
+def parse_count_text(count_text, verbose=False):
+    # verboseprint = print if verbose else lambda *a, **k: None
+    try:
+        count = int(count_text)
+    except ValueError:
+        pass  # Try to parse it as a float
+    try:
+        count = parse_spelled_number(count_text)
+    except ValueError:
+        pass
+    if count is None:
+        raise(ValueError)
+    else:
+        return(count)
+
+
 def batched(iterable, batch_size=100):
     """
     Sequentially yield segments of the iterable in lists of the given size.
@@ -118,3 +136,81 @@ def batched(iterable, batch_size=100):
             yield batch
             batch = []
     yield batch
+
+
+def flatten(l, unique=False, simplify=False):
+    """
+    Flattens an arbitrarily deep list or set to a depth-one list.
+
+    simplify -- Simplification is inspired by a similar concept in R, where a
+    value which would otherwise be a length-one list is returned as an atomic
+    value.
+
+    unique -- Removes duplicate values values.
+    """
+    out = []
+    for item in l:
+        if isinstance(item, (list, tuple)):
+            out.extend(flatten(item))
+        else:
+            out.append(item)
+    if unique == True:
+        out = list(set(out))
+    if simplify == True:
+        if len(out) == 0:
+            return None
+        if len(out) == 1:
+            return(out[0])
+        else:
+            pass
+    return out
+
+
+def merge_dicts(dicts, unique=False, simplify=None):
+    """
+    Merges a list of dictionaries, returning a single dictionary with combined
+    values from all dictionaries in the list.
+
+    The parameters simplify and unique can be given as boolean, in which case
+    they apply to all keys, or as a list of keys which they apply to.
+
+    TODO: Which is the proper default value?
+    unique -- Removes duplicate values values.
+
+    simplify -- Simplification is inspired by a similar concept in R, where a
+    value which would otherwise be a length-one list is returned as an atomic
+    value. If no argument is provided, attempts to simplify a key if any
+    instances of that key in the original dictionaries is not a list.
+
+    Note: There is commented-out code for a dict comprehension version which
+    is fancy but actually less understandable.
+    """
+    if not isinstance(dicts, list):
+        raise ValueError("first argument must be a list of dicts")
+
+    merged_dicts = defaultdict(list)
+    
+    for d in dicts:
+        for key, value in d.items():
+            merged_dicts[key].append(value)
+    
+    for key, value in merged_dicts.items():
+        u_arg = unique if isinstance(unique, bool) else (key in unique)
+
+        # s_arg = simplify if isinstance(simplify, bool) else (key in simplify)
+        if simplify is None:
+            has_key = [key in d.keys() for d in dicts]
+            values = [d[key] for d in compress(dicts, has_key)]
+            s_arg = any([not isinstance(value, list) for value in values])
+        elif isinstance(simplify, bool):
+            s_arg = simplify
+        else:
+            (key in simplify)
+
+        merged_dicts[key] = flatten(value, simplify=s_arg, unique=u_arg)        
+    
+    return(dict(merged_dicts))
+
+
+def verboseprint(verbose=False, *args, **kwargs):
+    print(*args, **kwargs) if verbose else lambda *args, **kwargs: None
