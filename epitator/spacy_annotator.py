@@ -18,14 +18,14 @@ class TokenSpan(AnnoSpan):
 
 
 class SentSpan(AnnoSpan):
-    # __slots__ = ['span']
+    __slots__ = ['span']
 
-    def __init__(self, span, doc):
+    def __init__(self, span, doc, offset=0):
         super(SentSpan, self).__init__(
-            span.start_char,
-            span.end_char,
+            span.start_char + offset,
+            span.end_char + offset,
             doc)
-        # self.span = span
+        self.span = span
 
 
 class SpacyAnnotator(Annotator):
@@ -33,6 +33,7 @@ class SpacyAnnotator(Annotator):
         tiers = {}
         ne_spans = []
         token_spans = []
+        noun_chunks = []
         # SpaCy's neural nets currently use up too much memory on large docs,
         # so the document is divided into sections before recognizing named
         # entities. Each section is composed of N sentences. Sentence parsing
@@ -49,6 +50,7 @@ class SpacyAnnotator(Annotator):
             ne_chunk_end = None
             ne_chunk_type = None
             spacy_doc = spacy_nlp(doc.text[doc_offset:sent_group_end])
+            noun_chunks.extend(SentSpan(chunk, doc, offset=doc_offset) for chunk in spacy_doc.noun_chunks)
             for token in spacy_doc:
                 start = token.idx + doc_offset
                 end = start + len(token)
@@ -87,6 +89,7 @@ class SpacyAnnotator(Annotator):
                 if date_as_number < 1900:
                     ne_span.label = 'QUANTITY'
 
+        tiers['spacy.noun_chunks'] = AnnoTier(noun_chunks, presorted=True)
         tiers['spacy.tokens'] = AnnoTier(token_spans, presorted=True)
         tiers['spacy.nes'] = AnnoTier(ne_spans, presorted=True)
         return tiers
