@@ -66,12 +66,12 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             resolved_keyword['resolutions'][0]['entity'],
             {'id': 'http://purl.obolibrary.org/obo/DOID_635'})
 
-    # def test_very_long_article(self):
-    #     import os
-    #     path = os.path.dirname(__file__) + "/resources/WhereToItaly.txt"
-    #     with open(path) as file:
-    #         doc = AnnoDoc(file.read())
-    #         doc.add_tier(self.annotator)
+    def test_very_long_article(self):
+        import os
+        path = os.path.dirname(__file__) + "/resources/WhereToItaly.txt"
+        with open(path) as file:
+            doc = AnnoDoc(file.read())
+            doc.add_tier(self.annotator)
 
     def test_species(self):
         doc = AnnoDoc("His illness was caused by cattle")
