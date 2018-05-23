@@ -18,14 +18,14 @@ class TokenSpan(AnnoSpan):
 
 
 class SentSpan(AnnoSpan):
-    #__slots__ = ['span']
+    # __slots__ = ['span']
 
     def __init__(self, span, doc):
         super(SentSpan, self).__init__(
             span.start_char,
             span.end_char,
             doc)
-        #self.span = span
+        # self.span = span
 
 
 class SpacyAnnotator(Annotator):
@@ -44,7 +44,7 @@ class SpacyAnnotator(Annotator):
         group_size = 10
         for sent_group_idx in range(0, len(sentences), group_size):
             doc_offset = sentences.spans[sent_group_idx].start
-            sent_group_end = sentences.spans[min(sent_group_idx+group_size, len(sentences)) - 1].end
+            sent_group_end = sentences.spans[min(sent_group_idx + group_size, len(sentences)) - 1].end
             ne_chunk_start = None
             ne_chunk_end = None
             ne_chunk_type = None

@@ -9,7 +9,6 @@ import logging
 logging.getLogger('epitator.resolved_keyword_annotator').setLevel(logging.ERROR)
 
 
-
 class ResolvedKeywordAnnotatorTest(unittest.TestCase):
     def setUp(self):
         self.annotator = ResolvedKeywordAnnotator()
