@@ -16,6 +16,30 @@ class TokenSpan(AnnoSpan):
             doc)
         self.token = token
 
+    @property
+    def offset(self):
+        return self.start - self.token.idx
+
+    @property
+    def dep_(self):
+        return self.token.dep_
+
+    @property
+    def ent_type_(self):
+        return self.token.ent_type_
+
+    @property
+    def lemma_(self):
+        return self.token.lemma_
+
+    @property
+    def lower_(self):
+        return self.token.lower_
+
+    @property
+    def pos_(self):
+        return self.token.pos_
+
 
 class SentSpan(AnnoSpan):
     __slots__ = ['span']
@@ -26,6 +50,10 @@ class SentSpan(AnnoSpan):
             span.end_char + offset,
             doc)
         self.span = span
+
+    @property
+    def offset(self):
+        return self.start - self.span.start_char
 
 
 class SpacyAnnotator(Annotator):
