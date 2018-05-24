@@ -295,8 +295,15 @@ class InfectionAnnotator(Annotator):
     def annotate(self, doc):
         if 'spacy.tokens' not in doc.tiers:
             doc.add_tiers(SpacyAnnotator())
-        noun_chunks = doc.tiers['spacy.noun_chunks']
 
+        spans = []
+        spans.append(self.noun_chunks_with_infection_lemmas(doc))
+
+        tier = AnnoTier(spans, presorted=True).optimal_span_set(prefer="num_spans_and_no_linebreaks")
+        return {'infections': tier}
+
+    def noun_chunks_with_infection_lemmas(self, doc):
+        noun_chunks = doc.tiers['spacy.noun_chunks']
         spans = []
         for i, nc in enumerate(noun_chunks):
             candidate_span = InfectionSpan(nc)
@@ -308,7 +315,4 @@ class InfectionAnnotator(Annotator):
         spans = [span for span in spans if
                  len(span.metadata['attributes']) is not 0 and
                  'count' in span.metadata.keys()]
-
-        tier = AnnoTier(spans, presorted=True).optimal_span_set(prefer="num_spans_and_no_linebreaks")
-
-        return {'infections': tier}
+        return spans
