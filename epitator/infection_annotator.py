@@ -222,7 +222,7 @@ def has_trigger_lemmas(metadata, lemmas=["infection", "death", "hospitalization"
 
 
 def has_single_count(metadata):
-    return "count" in metadata.values() and isinstance(metadata["count"], list)
+    return "count" in metadata.keys() and not isinstance(metadata["count"], list)
 
 
 def noun_chunks_with_infection_lemmas(doc, debug=False):
@@ -248,13 +248,12 @@ def noun_chunks_with_infection_lemmas(doc, debug=False):
         # If the noun chunk is the subject of the root verb, we check the
         # ancestors for metadata lemmas too.
             if "nsubj" in [t.dep_ for t in nc_tokens]:
-                print([a for a in nc.span.root.ancestors])
-                ancestors = [TokenSpan(a, nc.offset) for a in nc.span.root.ancestors]
+                ancestors = [TokenSpan(a, doc, nc.offset) for a in nc.span.root.ancestors]
                 ancestor_metadata = merge_dicts([
                     generate_attributes(ancestors),
                     generate_counts(ancestors)
                 ], unique=True)
-                if has_trigger_lemmas(metadata):
+                if has_trigger_lemmas(ancestor_metadata):
                     out_tokens.extend(ancestors)
                     metadata = merge_dicts([metadata, ancestor_metadata],
                                            unique=True)
@@ -265,15 +264,15 @@ def noun_chunks_with_infection_lemmas(doc, debug=False):
         # metadata = merge_dicts([metadata, counts])
 
         # Is "count" at most one value?
-        if not has_single_count(metadata):
-            warning("Multiple count values found")
+        # if not has_single_count(metadata):
+        #     warning("Multiple count values found")
         if debug:
             metadata["debug_attributes"] = debug_attributes
 
-        start = min([t.start for t in out_tokens])
-        end = max([t.end for t in out_tokens])
-
-        infection_spans.append(AnnoSpan(start, end, doc, metadata))
+        if has_trigger_lemmas(metadata) and has_single_count(metadata):
+            start = min([t.start for t in out_tokens])
+            end = max([t.end for t in out_tokens])
+            infection_spans.append(AnnoSpan(start, end, doc, metadata=metadata))
 
     return(infection_spans)
 
