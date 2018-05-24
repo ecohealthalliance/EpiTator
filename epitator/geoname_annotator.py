@@ -125,8 +125,15 @@ GEONAME_ATTRS = [
     'name_count']
 
 
+ADMINNAME_ATTRS = [
+    'country_name',
+    'admin1_name',
+    'admin2_name',
+    'admin3_name']
+
+
 class GeonameRow(object):
-    __slots__ = GEONAME_ATTRS + [
+    __slots__ = GEONAME_ATTRS + ADMINNAME_ATTRS + [
         'alternate_locations',
         'spans',
         'parents',
@@ -162,6 +169,9 @@ class GeonameRow(object):
         result = {}
         for key in GEONAME_ATTRS:
             result[key] = self[key]
+        for key in ADMINNAME_ATTRS:
+            if hasattr(self, key):
+                result[key] = self[key]
         result['parents'] = [p.to_dict() for p in self.parents]
         result['score'] = self.score
         return result
@@ -554,6 +564,47 @@ class GeonameAnnotator(Annotator):
         culled_geonames = [geoname
                            for geoname in candidate_geonames
                            if geoname.score > self.geoname_classifier.GEONAME_SCORE_THRESHOLD]
+        cursor = self.connection.cursor()
+        for geoname in culled_geonames:
+            geoname_results = list(cursor.execute('''
+                SELECT
+                    cc.name,
+                    a1.name,
+                    a2.name,
+                    a3.name
+                FROM adminnames a3
+                JOIN adminnames a2 ON (
+                    a2.country_code = a3.country_code AND
+                    a2.admin1_code = a3.admin1_code AND
+                    a2.admin2_code = a3.admin2_code AND
+                    a2.admin3_code = "" )
+                JOIN adminnames a1 ON (
+                    a1.country_code = a3.country_code AND
+                    a1.admin1_code = a3.admin1_code AND
+                    a1.admin2_code = "" AND
+                    a1.admin3_code = "" )
+                JOIN adminnames cc ON (
+                    cc.country_code = a3.country_code AND
+                    cc.admin1_code = "00" AND
+                    cc.admin2_code = "" AND
+                    cc.admin3_code = "" )
+                WHERE (a3.country_code = ? AND a3.admin1_code = ? AND a3.admin2_code = ? AND a3.admin3_code = ?)
+                ''', (
+                geoname.country_code or "",
+                geoname.admin1_code or "",
+                geoname.admin2_code or "",
+                geoname.admin3_code or "",)))
+            for result in geoname_results:
+                prev_val = None
+                for idx, attr in enumerate(['country_name', 'admin1_name', 'admin2_name', 'admin3_name']):
+                    val = result[idx]
+                    if val == prev_val:
+                        # Names are repeated for admin levels beyond that of
+                        # the geoname.
+                        break
+                    setattr(geoname, attr, val)
+                    prev_val = val
+        logger.info('admin names added')
         geo_spans = []
         for geoname in culled_geonames:
             for span in geoname.spans:

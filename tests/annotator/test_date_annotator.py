@@ -250,6 +250,11 @@ For the first time since 1998, a case of yellow fever has been confirmed.
 A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung Hospital the 1st week of September [2016]. In July [2016], a 62-year-old man had died of the disease in northwest Delhi's Jyoti Nagar.''')
         doc.add_tier(self.annotator)
 
+    def test_far_future_year_error(self):
+        # 3120 was being parsed as a year which would cause a year out of rage error when creating a datetime object.
+        doc = AnnoDoc("The cases from January to March [2011] eclipse the number of cases from the entire 2009 (2723) and 2010 (3120) [years].")
+        doc.add_tier(self.annotator)
+
 
 if __name__ == '__main__':
     unittest.main()

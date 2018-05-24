@@ -77,7 +77,8 @@ class CountAnnotator(Annotator):
                     match_spans.append(span)
             return AnnoTier(ra.label(match_name, match_spans), presorted=True)
 
-        counts_tier = AnnoTier(count for count in counts if is_valid_count(count.text))
+        counts_tier = AnnoTier(AnnoSpan(count.start, count.end, doc, 'count')
+                               for count in counts if is_valid_count(count.text))
         # Remove counts that overlap an age
         counts_tier = counts_tier.without_overlaps(
             spacy_tokens.search_spans('age')

@@ -273,7 +273,7 @@ class AnnoTier(object):
         """
         closest_span = None
         for span in self:
-            if span.start > target_span.start:
+            if span.start >= target_span.start:
                 break
             closest_span = span
         return closest_span

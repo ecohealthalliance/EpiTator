@@ -27,6 +27,28 @@ class GeonameAnnotatorTest(unittest.TestCase):
         self.assertTrue(doc.tiers['geonames'].spans[0].label.endswith("Chicago"))
         self.assertEqual(doc.tiers['geonames'].spans[0].start, 10)
         self.assertEqual(doc.tiers['geonames'].spans[0].end, 17)
+        geoname = doc.tiers['geonames'].spans[0].metadata['geoname'].to_dict()
+        del geoname['name_count']
+        del geoname['score']
+        del geoname['population']
+        self.assertEqual(geoname, {
+            'admin1_code': u'IL',
+            'admin1_name': u'Illinois',
+            'admin2_code': u'031',
+            'admin2_name': u'Cook County',
+            'admin3_code': u'14000',
+            'admin3_name': u'City of Chicago',
+            'admin4_code': u'',
+            'asciiname': u'Chicago',
+            'country_code': u'US',
+            'country_name': u'United States',
+            'feature_code': u'PPLA2',
+            'geonameid': u'4887398',
+            'latitude': 41.85003,
+            'longitude': -87.65005,
+            'name': u'Chicago',
+            'names_used': u'Chicago',
+            'parents': []})
 
     def test_multipart_names(self):
         text = 'From Seattle, WA, Canada is not far away.'
@@ -150,11 +172,11 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['geonames'].spans), 0)
 
-    # def test_very_long_article(self):
-    #     import os
-    #     with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
-    #         doc = AnnoDoc(file.read())
-    #         doc.add_tier(self.annotator)
+    def test_very_long_article(self):
+        import os
+        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+            doc = AnnoDoc(file.read())
+            doc.add_tier(self.annotator)
 
     def test_combined_span(self):
         doc = AnnoDoc("in Tonosi district [Los Santos Province, Panama]")

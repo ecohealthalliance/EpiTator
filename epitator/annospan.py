@@ -5,6 +5,8 @@ from __future__ import absolute_import
 
 EMPTY_LIST = []
 
+DEFAULT_LABEL = object()
+
 
 class AnnoSpan(object):
     """
@@ -12,7 +14,7 @@ class AnnoSpan(object):
     """
     __slots__ = ["start", "end", "doc", "metadata", "label", "base_spans"]
 
-    def __init__(self, start, end, doc, label=None, metadata=None):
+    def __init__(self, start, end, doc, label=DEFAULT_LABEL, metadata=None):
         self.start = start
         self.end = end
         self.doc = doc
@@ -20,7 +22,7 @@ class AnnoSpan(object):
         # Base spans is only non-empty on span groups.
         self.base_spans = EMPTY_LIST
 
-        if label is None:
+        if label is DEFAULT_LABEL:
             self.label = self.text
         else:
             self.label = label
@@ -81,12 +83,22 @@ class AnnoSpan(object):
         return SpanGroup([self, other_span], self.label)
 
     def trimmed(self):
+        """
+        Create a new AnnoSpan based on this one with the offsets adjusted
+        so that there is no white space at the beginning or end.
+
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> original_span = AnnoSpan(3, 8, doc)
+        >>> original_span.trimmed()
+        AnnoSpan(4-7, two)
+        """
         start = self.start
         end = self.end
         doc_text = self.doc.text
-        while doc_text[start] == " " and start < end:
+        while start < end and doc_text[start] == " ":
             start += 1
-        while doc_text[end - 1] == " " and start < end:
+        while start < end and doc_text[end - 1] == " ":
             end -= 1
         return AnnoSpan(start, end, self.doc)
 
@@ -109,6 +121,14 @@ class AnnoSpan(object):
     def groupdict(self):
         """
         Return a dict with all the labeled matches.
+
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two wolf')
+        >>> number_span_g = SpanGroup([AnnoSpan(0, 3, doc, 'number'),
+        ...                            AnnoSpan(4, 7, doc, 'number'),
+        ...                            AnnoSpan(8, 12, doc, 'animal')])
+        >>> number_span_g.groupdict()
+        {'number': [AnnoSpan(0-3, number), AnnoSpan(4-7, number)], 'animal': [AnnoSpan(8-12, animal)]}
         """
         out = {}
         for base_span in self.base_spans:
@@ -135,33 +155,21 @@ class AnnoSpan(object):
             if not isinstance(span, SpanGroup):
                 yield span
 
-    def combined_metadata(self):
-        """
-        Return the merged metadata dictionaries from all descendant spans.
-        Presedence of matching properties follows the order of a pre-order tree traversal.
-        """
-        leaf_spans = list(self.iterate_base_spans())
-        leaf_spans.reverse()
-        result = {}
-        for leaf_span in leaf_spans + [self]:
-            if leaf_span.metadata:
-                result.update(leaf_span.metadata)
-        return result
-
 
 class SpanGroup(AnnoSpan):
     """
     A AnnoSpan that extends through a group of AnnoSpans.
     """
-    def __init__(self, base_spans, label=None):
+    def __init__(self, base_spans, label=None, metadata=None):
         assert isinstance(base_spans, list)
         assert len(base_spans) > 0
         super(SpanGroup, self).__init__(
             min(s.start for s in base_spans),
             max(s.end for s in base_spans),
-            base_spans[0].doc)
+            base_spans[0].doc,
+            label,
+            metadata)
         self.base_spans = base_spans
-        self.label = label
 
     def __repr__(self):
         return ("SpanGroup("

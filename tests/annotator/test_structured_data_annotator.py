@@ -38,7 +38,7 @@ A map can be accessed at: http://example.com
 
     def test_count_table(self):
         doc = AnnoDoc('''
-        Cases / 22 / 544 / 140 / 75 / 759
+        Cases / 22 / 544 / / 75 / 759
         Deaths / 14 / 291 / 128 / 48 / 467
 
         *New cases were reported between 25-29 Jun 2014
@@ -50,7 +50,7 @@ A map can be accessed at: http://example.com
         ]
         self.assertEqual(metadatas[0], {
             'data': [
-                ['Cases', '22', '544', '140', '75', '759'],
+                ['Cases', '22', '544', '', '75', '759'],
                 ['Deaths', '14', '291', '128', '48', '467']
             ],
             'type': 'table'
