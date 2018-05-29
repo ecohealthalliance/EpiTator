@@ -19,13 +19,13 @@ TODO:
 
 These could be added in this annotator, but might be better suited elsewhere.
 """
-from logging import warning
 from itertools import groupby
 from operator import itemgetter
+
 from .annospan import AnnoSpan
 from .annotier import AnnoTier
 from .annotator import Annotator
-from .spacy_annotator import SpacyAnnotator, SentSpan, TokenSpan
+from .spacy_annotator import SpacyAnnotator, TokenSpan
 from .utils import merge_dicts
 from .utils import parse_count_text
 
@@ -71,7 +71,7 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     attributes = []
     if not hasattr(tokens, "__iter__"):
         tokens = [tokens]
-    for i, t in enumerate(tokens):
+    for t in tokens:
         if t.pos_ == "NOUN" and t.dep_ == "poss":
                 continue
         for category, lemmas in attribute_lemmas.get(t.pos_, {}).items():
@@ -82,6 +82,7 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
+# TODO: Maybe remove this function
 def spacy_tokens_for_span(span):
     """
     Given an AnnoSpan, will return a list of the spaCy tokens contained by it.
@@ -92,9 +93,6 @@ def spacy_tokens_for_span(span):
     tokens_tier = span.doc.tiers["spacy.tokens"]
     tokens = [t.token for t in tokens_tier.spans_contained_by_span(span)]
     return(tokens)
-
-
-
 
 
 def generate_counts(tokens, strict_only=False, debug=False):
@@ -225,7 +223,7 @@ def has_single_count(metadata):
     return "count" in metadata.keys() and not isinstance(metadata["count"], list)
 
 
-def noun_chunks_with_infection_lemmas(doc, debug=False):
+def from_noun_chunks_with_infection_lemmas(doc, debug=False):
     if 'spacy.tokens' not in doc.tiers:
         doc.add_tiers(SpacyAnnotator())
     nc_tier = doc.tiers["spacy.noun_chunks"]
@@ -234,8 +232,8 @@ def noun_chunks_with_infection_lemmas(doc, debug=False):
     infection_spans = []
 
     for nc in nc_tier:
+        # First, we check for trigger attributes in the noun chunks.
         debug_attributes = []
-
         nc_tokens = [t for t in tokens_tier.spans_contained_by_span(nc)]
         out_tokens = nc_tokens
         metadata = merge_dicts([
@@ -247,12 +245,13 @@ def noun_chunks_with_infection_lemmas(doc, debug=False):
 
         # If the noun chunk is the subject of the root verb, we check the
         # ancestors for metadata lemmas too.
-            if "nsubj" in [t.dep_ for t in nc_tokens]:
+            if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass"]):
                 ancestors = [TokenSpan(a, doc, nc.offset) for a in nc.span.root.ancestors]
                 ancestor_metadata = merge_dicts([
                     generate_attributes(ancestors),
                     generate_counts(ancestors)
                 ], unique=True)
+                # TODO: Maybe this should include "or has_counts(ancestor_metadata)"
                 if has_trigger_lemmas(ancestor_metadata):
                     out_tokens.extend(ancestors)
                     metadata = merge_dicts([metadata, ancestor_metadata],
@@ -277,48 +276,72 @@ def noun_chunks_with_infection_lemmas(doc, debug=False):
     return(infection_spans)
 
 
-# def noun_chunks_with_person_lemmas(doc):
+def from_noun_chunks_with_person_lemmas(doc, debug=False):
+    if 'spacy.tokens' not in doc.tiers:
+        doc.add_tiers(SpacyAnnotator())
+    nc_tier = doc.tiers["spacy.noun_chunks"]
+    tokens_tier = doc.tiers["spacy.tokens"]
 
-#         # If the noun chunk's metadata indicates that it refers to a person,
-#         # we check the disjoint subtree.
-#         if "person" in metadata["attributes"]:
-#             debug_attributes = ["noun_chunk"]
-#             disjoint_subtree = [w for w in nc.span.subtree if w.i not in [w.i for w in nc.span]]
-#             subtree_metadata = merge_dicts([
-#                 generate_attributes(disjoint_subtree),
-#                 generate_counts(disjoint_subtree)
-#             ], unique=True)
+    infection_spans = []
 
-#             if inclusion_criteria(subtree_metadata):
-#                 # TODO: Consider iterating through until a triggering word is
-#                 # found.
-#                 out_tokens.extend(disjoint_subtree)
-#                 metadata = merge_dicts([metadata, subtree_metadata],
-#                                        unique=True)
-#                 debug_attributes.append("subtree")
+    for nc in nc_tier:
+        debug_attributes = []
+        nc_tokens = [t for t in tokens_tier.spans_contained_by_span(nc)]
+        metadata = merge_dicts([
+            generate_attributes(nc_tokens),
+            generate_counts(nc_tokens, strict_only=False)
+        ], unique=True)
+        # If the noun chunk's metadata indicates that it refers to a person,
+        # we check the disjoint subtree.
+        if "person" in metadata["attributes"]:
+            out_tokens = nc_tokens
+            debug_attributes.append("attributes from noun chunk")
+            if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass"]):
+                ancestors = [TokenSpan(a, doc, nc.offset) for a in nc.span.root.ancestors]
+                ancestor_metadata = merge_dicts([
+                    generate_attributes(ancestors),
+                    generate_counts(ancestors)
+                ], unique=True)
+                # TODO: Maybe this should include "or has_counts(ancestor_metadata)"
+                if has_trigger_lemmas(ancestor_metadata):
+                    out_tokens.extend(ancestors)
+                    metadata = merge_dicts([metadata, ancestor_metadata],
+                                           unique=True)
+                    debug_attributes.append("attributes from ancestors")
+            # If we still don't have a trigger lemma, we'll check the disjoint
+            # subtree for infection lemmas. This is less precise than checking
+            # ancestors, because it can include more of the sentence.
+            if not has_trigger_lemmas(metadata):
+                disjoint_subtree = [TokenSpan(w, doc, nc.offset) for w in nc.span.subtree if w.i not in [w.i for w in nc.span]]
+                subtree_metadata = merge_dicts([
+                    generate_attributes(disjoint_subtree),
+                    generate_counts(disjoint_subtree)
+                ], unique=True)
+                # TODO: Maybe this should include "or has_counts(subtree_metadata)"
+                if has_trigger_lemmas(subtree_metadata):
+                    out_tokens.extend(disjoint_subtree)
+                    metadata = merge_dicts([metadata, subtree_metadata],
+                                           unique=True)
+                    debug_attributes.append("attributes from disjoint subtree")
+                    print(disjoint_subtree)
+
+        if debug:
+            metadata["debug_attributes"] = debug_attributes
+
+        if ("person" in metadata["attributes"] and
+                has_trigger_lemmas(metadata) and
+                has_single_count(metadata)):
+            start = min([t.start for t in out_tokens])
+            end = max([t.end for t in out_tokens])
+            infection_spans.append(AnnoSpan(start, end, doc, metadata=metadata))
+
+    return(infection_spans)
 
 
-# class InfectionAnnotator(Annotator):
-#     def __init__(self, inclusion_filter=["infection", "death", "hospitalization"]):
-#         self.inclusion_filter = inclusion_filter
-
-#     def annotate(self, doc):
-#         if 'spacy.tokens' not in doc.tiers:
-#             doc.add_tiers(SpacyAnnotator())
-#         noun_chunks = doc.tiers['spacy.noun_chunks']
-
-#         spans = []
-#         for i, nc in enumerate(noun_chunks):
-#             candidate_span = InfectionSpan(nc)
-#             if self.inclusion_filter is None:
-#                 spans.append(candidate_span)
-#             elif any([attribute in candidate_span.metadata["attributes"]
-#                      for attribute in self.inclusion_filter]):
-#                 spans.append(candidate_span)
-#         spans = [span for span in spans if
-#                  len(span.metadata['attributes']) is not 0 and
-#                  'count' in span.metadata.keys()]
-
-#         tier = AnnoTier(spans, presorted=True).optimal_span_set(prefer="num_spans_and_no_linebreaks")
-
-#         return {'infections': tier}
+class InfectionAnnotator(Annotator):
+    def annotate(self, doc, debug=False):
+        spans = []
+        spans.extend(from_noun_chunks_with_infection_lemmas(doc, debug))
+        spans.extend(from_noun_chunks_with_person_lemmas(doc, debug))
+        tier = AnnoTier(spans).optimal_span_set(prefer="num_spans_and_no_linebreaks")
+        return {'infections': tier}
