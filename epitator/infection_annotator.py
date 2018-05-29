@@ -119,27 +119,17 @@ def generate_counts(tokens, strict_only=False, debug=False):
         if len(groups) == 1:
             count_text = " ".join([tokens[i].text for i in groups[0]])
             metadata["count"] = parse_count_text(count_text)
-            debug_attributes.append("JOINED_CONSECUTIVE_TOKENS")
-        # This is a bad idea.
-        # elif len(groups) > 1:
-        #     # warning("Multiple separate counts may exist, and the result may be incorrect.")
-        #     counts = []
-        #     for group in groups:
-        #         count_text = "".join([tokens[i].text for i in group])
-        #         for t in count_text:
-        #             counts.append(parse_count_text(t))
-        #     metadata["count"] = counts
-        #     metadata["attributes"].append(["MULTIPLE_COUNT_WARNING", "JOINED_CONSECUTIVE_TOKENS"])
+            debug_attributes.append("joined consecutive tokens")
 
-    # If we haven't already extracted a count, and there is an article in
-    # the noun chunk, we check to see if the chunk is plural. To do that,
-    # we look at all the tokens, and if a token is a noun (e.g.
-    # "patients") we check to see if the lower case version of it is the
-    # lemma (i.e. canonical singular) version of it. If none of the tokens
-    # are plural, we assume the noun phrase is singular and add a "1" to
-    # the count metadata. Otherwise, we assume that it must be a phrase
-    # like "some patients" and do nothing.
     if "count" not in metadata.keys() and tokens[0].dep_ == "det":
+        # If we haven't already extracted a count, and there is an article in
+        # the noun chunk, we check to see if the chunk is plural. To do that,
+        # we look at all the tokens, and if a token is a noun (e.g.
+        # "patients") we check to see if the lower case version of it is the
+        # lemma (i.e. canonical singular) version of it. If none of the tokens
+        # are plural, we assume the noun phrase is singular and add a "1" to
+        # the count metadata. Otherwise, we assume that it must be a phrase
+        # like "some patients" and do nothing.
         token_is_not_lemma = [token.lower_ != token.lemma_ for token in tokens]
         token_is_noun = [token.pos_ == 'NOUN' for token in tokens]
         token_is_plural = ([l and n for l, n in zip(token_is_not_lemma, token_is_noun)])
@@ -147,14 +137,14 @@ def generate_counts(tokens, strict_only=False, debug=False):
             metadata["count"] = 1
             # metadata["attributes"].append("INFERRED_FROM_SINGULAR_NC")
 
-    # "Lax metadata generation" -- so-called because it looks for tokens which
-    # are cardinal / quantity OR nummod.  This is meant to mostly cope with
-    # things in ProMED that are formatted like "193 533", which often trip up
-    # spaCy. If it finds a single token matching these criteria, it does
-    # nothing, because these are likely to be things like years or other
-    # single-token things, and this would increase the false positive rate. It
-    # handles multiple tokens in the same manner as above.
     if "count" not in metadata.keys() and strict_only is False:
+        # "Lax metadata generation" -- so-called because it looks for tokens which
+        # are cardinal / quantity OR nummod.  This is meant to mostly cope with
+        # things in ProMED that are formatted like "193 533", which often trip up
+        # spaCy. If it finds a single token matching these criteria, it does
+        # nothing, because these are likely to be things like years or other
+        # single-token things, and this would increase the false positive rate. It
+        # handles multiple tokens in the same manner as above.
         try:
             lax_quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
             if len(lax_quant_idx) == 1:
@@ -170,16 +160,7 @@ def generate_counts(tokens, strict_only=False, debug=False):
                 if len(groups) == 1:
                     count_text = "".join([tokens[i].text for i in groups[0]])
                     metadata["count"] = parse_count_text(count_text)
-                    debug_attributes.extend(["JOINED_CONSECUTIVE_TOKENS", "LAX"])
-                # We will not do this.
-                # elif len(groups) > 1:
-                #     counts = []
-                #     for group in groups:
-                #         count_text = "".join([tokens[i].text for i in group])
-                #         for t in count_text:
-                #             counts.append(parse_count_text(t))
-                #     metadata["count"] = counts
-                #     metadata["attributes"].append(["MULTIPLE_COUNT_WARNING", "JOINED_CONSECUTIVE_TOKENS", "LAX"])
+                    debug_attributes.extend(["joined consecutive tokens", "lax count identification"])
         except ValueError as e:
             metadata = {}
     if debug:

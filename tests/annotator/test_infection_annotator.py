@@ -15,7 +15,7 @@ from six.moves import zip
 class TestInfectionAnnotator(unittest.TestCase):
 
     def setUp(self):
-        self.annotator = InfectionAnnotator(inclusion_filter=None)
+        self.annotator = InfectionAnnotator()
 
     def assertHasCounts(self, sent, counts):
         doc = AnnoDoc(sent)
@@ -140,6 +140,13 @@ class TestInfectionAnnotator(unittest.TestCase):
     def test_space_delimited_counts(self):
         self.assertHasCounts('There were 197 000 deaths in 2007.',
                              [{'count': 197000, 'attributes': ['death']}])
+
+    # Not going to include this because it takes a long time to run.
+    # def test_very_long_article(self):
+    #     import os
+    #     with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+    #         doc = AnnoDoc(file.read())
+    #         doc.add_tier(self.annotator)
 
 
 if __name__ == '__main__':

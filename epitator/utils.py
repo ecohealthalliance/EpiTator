@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 from collections import defaultdict
 from itertools import compress
+from logging import warning
 
 NUMBERS = {
     'zero': 0,
@@ -119,7 +120,8 @@ def parse_count_text(count_text, verbose=False):
     except ValueError:
         pass
     if count is None:
-        raise(ValueError)
+        # warning("count '{}' could not be parsed".format(count_text))
+        return
     else:
         return(count)
 
