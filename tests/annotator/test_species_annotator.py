@@ -5,6 +5,7 @@ from . import test_utils
 from epitator.annotator import AnnoDoc
 from epitator.species_annotator import SpeciesAnnotator
 
+
 class SpeciesAnnotatorTest(unittest.TestCase):
     def setUp(self):
         self.annotator = SpeciesAnnotator()
@@ -32,6 +33,5 @@ and Sierra Leone 11 new cases and 2 deaths.""")
 5 humans were infected - 4 men and 1 woman. One infected person was admitted to the hospital.""")
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['species']), 4)
-        self.assertTrue(all(s.metadata['species']['id'] == 'tsn:180092' 
+        self.assertTrue(all(s.metadata['species']['id'] == 'tsn:180092'
                             for s in doc.tiers['species']))
-
