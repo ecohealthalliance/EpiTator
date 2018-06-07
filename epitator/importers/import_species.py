@@ -109,6 +109,17 @@ def import_species(drop_previous=False):
                 weight = refs
             tuples.append((name, 'tsn:' + str(tsn), weight))
         cur.executemany(insert_command, tuples)
+    print("Importing hard-coded species names")
+    cur.executemany(insert_command, [
+        ('man', 'tsn:180092', 3),
+        ('men', 'tsn:180092', 3),
+        ('woman', 'tsn:180092', 3),
+        ('women', 'tsn:180092', 3),
+        ('human', 'tsn:180092', 3),
+        ('humans', 'tsn:180092', 3),
+        ('person', 'tsn:180092', 3),
+        ('people', 'tsn:180092', 3),
+    ])
     print("Importing synonyms from ITIS database...")
     cur.execute('''
     INSERT INTO synonyms
