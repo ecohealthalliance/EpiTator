@@ -119,6 +119,17 @@ def import_species(drop_previous=False):
         ('humans', 'tsn:180092', 3),
         ('person', 'tsn:180092', 3),
         ('people', 'tsn:180092', 3),
+        # buffalo
+        ('buffalo', 'tsn:898079', 3),
+        ('buffaloes', 'tsn:898079', 3),
+        # chickens
+        ('chicken', 'tsn:176086', 3),
+        ('chickens', 'tsn:176086', 3),
+        ('hen', 'tsn:176086', 3),
+        ('rooster', 'tsn:176086', 3),
+        # ducks
+        ('duck', 'tsn:174983', 3),
+        ('ducks', 'tsn:174983', 3),
     ])
     print("Importing synonyms from ITIS database...")
     cur.execute('''

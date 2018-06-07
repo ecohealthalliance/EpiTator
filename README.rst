@@ -132,7 +132,7 @@ Usage
 
 
 Structured Data Annotator
---------------
+-------------------------
 
 The structured data annotator identifies and parses embedded tables.
 

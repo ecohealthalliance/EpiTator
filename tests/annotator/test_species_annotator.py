@@ -35,3 +35,12 @@ and Sierra Leone 11 new cases and 2 deaths.""")
         self.assertEqual(len(doc.tiers['species']), 4)
         self.assertTrue(all(s.metadata['species']['id'] == 'tsn:180092'
                             for s in doc.tiers['species']))
+
+    def test_vernacular_names(self):
+        doc = AnnoDoc("""
+        "A total of 5 of my buffaloes were found dead yesterday [Mon 21 May 2018]," Nan said.
+        114 backyard ducks, 27 backyard chickens have been destroyed and disposed of by the Rapid Response Team.
+        """)
+        doc.add_tier(self.annotator)
+        print doc.tiers['species']
+        self.assertEqual(len(doc.tiers['species']), 3)
