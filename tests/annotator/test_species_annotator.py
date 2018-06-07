@@ -42,5 +42,4 @@ and Sierra Leone 11 new cases and 2 deaths.""")
         114 backyard ducks, 27 backyard chickens have been destroyed and disposed of by the Rapid Response Team.
         """)
         doc.add_tier(self.annotator)
-        print doc.tiers['species']
         self.assertEqual(len(doc.tiers['species']), 3)
