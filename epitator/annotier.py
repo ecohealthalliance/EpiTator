@@ -297,11 +297,36 @@ class AnnoTier(object):
 
     def search_spans(self, regex, label=None):
         """
-        Search spans for one that matches the given regular expression.
+        Search spans for ones matching the given regular expression.
         """
         regex = re.compile(regex + r'$', re.I)
         match_spans = []
         for span in self:
             if regex.match(span.text):
                 match_spans.append(SpanGroup([span], label))
+        return AnnoTier(match_spans, presorted=True)
+
+    def match_subspans(self, regex):
+        """
+        Create a new tier from the components of spans matching the given
+        regular expression.
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three four')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc),
+        ...                  AnnoSpan(8, 13, doc),
+        ...                  AnnoSpan(14, 18, doc)])
+        >>> tier.match_subspans(r"two")
+        AnnoTier([AnnoSpan(4-7, two)])
+        """
+        regex = re.compile(regex)
+        match_spans = []
+        for span in self:
+            for match in regex.finditer(span.text):
+                match_spans.append(AnnoSpan(
+                    match.start() + span.start,
+                    match.end() + span.start,
+                    span.doc
+                ))
         return AnnoTier(match_spans, presorted=True)

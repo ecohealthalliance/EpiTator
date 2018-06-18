@@ -39,7 +39,7 @@ class AnnoSpan(object):
             return False
 
     def __len__(self):
-        return len(self.text)
+        return self.end - self.start
 
     def overlaps(self, other_span):
         return (

@@ -209,6 +209,7 @@ class DateAnnotator(Annotator):
             r")\b", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier
+        date_span_tier += date_span_tier.match_subspans(r"([1-2]\d{3})")
         # Group adjacent date info in case it is parsed as separate chunks.
         # ex: Friday, October 7th 2010.
         adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)

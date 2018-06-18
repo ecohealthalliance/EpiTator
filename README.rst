@@ -158,6 +158,39 @@ Usage
     #    'type': 'table'}
 
 
+Structured Incident Annotator
+-----------------------------
+
+The structured incident annotator identifies and parses embedded tables that
+describe case counts paired with location, date, disease and species metadata.
+Metadata is also extracted from the text around the table.
+
+Usage
+-----
+
+.. code:: python
+
+    from epitator.annotator import AnnoDoc
+    from epitator.structured_incident_annotator import StructuredIncidentAnnotator
+    doc = AnnoDoc("""
+    Fictional October 2015 rabies cases in Svalbard
+    
+    species | cases | deaths
+    Cattle  | 0     | 0
+    Dogs    | 4     | 1
+    """)
+    doc.add_tiers(StructuredIncidentAnnotator())
+    annotations = doc.tiers["structured_incidents"].spans
+    annotations[-1].metadata
+    # = {'location': {'name': u'Svalbard', ...},
+    #    'species': {'label': u'Canidae', ...},
+    #    'attributes': [],
+    #    'dateRange': [datetime.datetime(2015, 10, 1, 0, 0), datetime.datetime(2015, 11, 1, 0, 0)],
+    #    'type': 'deathCount',
+    #    'value': 1,
+    #    'resolvedDisease': {'label': u'rabies', ...}}
+
+
 Architecture
 ============
 

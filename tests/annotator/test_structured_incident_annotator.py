@@ -160,8 +160,8 @@ Report date / Cases / Deaths / New cases per week
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 10, 27),
-                datetime.datetime(2017, 11, 3)]
+                datetime.datetime(2017, 10, 28),
+                datetime.datetime(2017, 11, 4)]
         })
         self.assertEqual(metadatas[-2], {
             'value': 19,
@@ -188,22 +188,22 @@ Report date / Cases / Deaths / New cases per week
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 9, 29),
-                datetime.datetime(2017, 10, 6)]
+                datetime.datetime(2017, 9, 30),
+                datetime.datetime(2017, 10, 7)]
         }, {
             'value': 29,
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 10, 6),
-                datetime.datetime(2017, 10, 13)]
+                datetime.datetime(2017, 10, 7),
+                datetime.datetime(2017, 10, 14)]
         }, {
             'value': 34,
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 10, 13),
-                datetime.datetime(2017, 10, 20)]
+                datetime.datetime(2017, 10, 14),
+                datetime.datetime(2017, 10, 21)]
         }])
 
     def test_non_incident_counts_and_species(self):
@@ -299,3 +299,43 @@ Deaths / 14 / 291 / 128 / 48 / 467
             datetime.datetime(2014, 7, 1, 0, 0)])
         self.assertEqual(metadatas[4]['value'], 413)
         self.assertEqual(metadatas[4]['location']['geonameid'], '2420477')
+
+    def test_number_in_header(self):
+        doc = AnnoDoc("""
+Health Jurisdiction / Cases (percentage) / Incidence rate per 100 000 Person-Years
+Salt Lake county / 162 (68.9) / 14.4
+Utah county / 45 (19.1) / 7.6
+Bear River / 5 (2.1) / 2.8
+Southeast Utah / 2 (0.9) / 5.0
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0]['type'], 'caseCount')
+        self.assertEqual(metadatas[0]['value'], 162)
+        self.assertEqual(metadatas[0]['location']['geonameid'], '5781004')
+
+    def test_unusual_format(self):
+        doc = AnnoDoc("""
+For subscribers' convenience, we hereby reproduce Israel's annual rabies statistics since 2014:
+
+Year // badger / cat / fox / jackal / wolf / dog / cattle / sheep / horse // total
+2014 // 3 / 0 / 2 / 2 / 4 / 2 / 1 / 0 / 0 // 14
+2015 // 12 / 1 / 1 / 3 / 0 / 1 / 7 / 0 / 1 // 20
+2016 // 12 / 0 / 7 / 5 / 0 / 0 / 5 / 0 / 1 // 30
+2017 // 10 / 2 / 0 / 47 / 0 / 0 / 14 / 1 / 0 // 74
+2018 // 4 / 0 / 0 / 35 / 0 / 1 / 7 / 1 / 1 // 51
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0]['type'], 'caseCount')
+        self.assertEqual(metadatas[0]['value'], 3)
+        self.assertEqual(metadatas[0]['species']['label'], 'Taxidea taxus')
+        self.assertEqual(metadatas[0]['dateRange'], [
+            datetime.datetime(2014, 1, 1, 0, 0),
+            datetime.datetime(2015, 1, 1, 0, 0)])
