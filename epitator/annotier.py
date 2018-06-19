@@ -315,7 +315,7 @@ class AnnoTier(object):
         >>> from .annodoc import AnnoDoc
         >>> doc = AnnoDoc('one two three four')
         >>> tier = AnnoTier([AnnoSpan(0, 3, doc),
-        ...                  AnnoSpan(8, 13, doc),
+        ...                  AnnoSpan(4, 13, doc),
         ...                  AnnoSpan(14, 18, doc)])
         >>> tier.match_subspans(r"two")
         AnnoTier([AnnoSpan(4-7, two)])
