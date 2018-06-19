@@ -255,6 +255,13 @@ A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung
         doc = AnnoDoc("The cases from January to March [2011] eclipse the number of cases from the entire 2009 (2723) and 2010 (3120) [years].")
         doc.add_tier(self.annotator)
 
+    def test_date_range(self):
+        doc = AnnoDoc("The 7 new cases age between 17 and 70, and their onset dates vary between 19 May [2018] - 5 Jun [2018].")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2018, 5, 19),
+             datetime.datetime(2018, 6, 6)])
 
 if __name__ == '__main__':
     unittest.main()
