@@ -263,5 +263,6 @@ A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung
             [datetime.datetime(2018, 5, 19),
              datetime.datetime(2018, 6, 6)])
 
+
 if __name__ == '__main__':
     unittest.main()
