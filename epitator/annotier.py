@@ -258,7 +258,25 @@ class AnnoTier(object):
             span_groups.append(SpanGroup(span_group))
         return AnnoTier(span_groups)
 
-    def span_before(self, target_span):
+    def chains(self, at_least=1, at_most=None, max_dist=1):
+        """
+        Create a new tier from all chains of spans within max_dist of eachother.
+        """
+        combined_spans = AnnoTier()
+        new_combined_spans = self
+        chain_len = 1
+        while True:
+            if chain_len >= at_least:
+                combined_spans += new_combined_spans
+            if len(new_combined_spans) == 0:
+                break
+            chain_len += 1
+            if at_most and chain_len > at_most:
+                break
+            new_combined_spans = new_combined_spans.with_following_spans_from(self, max_dist=max_dist)
+        return combined_spans
+
+    def span_before(self, target_span, allow_overlap=True):
         """
         Find the nearest span that comes before the target span.
 
@@ -274,6 +292,8 @@ class AnnoTier(object):
         closest_span = None
         for span in self:
             if span.start >= target_span.start:
+                break
+            if not allow_overlap and span.end > target_span.start:
                 break
             closest_span = span
         return closest_span

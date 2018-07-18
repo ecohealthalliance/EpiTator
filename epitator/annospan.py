@@ -34,7 +34,7 @@ class AnnoSpan(object):
         if self.start < other.start:
             return True
         elif self.start == other.start:
-            return len(self) < len(other)
+            return self.end < other.end
         else:
             return False
 

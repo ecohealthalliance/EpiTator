@@ -339,3 +339,51 @@ Year // badger / cat / fox / jackal / wolf / dog / cattle / sheep / horse // tot
         self.assertEqual(metadatas[0]['dateRange'], [
             datetime.datetime(2014, 1, 1, 0, 0),
             datetime.datetime(2015, 1, 1, 0, 0)])
+
+
+    def test_date_association(self):
+        doc = AnnoDoc("""
+The outbreak strains of salmonella have infected a reported 961 people in 48 states [only Alaska and Delaware have not reported cases - Mod.LL] and the District of Columbia. Illnesses started on dates ranging from 4 January 2017 to 31 July 2017.
+State / Number of Cases
+Alabama / 25
+Arizona / 6
+Arkansas / 9
+California / 54
+Virginia / 56
+Washington / 22
+West Virginia / 17
+Wisconsin / 24
+Wyoming / 10""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0]['dateRange'], [
+            datetime.datetime(2017, 1, 4, 0, 0),
+            datetime.datetime(2017, 8, 1, 0, 0)])
+
+    def test_fp_table_merging(self):
+        doc = AnnoDoc("""
+Non-Latin Caribbean
+
+Bahamas / week 30 [ending 25 Jul 2014] / 0 / 0 / 6 / 0
+
+Dominica / week 28 [ending 11 Jul 2014] / 3559 / 141 / 0 / 0
+
+Jamaica / week 29 [ending 18 Jul 2014] / 0 / 0 / 1 / 0
+
+Turks & Caicos Islands / week 28 [ending 11 Jul 2014] / 0 / 10 / 7 / 0
+
+US Virgin Islands / week 29 [ending 18 Jul 2014] / 0 / 2 / 7 / 0
+
+
+Andean area:
+
+Bolivia / 9 / 0 / 0 / 3 / 0
+
+Colombia / 30 / 0 / 0 / 1 / 0
+
+Peru / 28 / 0 / 0 / 3 / 0
+""")
+        doc.add_tier(self.annotator)
