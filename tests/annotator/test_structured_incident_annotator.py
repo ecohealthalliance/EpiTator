@@ -340,7 +340,6 @@ Year // badger / cat / fox / jackal / wolf / dog / cattle / sheep / horse // tot
             datetime.datetime(2014, 1, 1, 0, 0),
             datetime.datetime(2015, 1, 1, 0, 0)])
 
-
     def test_date_association(self):
         doc = AnnoDoc("""
 The outbreak strains of salmonella have infected a reported 961 people in 48 states [only Alaska and Delaware have not reported cases - Mod.LL] and the District of Columbia. Illnesses started on dates ranging from 4 January 2017 to 31 July 2017.

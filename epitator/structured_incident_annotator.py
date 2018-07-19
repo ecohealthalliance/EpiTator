@@ -128,9 +128,10 @@ class StructuredIncidentAnnotator(Annotator):
             'incident_status': spacy_tokens.search_spans(r'suspected|confirmed'),
         }
         tables = []
-        sentences_without_following_linbreak = doc.create_regex_tier("[^\n]+\n")
-        x = sentences_without_following_linbreak.chains(at_most=8, max_dist=0)
-        possible_titles = x.without_overlaps(doc.tiers['structured_data']).optimal_span_set()
+        possible_titles = doc.create_regex_tier("[^\n]+\n")\
+            .chains(at_most=5, max_dist=0)\
+            .without_overlaps(doc.tiers['structured_data'])\
+            .optimal_span_set()
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table':
                 continue
