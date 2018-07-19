@@ -128,11 +128,16 @@ class StructuredIncidentAnnotator(Annotator):
             'incident_status': spacy_tokens.search_spans(r'suspected|confirmed'),
         }
         tables = []
+        possible_titles = doc.create_regex_tier("[^\n]+\n")\
+            .chains(at_most=5, max_dist=0)\
+            .without_overlaps(doc.tiers['structured_data'])\
+            .optimal_span_set()
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table':
                 continue
-            # Add columns based on surrounding text
-            table_title = doc.tiers['spacy.sentences'].span_before(span)
+            # Add virtual metadata columns based on surrounding text from
+            # title sentence/paragraph.
+            table_title = possible_titles.span_before(span)
             if table_title:
                 table_title = AnnoSpan(
                     table_title.start,
@@ -207,6 +212,7 @@ class StructuredIncidentAnnotator(Annotator):
                         matching_column_entities = [[] for x in column_values]
                 column_types.append(column_type)
                 parsed_column_entities.append(matching_column_entities)
+
             column_definitions = []
             if has_header:
                 for column_type, header_name in zip(column_types + len(first_row) * [None], first_row):
@@ -244,12 +250,21 @@ class StructuredIncidentAnnotator(Annotator):
             ] + column_definitions
             rows = zip(*parsed_column_entities)
             if not has_header and len(tables) > 0 and len(column_definitions) == len(tables[-1].column_definitions):
-                tables[-1].rows += rows
-                tables[-1].column_definitions = [
-                    {
-                        'type': definition.get('type') or prev_definition.get('type'),
-                        'name': definition.get('name') or prev_definition.get('name')}
-                    for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
+                # Special case for merging detached header rows
+                if len(tables[-1].rows) == 0:
+                    tables[-1].rows = rows
+                    tables[-1].column_definitions = [
+                        {
+                            'type': definition.get('type'),
+                            'name': definition.get('name') or prev_definition.get('name')}
+                        for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
+                elif [d['type'] for d in column_definitions] == [d['type'] for d in tables[-1].column_definitions]:
+                    tables[-1].rows += rows
+                    tables[-1].column_definitions = [
+                        {
+                            'type': definition.get('type') or prev_definition.get('type'),
+                            'name': definition.get('name') or prev_definition.get('name')}
+                        for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
             else:
                 tables.append(Table(
                     column_definitions,

@@ -84,7 +84,3 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
                 'id': 'tsn:180704',
                 'label': 'Bovidae'}
         })
-
-
-if __name__ == '__main__':
-    unittest.main()

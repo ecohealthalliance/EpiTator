@@ -59,7 +59,7 @@ class StructuredDataAnnotator(Annotator):
                     continue
                 elif any(re.match(r"\d*$", value.text) for value in new_value_spans):
                     continue
-            spans.append(AnnoSpan(start, end, doc, "table", metadata={
+            spans.append(AnnoSpan(start, min(end, len(doc.text)), doc, "table", metadata={
                 "type": "table",
                 "data": data
             }))
@@ -69,7 +69,7 @@ class StructuredDataAnnotator(Annotator):
                 AnnoSpan(key_start, key_end, doc).trimmed(): AnnoSpan(value_start, value_end, doc).trimmed()
                 for (((key_start, key), (key_end, _)), ((value_start, value), (value_end, _2))) in token
             }
-            spans.append(AnnoSpan(start, end, doc, "keyValuePairs", metadata={
+            spans.append(AnnoSpan(start, min(end, len(doc.text)), doc, "keyValuePairs", metadata={
                 "type": "keyValuePairs",
                 "data": data
             }))
