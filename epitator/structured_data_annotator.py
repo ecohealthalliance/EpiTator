@@ -13,7 +13,10 @@ pypar.ParserElement.setDefaultWhitespaceChars(" \t")
 table_parser = pypar.NoMatch()
 table_cell_separators = ["|", "/", ","]
 for separator in table_cell_separators:
-    value = pypar.Combine(word_token_regex(separator) * (0, 10), joinString=' ', adjacent=False)
+    value = pypar.Combine(
+        word_token_regex(separator) * (0, 10),
+        joinString=' ',
+        adjacent=False)
     value.setParseAction(lambda start, tokens: (start, tokens[0]))
     empty = pypar.Empty()
     empty.setParseAction(lambda start, tokens: (start, tokens))
@@ -23,12 +26,17 @@ for separator in table_cell_separators:
                       pypar.Optional(value) +
                       (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
                       pypar.Optional("\n").suppress())
-    table_parser ^= (pypar.LineStart() + pypar.Optional(pypar.White())).suppress() + row * (1, None)
+    table_parser ^= (
+        (pypar.LineStart() + pypar.Optional(pypar.White())).suppress() +
+        row * (1, None)).setResultsName("delimiter:" + separator)
 
 key_value_separators = [":", "-", ">"]
 key_value_list_parser = pypar.NoMatch()
 for separator in key_value_separators:
-    value = pypar.Combine(word_token_regex(separator) * (1, 10), joinString=' ', adjacent=False)
+    value = pypar.Combine(
+        word_token_regex(separator) * (1, 10),
+        joinString=' ',
+        adjacent=False)
     value.setParseAction(lambda start, tokens: (start, tokens[0]))
     empty = pypar.Empty()
     empty.setParseAction(lambda start, tokens: (start, tokens))
@@ -36,7 +44,9 @@ for separator in key_value_separators:
     row = pypar.Group(value + pypar.Literal(separator).suppress() + value +
                       (pypar.StringEnd() | pypar.Literal("\n")).suppress() +
                       pypar.Optional("\n").suppress())
-    key_value_list_parser ^= (pypar.LineStart() + pypar.Optional(pypar.White())).suppress() + row * (2, None)
+    key_value_list_parser ^= (
+        (pypar.LineStart() + pypar.Optional(pypar.White())).suppress() +
+        row * (2, None)).setResultsName("delimiter:" + separator)
 
 
 class StructuredDataAnnotator(Annotator):
@@ -45,11 +55,21 @@ class StructuredDataAnnotator(Annotator):
     """
 
     def annotate(self, doc):
+        doc_text_len = len(doc.text)
+
+        def create_trimmed_annospan_for_doc(start, end, label=None, metadata=None):
+            return AnnoSpan(
+                start,
+                min(doc_text_len, end),
+                doc,
+                label=label,
+                metadata=metadata).trimmed()
+
         spans = []
         value_spans = []
         for token, start, end in table_parser.scanString(doc.text):
             data = [[
-                AnnoSpan(value_start, value_end, doc).trimmed()
+                create_trimmed_annospan_for_doc(value_start, value_end)
                 for ((value_start, value), (value_end, _)) in row] for row in token]
             new_value_spans = [value for row in data for value in row]
             # Skip tables with one row and numeric/empty columns since they are likely
@@ -59,19 +79,21 @@ class StructuredDataAnnotator(Annotator):
                     continue
                 elif any(re.match(r"\d*$", value.text) for value in new_value_spans):
                     continue
-            spans.append(AnnoSpan(start, min(end, len(doc.text)), doc, "table", metadata={
+            spans.append(create_trimmed_annospan_for_doc(start, end, "table", metadata={
                 "type": "table",
-                "data": data
+                "data": data,
+                "delimiter": next(k.split("delimiter:")[1] for k in token.keys() if k.startswith("delimiter:"))
             }))
             value_spans += new_value_spans
         for token, start, end in key_value_list_parser.scanString(doc.text):
             data = {
-                AnnoSpan(key_start, key_end, doc).trimmed(): AnnoSpan(value_start, value_end, doc).trimmed()
+                create_trimmed_annospan_for_doc(key_start, key_end): create_trimmed_annospan_for_doc(value_start, value_end)
                 for (((key_start, key), (key_end, _)), ((value_start, value), (value_end, _2))) in token
             }
-            spans.append(AnnoSpan(start, min(end, len(doc.text)), doc, "keyValuePairs", metadata={
+            spans.append(create_trimmed_annospan_for_doc(start, end, "keyValuePairs", metadata={
                 "type": "keyValuePairs",
-                "data": data
+                "data": data,
+                "delimiter": next(k.split("delimiter:")[1] for k in token.keys() if k.startswith("delimiter:"))
             }))
             value_spans += data.values()
         return {

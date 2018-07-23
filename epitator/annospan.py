@@ -5,8 +5,6 @@ from __future__ import absolute_import
 
 EMPTY_LIST = []
 
-DEFAULT_LABEL = object()
-
 
 class AnnoSpan(object):
     """
@@ -14,21 +12,17 @@ class AnnoSpan(object):
     """
     __slots__ = ["start", "end", "doc", "metadata", "label", "base_spans"]
 
-    def __init__(self, start, end, doc, label=DEFAULT_LABEL, metadata=None):
+    def __init__(self, start, end, doc, label=None, metadata=None):
         self.start = start
         self.end = end
         self.doc = doc
         self.metadata = metadata
         # Base spans is only non-empty on span groups.
         self.base_spans = EMPTY_LIST
-
-        if label is DEFAULT_LABEL:
-            self.label = self.text
-        else:
-            self.label = label
+        self.label = label
 
     def __repr__(self):
-        return u'AnnoSpan({0}-{1}, {2})'.format(self.start, self.end, self.label)
+        return u'AnnoSpan({0}-{1}, {2})'.format(self.start, self.end, self.label or self.text)
 
     def __lt__(self, other):
         if self.start < other.start:
@@ -100,7 +94,7 @@ class AnnoSpan(object):
             start += 1
         while start < end and doc_text[end - 1] == " ":
             end -= 1
-        return AnnoSpan(start, end, self.doc)
+        return AnnoSpan(start, end, self.doc, label=self.label, metadata=self.metadata)
 
     def size(self):
         return self.end - self.start
