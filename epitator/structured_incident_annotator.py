@@ -401,13 +401,14 @@ class StructuredIncidentAnnotator(Annotator):
                                 incident_location = contained_spans[0].metadata['geoname'].to_dict()
                                 del incident_location['parents']
 
-                        if incident_date and incident_date != CANNOT_PARSE:
-                            incident_date = incident_date.metadata['datetime_range']
-                        if table.metadata.get('date_period'):
-                            if incident_aggregation != "cumulative":
-                                incident_date = [
-                                    incident_date[1] - table.metadata.get('date_period'),
-                                    incident_date[1]]
+                        if incident_date != CANNOT_PARSE:
+                            if incident_date:
+                                incident_date = incident_date.metadata['datetime_range']
+                            if table.metadata.get('date_period'):
+                                if incident_aggregation != "cumulative":
+                                    incident_date = [
+                                        incident_date[1] - table.metadata.get('date_period'),
+                                        incident_date[1]]
                         if not incident_base_type:
                             continue
                         row_incidents.append(AnnoSpan(value.start, value.end, doc, metadata={

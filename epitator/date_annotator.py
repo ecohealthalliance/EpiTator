@@ -167,6 +167,7 @@ class DateAnnotator(Annotator):
                 'PREFER_DATES_FROM': prefer_dates_from
             })
             try:
+                text = re.sub(r" year$", "", text)
                 date_data = parser.get_date_data(text)
             except (TypeError, ValueError):
                 return
@@ -227,7 +228,7 @@ class DateAnnotator(Annotator):
                 return True
             try:
                 return strict_parser.get_date_data(text)['date_obj'] is None
-            except TypeError:
+            except (TypeError, ValueError):
                 return True
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())

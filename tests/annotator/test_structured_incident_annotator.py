@@ -386,3 +386,32 @@ Colombia / 30 / 0 / 0 / 1 / 0
 Peru / 28 / 0 / 0 / 3 / 0
 """)
         doc.add_tier(self.annotator)
+
+    def test_unparsable_date_bug(self):
+        doc = AnnoDoc("""
+Cases by Country / Week updated / Probable / Conf. / Virus type / DHF severe / Deaths
+
+Hispanic Caribbean
+
+Dominican Republic / 17 [week ending 28 Apr 2017] / 315 / 0 / D? / 15 / 0
+
+Puerto Rico / 19 [week ending 12 May 2017] / 9 / 0 / D2 / 0 / 0
+
+English, French, Dutch Caribbean
+
+American Virgin Islands / 19 [week ending 12 May 2017] / 1 / 1 / D? / 0 / 0
+
+Andean
+
+Bolivia / 17 / [week ending 28 Apr 2017] / 4260 / 0 / D? / 34 / 0
+
+Colombia / 20 [week ending 19 May 2017] / 12 552 / 8357 / D? / 131 / 36
+
+Ecuador / 17 [week ending 28 Apr 2017] / 6075 / 6075 / D? / 6 / 3
+
+Peru / 20 [week ending 19 May 2017] / 44 971 / 12 717 / D 2,3 / 137 / 54
+
+Venezuela / 17 [week ending 28 Apr 2017] / 2722 / 309 / D? / 7 / 0
+
+""")
+        doc.add_tier(self.annotator)
