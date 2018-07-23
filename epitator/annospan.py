@@ -100,7 +100,7 @@ class AnnoSpan(object):
             start += 1
         while start < end and doc_text[end - 1] == " ":
             end -= 1
-        return AnnoSpan(start, end, self.doc)
+        return AnnoSpan(start, end, self.doc, label=self.label, metadata=self.metadata)
 
     def size(self):
         return self.end - self.start

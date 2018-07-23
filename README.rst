@@ -155,6 +155,7 @@ Usage
     #       [AnnoSpan(1-8, species), AnnoSpan(11-16, cases), AnnoSpan(19-25, deaths)],
     #       [AnnoSpan(26-32, Cattle), AnnoSpan(36-37, 0), AnnoSpan(44-45, 0)],
     #       [AnnoSpan(46-50, Dogs), AnnoSpan(56-57, 2), AnnoSpan(64-65, 1)]],
+    #    'delimiter': '|',
     #    'type': 'table'}
 
 
