@@ -262,3 +262,8 @@ A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(2018, 5, 19),
              datetime.datetime(2018, 6, 6)])
+
+    def test_dateparser_bug_2(self):
+        doc = AnnoDoc("One of the guys has already received a laboratory confirmation of the diagnosis of botulism 17.05.2018 year.")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['dates'].spans), 1)
