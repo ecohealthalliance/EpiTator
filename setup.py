@@ -27,6 +27,7 @@ setup(
         'disease resolution species resolution '
         'geoannotation geoname resolution',
     install_requires=[
+        'regex==2017.4.5',
         'dateparser==0.6.0',
         'geopy>=1.11.0',
         'unicodecsv>=0.14.1',
