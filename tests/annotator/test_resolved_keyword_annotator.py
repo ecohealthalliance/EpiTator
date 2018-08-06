@@ -69,7 +69,7 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
     def test_very_long_article(self):
         import os
         path = os.path.dirname(__file__) + "/resources/WhereToItaly.txt"
-        with open(path) as file:
+        with open(path, encoding='utf-8') as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 
