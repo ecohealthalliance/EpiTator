@@ -32,7 +32,7 @@ def is_null(val_string):
 def median(li):
     if len(li) == 0:
         return None
-    mid_idx = (len(li) - 1) / 2
+    mid_idx = int((len(li) - 1) / 2)
     li = sorted(li)
     if len(li) % 2 == 1:
         return li[mid_idx]
@@ -178,11 +178,11 @@ class StructuredIncidentAnnotator(Annotator):
                 data_rows = rows
 
             # Remove rows without the right number of columns
-            median_num_cols = median(map(len, data_rows))
+            median_num_cols = median(list(map(len, data_rows)))
             data_rows = [row for row in data_rows if len(row) == median_num_cols]
 
             # Determine column types
-            table_by_column = zip(*data_rows)
+            table_by_column = list(zip(*data_rows))
             column_types = []
             parsed_column_entities = []
             for column_values in table_by_column:
@@ -248,7 +248,7 @@ class StructuredIncidentAnnotator(Annotator):
                 {'name': '__implicit_metadata', 'type': 'disease'},
                 {'name': '__implicit_metadata', 'type': 'species'}
             ] + column_definitions
-            rows = zip(*parsed_column_entities)
+            rows = list(zip(*parsed_column_entities))
             if not has_header and len(tables) > 0 and len(column_definitions) == len(tables[-1].column_definitions):
                 # Special case for merging detached header rows
                 if len(tables[-1].rows) == 0:
@@ -415,7 +415,7 @@ class StructuredIncidentAnnotator(Annotator):
                             'base_type': incident_base_type,
                             'aggregation': incident_aggregation,
                             'value': incident_count,
-                            'attributes': filter(lambda x: x, [count_status]),
+                            'attributes': list(filter(lambda x: x, [count_status])),
                             'location': incident_location,
                             'resolvedDisease': incident_disease,
                             'dateRange': incident_date,
