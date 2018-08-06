@@ -16,6 +16,7 @@ before_install:
   - "pip install flake8"
 
 script:
+  - "pip freeze"
   - "flake8 epitator tests"
   - "python run_doctests.py"
   - "python -m unittest discover -p 'test_token_annotator.py'"

@@ -174,7 +174,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
 
     def test_very_long_article(self):
         import os
-        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt", encoding='utf-8') as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 

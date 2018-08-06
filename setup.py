@@ -27,16 +27,15 @@ setup(
         'disease resolution species resolution '
         'geoannotation geoname resolution',
     install_requires=[
-        'dateparser>=0.6.0',
+        'dateparser==0.6.0',
         'geopy>=1.11.0',
         'unicodecsv>=0.14.1',
-        'spacy==2.0.11',
+        'spacy==2.0.12',
         'pyparsing==2.2.0',
         'numpy>=1.14.0',
         'rdflib>=4.2.2',
         'python-dateutil>=2.6.0',
         'requests>=2.13.0',
-        'lazy',
         'six'],
     classifiers=['Topic :: Text Processing',
         'Topic :: Scientific/Engineering :: Information Analysis',
