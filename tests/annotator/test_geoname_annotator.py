@@ -221,6 +221,11 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
         doc = AnnoDoc(u"Outbreak 1: San Pedro, San Pedro, San Pedro, San Pedro [Bas-Sassandra District]")
         doc.add_tier(self.annotator)
 
+    def test_non_matching_character_bug(self):
+        # Imat is resolved to a location with a non-matching unicode i.
+        doc = AnnoDoc(u"They are in Imat, Corum, Turkey.")
+        doc.add_tier(self.annotator)
+        # print([span.metadata['geoname']['geonameid'] for span in doc.tiers['geonames']])
 
 if __name__ == '__main__':
     unittest.main()

@@ -390,7 +390,12 @@ class GeonameAnnotator(Annotator):
         candidate_geonames = []
         for geoname in geoname_results:
             geoname.add_spans(span_text_to_spans)
-            candidate_geonames.append(geoname)
+            # In rare cases geonames may have no matching spans because
+            # sqlite unicode equivalency rules match geonames that use different
+            # characters the document spans used to query them.
+            # These geonames are ignored.
+            if len(geoname.spans) > 0:
+                candidate_geonames.append(geoname)
         # Add combined spans to locations that are adjacent to a span linked to
         # an administrative division. e.g. Seattle, WA
         span_to_geonames = defaultdict(list)

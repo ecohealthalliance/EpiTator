@@ -1,5 +1,4 @@
 --index-url https://pypi.python.org/simple/
-requests
 unicodecsv
 numpy==1.14.1
 geopy
