@@ -227,5 +227,6 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
         doc.add_tier(self.annotator)
         # print([span.metadata['geoname']['geonameid'] for span in doc.tiers['geonames']])
 
+
 if __name__ == '__main__':
     unittest.main()
