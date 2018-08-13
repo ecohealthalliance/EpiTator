@@ -8,7 +8,11 @@ from six.moves import range
 
 class NgramAnnotator(Annotator):
 
-    def annotate(self, doc, n_min=1, n_max=5):
+    def __init__(self, n_min=1, n_max=5):
+        self.n_min = n_min
+        self.n_max = n_max
+
+    def annotate(self, doc):
 
         if 'tokens' not in doc.tiers:
             doc.add_tiers(TokenAnnotator())
@@ -17,7 +21,7 @@ class NgramAnnotator(Annotator):
 
         token_spans = doc.tiers['tokens'].spans
 
-        for n in range(n_min, n_max + 1):
+        for n in range(self.n_min, self.n_max + 1):
             for i in range(len(token_spans)):
                 if i + n > len(token_spans):
                     break
