@@ -167,6 +167,7 @@ class DateAnnotator(Annotator):
                 'PREFER_DATES_FROM': prefer_dates_from
             })
             try:
+                text = re.sub(r" year$", "", text)
                 date_data = parser.get_date_data(text)
             except (TypeError, ValueError):
                 return
@@ -199,7 +200,7 @@ class DateAnnotator(Annotator):
         regex = re.compile(
             r"\b("
             # date MonthName yyyy
-            r"(\d{1,2} [a-zA-Z]{3,} \d{4})|"
+            r"(\d{1,2} [a-zA-Z]{3,} \[?\d{4})|"
             # dd-mm-yyyy
             r"(\d{1,2} ?[\/\-] ?\d{1,2} ?[\/\-] ?\d{1,4})|"
             # yyyy-MMM-dd
@@ -209,6 +210,13 @@ class DateAnnotator(Annotator):
             r")\b", re.I)
         match_tier = doc.create_regex_tier(regex)
         date_span_tier += match_tier
+        # Add year components individually incase the full spans are thrown out.
+        # Sometimes extra text is added to dates that makes them invalid,
+        # this allows some of the date to be recovered.
+        date_span_tier += date_span_tier.match_subspans(r"([1-2]\d{3})")
+        # Remove spans that are probably ages.
+        date_span_tier = date_span_tier.without_overlaps(
+            date_span_tier.match_subspans(r"\bage\b"))
         # Group adjacent date info in case it is parsed as separate chunks.
         # ex: Friday, October 7th 2010.
         adjacent_date_spans = date_span_tier.combined_adjacent_spans(max_dist=9)
@@ -220,7 +228,7 @@ class DateAnnotator(Annotator):
                 return True
             try:
                 return strict_parser.get_date_data(text)['date_obj'] is None
-            except TypeError:
+            except (TypeError, ValueError):
                 return True
         for date_group in adjacent_date_spans:
             date_group_spans = list(date_group.iterate_leaf_base_spans())
@@ -232,8 +240,8 @@ class DateAnnotator(Annotator):
             t_span for t_span in doc.tiers['spacy.tokens']
             if re.match(r"(" + DATE_RANGE_JOINERS + r"|\-)$", t_span.text, re.I)]
         date_range_tier = date_span_tier.label_spans('start')\
-            .with_following_spans_from(date_range_joiners)\
-            .with_following_spans_from(date_span_tier.label_spans('end'))\
+            .with_following_spans_from(date_range_joiners, max_dist=3)\
+            .with_following_spans_from(date_span_tier.label_spans('end'), max_dist=3)\
             .label_spans('date_range')
         since_tokens = AnnoTier([
             t_span for t_span in doc.tiers['spacy.tokens']

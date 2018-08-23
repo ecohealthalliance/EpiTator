@@ -8,7 +8,6 @@ from .annotator import Annotator, AnnoTier, AnnoSpan
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
-from . import result_aggregators as ra
 from . import utils
 from .spacy_nlp import spacy_nlp
 import logging
@@ -75,7 +74,7 @@ class CountAnnotator(Annotator):
             for span, lemma in zip(spacy_tokens, spacy_lemmas):
                 if lemma in lemmas:
                     match_spans.append(span)
-            return AnnoTier(ra.label(match_name, match_spans), presorted=True)
+            return AnnoTier(match_spans, presorted=True).label_spans(match_name)
 
         counts_tier = AnnoTier(AnnoSpan(count.start, count.end, doc, 'count')
                                for count in counts if is_valid_count(count.text))
@@ -86,11 +85,14 @@ class CountAnnotator(Annotator):
             .with_following_spans_from(counts_tier))
         # Remove distances
         counts_tier = counts_tier.without_overlaps(
-            counts_tier.with_following_spans_from(spacy_tokens.search_spans('kilometers|km|miles|mi')))
+            counts_tier.with_following_spans_from(
+                spacy_tokens.search_spans('kilometers|km|miles|mi')))
         # Add count ranges
         ranges = counts_tier.with_following_spans_from(
-            ra.label('range',
-                     spacy_tokens.search_spans(r'to|and|or').with_following_spans_from(counts_tier)))
+            spacy_tokens
+            .search_spans(r'to|and|or')
+            .with_following_spans_from(counts_tier)
+            .label_spans('range'))
         counts_tier = (counts_tier + ranges).optimal_span_set()
         modifier_lemma_groups = [
             'average|mean',

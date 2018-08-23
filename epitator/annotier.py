@@ -4,8 +4,8 @@ from __future__ import absolute_import
 import json
 import six
 import re
-from . import result_aggregators as ra
 from .annospan import SpanGroup, AnnoSpan
+from . import maximum_weight_interval_set as mwis
 
 
 class AnnoTier(object):
@@ -157,7 +157,62 @@ class AnnoTier(object):
         >>> tier.optimal_span_set()
         AnnoTier([AnnoSpan(0-3, odd), AnnoSpan(3-13, long_span)])
         """
-        return AnnoTier(ra.combine([self.spans], prefer=prefer))
+        all_spans = self.spans
+
+        def first(x):
+            """
+            Perfers the matches that appear first in the first result list.
+            """
+            # Using an exponent makes it so that a first match will be prefered
+            # over multiple non-overlapping later matches.
+            return 2 ** (len(all_spans) - all_spans.index(x))
+
+        def text_length(x):
+            """
+            Prefers the match with the longest span of text that contains all the
+            matching content.
+            """
+            return len(x)
+
+        def num_spans(x):
+            """
+            Prefers the match with the most distinct base spans.
+            """
+            if isinstance(x, SpanGroup):
+                return len(set(x.iterate_leaf_base_spans()))
+            else:
+                return 1
+
+        def num_spans_and_no_linebreaks(x):
+            """
+            Same as num_spans, but linebreaks are avoided as a secondary objective,
+            and overall text length is minimized as a third objective.
+            """
+            return num_spans(x), int("\n" not in x.text), -len(x)
+
+        if prefer == "first":
+            prefunc = first
+        elif prefer == "text_length":
+            prefunc = text_length
+        elif prefer == "num_spans":
+            prefunc = num_spans
+        elif prefer == "num_spans_and_no_linebreaks":
+            prefunc = num_spans_and_no_linebreaks
+        else:
+            prefunc = prefer
+        my_mwis = mwis.find_maximum_weight_interval_set([
+            mwis.Interval(
+                start=match.start,
+                end=match.end,
+                weight=prefunc(match),
+                corresponding_object=match
+            )
+            for match in all_spans
+        ])
+        return AnnoTier([
+            interval.corresponding_object
+            for interval in my_mwis
+        ])
 
     def without_overlaps(self, other_tier):
         """
@@ -190,7 +245,9 @@ class AnnoTier(object):
         Create a new tier from pairs spans in this tier and the other tier
         that are near eachother.
         """
-        return AnnoTier(ra.near([self, other_tier], max_dist=max_dist))
+        return AnnoTier(
+            self.with_following_spans_from(other_tier, max_dist=max_dist, allow_overlap=True) +
+            other_tier.with_following_spans_from(self, max_dist=max_dist, allow_overlap=True))
 
     def with_following_spans_from(self, other_tier, max_dist=1, allow_overlap=False):
         """
@@ -258,7 +315,25 @@ class AnnoTier(object):
             span_groups.append(SpanGroup(span_group))
         return AnnoTier(span_groups)
 
-    def span_before(self, target_span):
+    def chains(self, at_least=1, at_most=None, max_dist=1):
+        """
+        Create a new tier from all chains of spans within max_dist of eachother.
+        """
+        combined_spans = AnnoTier()
+        new_combined_spans = self
+        chain_len = 1
+        while True:
+            if chain_len >= at_least:
+                combined_spans += new_combined_spans
+            if len(new_combined_spans) == 0:
+                break
+            chain_len += 1
+            if at_most and chain_len > at_most:
+                break
+            new_combined_spans = new_combined_spans.with_following_spans_from(self, max_dist=max_dist)
+        return combined_spans
+
+    def span_before(self, target_span, allow_overlap=True):
         """
         Find the nearest span that comes before the target span.
 
@@ -274,6 +349,8 @@ class AnnoTier(object):
         closest_span = None
         for span in self:
             if span.start >= target_span.start:
+                break
+            if not allow_overlap and span.end > target_span.start:
                 break
             closest_span = span
         return closest_span
@@ -297,11 +374,36 @@ class AnnoTier(object):
 
     def search_spans(self, regex, label=None):
         """
-        Search spans for one that matches the given regular expression.
+        Search spans for ones matching the given regular expression.
         """
         regex = re.compile(regex + r'$', re.I)
         match_spans = []
         for span in self:
             if regex.match(span.text):
                 match_spans.append(SpanGroup([span], label))
+        return AnnoTier(match_spans, presorted=True)
+
+    def match_subspans(self, regex):
+        """
+        Create a new tier from the components of spans matching the given
+        regular expression.
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three four')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc),
+        ...                  AnnoSpan(4, 13, doc),
+        ...                  AnnoSpan(14, 18, doc)])
+        >>> tier.match_subspans(r"two")
+        AnnoTier([AnnoSpan(4-7, two)])
+        """
+        regex = re.compile(regex)
+        match_spans = []
+        for span in self:
+            for match in regex.finditer(span.text):
+                match_spans.append(AnnoSpan(
+                    match.start() + span.start,
+                    match.end() + span.start,
+                    span.doc
+                ))
         return AnnoTier(match_spans, presorted=True)

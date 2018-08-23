@@ -6,9 +6,9 @@ annotator.
 from __future__ import absolute_import
 from __future__ import print_function
 import sqlite3
-from StringIO import StringIO
+from six import BytesIO
 from zipfile import ZipFile
-from urllib2 import urlopen
+from six.moves.urllib import request
 from tempfile import NamedTemporaryFile
 import os
 from ..get_database_connection import get_database_connection
@@ -22,8 +22,8 @@ ITIS_URL = "https://www.itis.gov/downloads/itisSqlite.zip"
 # https://www.itis.gov/pdf/ITIS_ConceptualModelEntityDefinition.pdf
 def download_itis_database():
     print("Downloading ITIS data from: " + ITIS_URL)
-    url = urlopen(ITIS_URL)
-    zipfile = ZipFile(StringIO(url.read(int(url.headers['content-length']))))
+    url = request.urlopen(ITIS_URL)
+    zipfile = ZipFile(BytesIO(url.read(int(url.headers['content-length']))))
     print("Download complete")
     named_temp_file = NamedTemporaryFile()
     itis_version = zipfile.filelist[0].filename.split('/')[0]
@@ -109,6 +109,28 @@ def import_species(drop_previous=False):
                 weight = refs
             tuples.append((name, 'tsn:' + str(tsn), weight))
         cur.executemany(insert_command, tuples)
+    print("Importing hard-coded species names")
+    cur.executemany(insert_command, [
+        ('man', 'tsn:180092', 3),
+        ('men', 'tsn:180092', 3),
+        ('woman', 'tsn:180092', 3),
+        ('women', 'tsn:180092', 3),
+        ('human', 'tsn:180092', 3),
+        ('humans', 'tsn:180092', 3),
+        ('person', 'tsn:180092', 3),
+        ('people', 'tsn:180092', 3),
+        # buffalo
+        ('buffalo', 'tsn:898079', 3),
+        ('buffaloes', 'tsn:898079', 3),
+        # chickens
+        ('chicken', 'tsn:176086', 3),
+        ('chickens', 'tsn:176086', 3),
+        ('hen', 'tsn:176086', 3),
+        ('rooster', 'tsn:176086', 3),
+        # ducks
+        ('duck', 'tsn:174983', 3),
+        ('ducks', 'tsn:174983', 3),
+    ])
     print("Importing synonyms from ITIS database...")
     cur.execute('''
     INSERT INTO synonyms

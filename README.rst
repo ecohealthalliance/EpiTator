@@ -83,7 +83,7 @@ Usage
     doc = AnnoDoc("5 cases of smallpox")
     doc.add_tiers(ResolvedKeywordAnnotator())
     annotations = doc.tiers["resolved_keywords"].spans
-    annotations[0].resolutions
+    annotations[0].metadata["resolutions"]
     # = [{'entity': <sqlite3.Row>, 'entity_id': u'http://purl.obolibrary.org/obo/DOID_8736', 'weight': 3}]
 
 
@@ -127,8 +127,69 @@ Usage
     doc = AnnoDoc("From March 5 until April 7 1988")
     doc.add_tiers(DateAnnotator())
     annotations = doc.tiers["dates"].spans
-    annotations[0].datetime_range
+    annotations[0].metadata["datetime_range"]
     # = [datetime.datetime(1988, 3, 5, 0, 0), datetime.datetime(1988, 4, 7, 0, 0)]
+
+
+Structured Data Annotator
+-------------------------
+
+The structured data annotator identifies and parses embedded tables.
+
+Usage
+-----
+
+.. code:: python
+
+    from epitator.annotator import AnnoDoc
+    from epitator.structured_data_annotator import StructuredDataAnnotator
+    doc = AnnoDoc("""
+    species | cases | deaths
+    Cattle  | 0     | 0
+    Dogs    | 2     | 1
+    """)
+    doc.add_tiers(StructuredDataAnnotator())
+    annotations = doc.tiers["structured_data"].spans
+    annotations[0].metadata
+    # = {'data': [
+    #       [AnnoSpan(1-8, species), AnnoSpan(11-16, cases), AnnoSpan(19-25, deaths)],
+    #       [AnnoSpan(26-32, Cattle), AnnoSpan(36-37, 0), AnnoSpan(44-45, 0)],
+    #       [AnnoSpan(46-50, Dogs), AnnoSpan(56-57, 2), AnnoSpan(64-65, 1)]],
+    #    'delimiter': '|',
+    #    'type': 'table'}
+
+
+Structured Incident Annotator
+-----------------------------
+
+The structured incident annotator identifies and parses embedded tables that
+describe case counts paired with location, date, disease and species metadata.
+Metadata is also extracted from the text around the table.
+
+Usage
+-----
+
+.. code:: python
+
+    from epitator.annotator import AnnoDoc
+    from epitator.structured_incident_annotator import StructuredIncidentAnnotator
+    doc = AnnoDoc("""
+    Fictional October 2015 rabies cases in Svalbard
+    
+    species | cases | deaths
+    Cattle  | 0     | 0
+    Dogs    | 4     | 1
+    """)
+    doc.add_tiers(StructuredIncidentAnnotator())
+    annotations = doc.tiers["structured_incidents"].spans
+    annotations[-1].metadata
+    # = {'location': {'name': u'Svalbard', ...},
+    #    'species': {'label': u'Canidae', ...},
+    #    'attributes': [],
+    #    'dateRange': [datetime.datetime(2015, 10, 1, 0, 0), datetime.datetime(2015, 11, 1, 0, 0)],
+    #    'type': 'deathCount',
+    #    'value': 1,
+    #    'resolvedDisease': {'label': u'rabies', ...}}
 
 
 Architecture

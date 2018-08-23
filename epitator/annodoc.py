@@ -36,6 +36,25 @@ class AnnoDoc(object):
             self.tiers.update(result)
         return self
 
+    def require_tiers(self, *tier_names, **kwargs):
+        """
+        Return the specified tiers or add them using the via annotator.
+        """
+        assert len(set(kwargs.keys()) | set(['via'])) == 1
+        assert len(tier_names) > 0
+        via_annotator = kwargs.get('via')
+        tiers = [self.tiers.get(tier_name) for tier_name in tier_names]
+        if all(t is not None for t in tiers):
+            if len(tiers) == 1:
+                return tiers[0]
+            return tiers
+        else:
+            if via_annotator:
+                self.add_tiers(via_annotator())
+                return self.require_tiers(*tier_names)
+            else:
+                raise Exception("Tier could not be found. Available tiers: " + str(self.tiers.keys()))
+
     def create_regex_tier(self, regex, label=None):
         """
         Create an AnnoTier from all the spans of text that match the regex.

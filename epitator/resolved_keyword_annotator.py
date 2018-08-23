@@ -84,7 +84,9 @@ class ResolvedKeywordAnnotator(Annotator):
                     else:
                         match_weight = 0
                     for span in span_text_to_spans[ngram]:
-                        spans_to_resolved_keywords[span].append(dict(result, weight=result['weight'] + match_weight))
+                        spans_to_resolved_keywords[span].append(
+                            dict(result,
+                                 weight=result['weight'] + match_weight))
                         entity_ids.add(result['entity_id'])
         except StopIteration:
             pass

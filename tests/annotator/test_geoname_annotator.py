@@ -174,7 +174,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
 
     def test_very_long_article(self):
         import os
-        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
+        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt", encoding='utf-8') as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 
@@ -220,6 +220,12 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
     def test_slow_edge_case(self):
         doc = AnnoDoc(u"Outbreak 1: San Pedro, San Pedro, San Pedro, San Pedro [Bas-Sassandra District]")
         doc.add_tier(self.annotator)
+
+    def test_non_matching_character_bug(self):
+        # Imat is resolved to a location with a non-matching unicode i.
+        doc = AnnoDoc(u"They are in Imat, Corum, Turkey.")
+        doc.add_tier(self.annotator)
+        # print([span.metadata['geoname']['geonameid'] for span in doc.tiers['geonames']])
 
 
 if __name__ == '__main__':

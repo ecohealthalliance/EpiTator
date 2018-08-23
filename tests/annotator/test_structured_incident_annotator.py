@@ -160,8 +160,8 @@ Report date / Cases / Deaths / New cases per week
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 10, 27),
-                datetime.datetime(2017, 11, 3)]
+                datetime.datetime(2017, 10, 28),
+                datetime.datetime(2017, 11, 4)]
         })
         self.assertEqual(metadatas[-2], {
             'value': 19,
@@ -188,22 +188,22 @@ Report date / Cases / Deaths / New cases per week
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 9, 29),
-                datetime.datetime(2017, 10, 6)]
+                datetime.datetime(2017, 9, 30),
+                datetime.datetime(2017, 10, 7)]
         }, {
             'value': 29,
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 10, 6),
-                datetime.datetime(2017, 10, 13)]
+                datetime.datetime(2017, 10, 7),
+                datetime.datetime(2017, 10, 14)]
         }, {
             'value': 34,
             'type': 'caseCount',
             'attributes': [],
             'dateRange': [
-                datetime.datetime(2017, 10, 13),
-                datetime.datetime(2017, 10, 20)]
+                datetime.datetime(2017, 10, 14),
+                datetime.datetime(2017, 10, 21)]
         }])
 
     def test_non_incident_counts_and_species(self):
@@ -299,3 +299,119 @@ Deaths / 14 / 291 / 128 / 48 / 467
             datetime.datetime(2014, 7, 1, 0, 0)])
         self.assertEqual(metadatas[4]['value'], 413)
         self.assertEqual(metadatas[4]['location']['geonameid'], '2420477')
+
+    def test_number_in_header(self):
+        doc = AnnoDoc("""
+Health Jurisdiction / Cases (percentage) / Incidence rate per 100 000 Person-Years
+Salt Lake county / 162 (68.9) / 14.4
+Utah county / 45 (19.1) / 7.6
+Bear River / 5 (2.1) / 2.8
+Southeast Utah / 2 (0.9) / 5.0
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0]['type'], 'caseCount')
+        self.assertEqual(metadatas[0]['value'], 162)
+        self.assertEqual(metadatas[0]['location']['geonameid'], '5781004')
+
+    def test_unusual_format(self):
+        doc = AnnoDoc("""
+For subscribers' convenience, we hereby reproduce Israel's annual rabies statistics since 2014:
+
+Year // badger / cat / fox / jackal / wolf / dog / cattle / sheep / horse // total
+2014 // 3 / 0 / 2 / 2 / 4 / 2 / 1 / 0 / 0 // 14
+2015 // 12 / 1 / 1 / 3 / 0 / 1 / 7 / 0 / 1 // 20
+2016 // 12 / 0 / 7 / 5 / 0 / 0 / 5 / 0 / 1 // 30
+2017 // 10 / 2 / 0 / 47 / 0 / 0 / 14 / 1 / 0 // 74
+2018 // 4 / 0 / 0 / 35 / 0 / 1 / 7 / 1 / 1 // 51
+""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0]['type'], 'caseCount')
+        self.assertEqual(metadatas[0]['value'], 3)
+        self.assertEqual(metadatas[0]['species']['label'], 'Taxidea taxus')
+        self.assertEqual(metadatas[0]['dateRange'], [
+            datetime.datetime(2014, 1, 1, 0, 0),
+            datetime.datetime(2015, 1, 1, 0, 0)])
+
+    def test_date_association(self):
+        doc = AnnoDoc("""
+The outbreak strains of salmonella have infected a reported 961 people in 48 states [only Alaska and Delaware have not reported cases - Mod.LL] and the District of Columbia. Illnesses started on dates ranging from 4 January 2017 to 31 July 2017.
+State / Number of Cases
+Alabama / 25
+Arizona / 6
+Arkansas / 9
+California / 54
+Virginia / 56
+Washington / 22
+West Virginia / 17
+Wisconsin / 24
+Wyoming / 10""")
+        doc.add_tier(self.annotator)
+        metadatas = [
+            remove_empty_props(span.metadata)
+            for span in doc.tiers['structured_incidents']
+        ]
+        self.assertEqual(metadatas[0]['dateRange'], [
+            datetime.datetime(2017, 1, 4, 0, 0),
+            datetime.datetime(2017, 8, 1, 0, 0)])
+
+    def test_fp_table_merging(self):
+        doc = AnnoDoc("""
+Non-Latin Caribbean
+
+Bahamas / week 30 [ending 25 Jul 2014] / 0 / 0 / 6 / 0
+
+Dominica / week 28 [ending 11 Jul 2014] / 3559 / 141 / 0 / 0
+
+Jamaica / week 29 [ending 18 Jul 2014] / 0 / 0 / 1 / 0
+
+Turks & Caicos Islands / week 28 [ending 11 Jul 2014] / 0 / 10 / 7 / 0
+
+US Virgin Islands / week 29 [ending 18 Jul 2014] / 0 / 2 / 7 / 0
+
+
+Andean area:
+
+Bolivia / 9 / 0 / 0 / 3 / 0
+
+Colombia / 30 / 0 / 0 / 1 / 0
+
+Peru / 28 / 0 / 0 / 3 / 0
+""")
+        doc.add_tier(self.annotator)
+
+    def test_unparsable_date_bug(self):
+        doc = AnnoDoc("""
+Cases by Country / Week updated / Probable / Conf. / Virus type / DHF severe / Deaths
+
+Hispanic Caribbean
+
+Dominican Republic / 17 [week ending 28 Apr 2017] / 315 / 0 / D? / 15 / 0
+
+Puerto Rico / 19 [week ending 12 May 2017] / 9 / 0 / D2 / 0 / 0
+
+English, French, Dutch Caribbean
+
+American Virgin Islands / 19 [week ending 12 May 2017] / 1 / 1 / D? / 0 / 0
+
+Andean
+
+Bolivia / 17 / [week ending 28 Apr 2017] / 4260 / 0 / D? / 34 / 0
+
+Colombia / 20 [week ending 19 May 2017] / 12 552 / 8357 / D? / 131 / 36
+
+Ecuador / 17 [week ending 28 Apr 2017] / 6075 / 6075 / D? / 6 / 3
+
+Peru / 20 [week ending 19 May 2017] / 44 971 / 12 717 / D 2,3 / 137 / 54
+
+Venezuela / 17 [week ending 28 Apr 2017] / 2722 / 309 / D? / 7 / 0
+
+""")
+        doc.add_tier(self.annotator)

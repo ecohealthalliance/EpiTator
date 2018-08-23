@@ -11,7 +11,6 @@ from .ngram_annotator import NgramAnnotator
 from .ne_annotator import NEAnnotator
 from geopy.distance import great_circle
 from .maximum_weight_interval_set import Interval, find_maximum_weight_interval_set
-from . import result_aggregators as ra
 
 from .get_database_connection import get_database_connection
 from . import geoname_classifier
@@ -391,7 +390,12 @@ class GeonameAnnotator(Annotator):
         candidate_geonames = []
         for geoname in geoname_results:
             geoname.add_spans(span_text_to_spans)
-            candidate_geonames.append(geoname)
+            # In rare cases geonames may have no matching spans because
+            # sqlite unicode equivalency rules match geonames that use different
+            # characters the document spans used to query them.
+            # These geonames are ignored.
+            if len(geoname.spans) > 0:
+                candidate_geonames.append(geoname)
         # Add combined spans to locations that are adjacent to a span linked to
         # an administrative division. e.g. Seattle, WA
         span_to_geonames = defaultdict(list)
@@ -399,7 +403,7 @@ class GeonameAnnotator(Annotator):
             for span in geoname.spans:
                 span_to_geonames[span].append(geoname)
         geoname_spans = span_to_geonames.keys()
-        combined_spans = ra.n_or_more(2, geoname_spans, max_dist=4, limit=4)
+        combined_spans = AnnoTier(geoname_spans).chains(at_least=2, at_most=4, max_dist=4)
         for combined_span in combined_spans:
             leaf_spans = combined_span.iterate_leaf_base_spans()
             first_spans = next(leaf_spans)

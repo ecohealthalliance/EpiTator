@@ -53,7 +53,8 @@ A map can be accessed at: http://example.com
                 ['Cases', '22', '544', '', '75', '759'],
                 ['Deaths', '14', '291', '128', '48', '467']
             ],
-            'type': 'table'
+            'type': 'table',
+            'delimiter': '/'
         })
 
     def test_count_table_2(self):
@@ -86,7 +87,8 @@ Sheep/goats / 15 / 0 / 0 / 0 / 0
                 'Outbreak 2': 'Taraz City, Dzhambul',
                 'Outbreak status': 'resolved on 15 Nov 2017'
             },
-            'type': 'keyValuePairs'
+            'type': 'keyValuePairs',
+            'delimiter': ':',
         })
         self.assertEqual(metadatas[1], {
             'type': 'table',
@@ -94,7 +96,8 @@ Sheep/goats / 15 / 0 / 0 / 0 / 0
                 ['Affected animals: species', 'susceptible', 'cases', 'deaths', 'killed and disposed of', 'slaughtered'],
                 ['Dogs', '20', '1', '1', '0', '0']
             ],
-            'type': 'table'
+            'type': 'table',
+            'delimiter': '/'
         })
         self.assertEqual(metadatas[2], {
             'type': 'table',
@@ -105,7 +108,8 @@ Sheep/goats / 15 / 0 / 0 / 0 / 0
                 ['Equidae', '6', '0', '0', '0', '0'],
                 ['Sheep', 'goats', '15', '0', '0', '0', '0']
             ],
-            'type': 'table'
+            'type': 'table',
+            'delimiter': '/'
         })
 
     def test_count_list(self):
@@ -147,5 +151,6 @@ Integer County - 3 cases
                 'Meteor County': '1 case',
                 'Boolean County': '1 case (not including the fatality)',
                 'Integer County': '3 cases'
-            }
+            },
+            'delimiter': '-'
         })

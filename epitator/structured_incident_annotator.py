@@ -32,7 +32,7 @@ def is_null(val_string):
 def median(li):
     if len(li) == 0:
         return None
-    mid_idx = (len(li) - 1) / 2
+    mid_idx = int((len(li) - 1) / 2)
     li = sorted(li)
     if len(li) % 2 == 1:
         return li[mid_idx]
@@ -122,22 +122,28 @@ class StructuredIncidentAnnotator(Annotator):
             'geoname': geonames,
             'date': dates,
             'species': AnnoTier(species_list).optimal_span_set(),
+            'disease': AnnoTier(disease_list, presorted=True),
             'number': numbers,
             'incident_type': spacy_tokens.search_spans(r'(case|death)s?'),
             'incident_status': spacy_tokens.search_spans(r'suspected|confirmed'),
         }
         tables = []
+        possible_titles = doc.create_regex_tier("[^\n]+\n")\
+            .chains(at_most=5, max_dist=0)\
+            .without_overlaps(doc.tiers['structured_data'])\
+            .optimal_span_set()
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table':
                 continue
-            # Add columns based on surrounding text
-            table_title = doc.tiers['spacy.sentences'].span_before(span)
+            # Add virtual metadata columns based on surrounding text from
+            # title sentence/paragraph.
+            table_title = possible_titles.span_before(span)
             if table_title:
                 table_title = AnnoSpan(
                     table_title.start,
                     min(table_title.end, span.start),
                     doc)
-            last_disease_mentioned = AnnoTier(disease_list, presorted=True).span_before(span)
+            last_disease_mentioned = entities_by_type['disease'].span_before(span)
             last_geoname_mentioned = None
             last_date_mentioned = None
             last_species_mentioned = None
@@ -158,7 +164,11 @@ class StructuredIncidentAnnotator(Annotator):
             # Detect header
             first_row = AnnoTier(rows[0])
             header_entities = list(first_row.group_spans_by_containing_span(numbers))
-            if all(len(entity_spans) == 0 for header_span, entity_spans in header_entities):
+            header_numeric_portions = [
+                sum(len(s) for s in entity_spans) * 1.0 / len(header_span)
+                for header_span, entity_spans in header_entities
+                if len(header_span) > 0]
+            if all(portion < 0.8 for portion in header_numeric_portions):
                 has_header = True
             else:
                 has_header = False
@@ -168,11 +178,11 @@ class StructuredIncidentAnnotator(Annotator):
                 data_rows = rows
 
             # Remove rows without the right number of columns
-            median_num_cols = median(map(len, data_rows))
+            median_num_cols = median(list(map(len, data_rows)))
             data_rows = [row for row in data_rows if len(row) == median_num_cols]
 
             # Determine column types
-            table_by_column = zip(*data_rows)
+            table_by_column = list(zip(*data_rows))
             column_types = []
             parsed_column_entities = []
             for column_values in table_by_column:
@@ -202,11 +212,12 @@ class StructuredIncidentAnnotator(Annotator):
                         matching_column_entities = [[] for x in column_values]
                 column_types.append(column_type)
                 parsed_column_entities.append(matching_column_entities)
+
             column_definitions = []
             if has_header:
                 for column_type, header_name in zip(column_types + len(first_row) * [None], first_row):
                     column_definitions.append({
-                        'name': header_name.text,
+                        'name': header_name,
                         'type': column_type
                     })
             else:
@@ -237,14 +248,23 @@ class StructuredIncidentAnnotator(Annotator):
                 {'name': '__implicit_metadata', 'type': 'disease'},
                 {'name': '__implicit_metadata', 'type': 'species'}
             ] + column_definitions
-            rows = zip(*parsed_column_entities)
+            rows = list(zip(*parsed_column_entities))
             if not has_header and len(tables) > 0 and len(column_definitions) == len(tables[-1].column_definitions):
-                tables[-1].rows += rows
-                tables[-1].column_definitions = [
-                    {
-                        'type': definition.get('type') or prev_definition.get('type'),
-                        'name': definition.get('name') or prev_definition.get('name')}
-                    for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
+                # Special case for merging detached header rows
+                if len(tables[-1].rows) == 0:
+                    tables[-1].rows = rows
+                    tables[-1].column_definitions = [
+                        {
+                            'type': definition.get('type'),
+                            'name': definition.get('name') or prev_definition.get('name')}
+                        for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
+                elif [d['type'] for d in column_definitions] == [d['type'] for d in tables[-1].column_definitions]:
+                    tables[-1].rows += rows
+                    tables[-1].column_definitions = [
+                        {
+                            'type': definition.get('type') or prev_definition.get('type'),
+                            'name': definition.get('name') or prev_definition.get('name')}
+                        for definition, prev_definition in zip(column_definitions, tables[-1].column_definitions)]
             else:
                 tables.append(Table(
                     column_definitions,
@@ -303,67 +323,99 @@ class StructuredIncidentAnnotator(Annotator):
                     if not value:
                         continue
                     if column['type'] == "number":
-                        column_name = (column.get('name') or '').lower()
+                        column_name = column.get('name')
+                        if isinstance(column_name, AnnoSpan):
+                            column_name_text = column_name.text.lower()
+                        else:
+                            column_name_text = (column_name or '').lower()
                         incident_base_type = None
                         if row_incident_base_type:
                             incident_base_type = row_incident_base_type
-                        else:
-                            if "cases" in column_name:
-                                incident_base_type = "caseCount"
-                            elif "deaths" in column_name:
-                                incident_base_type = "deathCount"
+                        elif "cases" in column_name_text:
+                            incident_base_type = "caseCount"
+                        elif "deaths" in column_name_text:
+                            incident_base_type = "deathCount"
+
                         if row_incident_status and row_incident_status != CANNOT_PARSE:
                             count_status = row_incident_status.text
+                        elif "suspect" in column_name_text or column_name_text == "reported":
+                            count_status = "suspected"
+                        elif "confirmed" in column_name_text:
+                            count_status = "confirmed"
                         else:
-                            if "suspect" in column_name or column_name == "reported":
-                                count_status = "suspected"
-                            elif "confirmed" in column_name:
-                                count_status = "confirmed"
-                            else:
-                                count_status = None
+                            count_status = None
+
                         if count_status and not incident_base_type:
                             incident_base_type = "caseCount"
                         incident_aggregation = None
                         if row_incident_aggregation is not None:
                             incident_aggregation = row_incident_aggregation
-                        if "total" in column_name:
+                        if "total" in column_name_text:
                             incident_aggregation = "cumulative"
-                        if "new" in column_name:
+                        if "new" in column_name_text:
                             incident_aggregation = "incremental"
                         incident_count = value.metadata['number']
                         incident_location = row_incident_location
                         incident_species = row_incident_species
                         incident_disease = row_incident_disease
                         incident_date = row_incident_date
-                        if not incident_base_type:
-                            continue
                         if incident_species and incident_species != CANNOT_PARSE:
                             species_entity = incident_species.metadata['species']['entity']
                             incident_species = {
                                 'id': species_entity['id'],
                                 'label': species_entity['label'],
                             }
+                        elif not incident_base_type and isinstance(column_name, AnnoSpan):
+                            contained_spans = entities_by_type['species'].spans_contained_by_span(column_name)
+                            if len(contained_spans) > 0:
+                                incident_base_type = "caseCount"
+                                entity = contained_spans[0].metadata['species']['entity']
+                                incident_species = {
+                                    'id': entity['id'],
+                                    'label': entity['label'],
+                                }
+
                         if incident_disease and incident_disease != CANNOT_PARSE:
                             disease_entity = incident_disease.metadata['disease']['entity']
                             incident_disease = {
                                 'id': disease_entity['id'],
                                 'label': disease_entity['label'],
                             }
-                        if incident_date and incident_date != CANNOT_PARSE:
-                            incident_date = incident_date.metadata['datetime_range']
-                        if table.metadata.get('date_period'):
-                            if incident_aggregation != "cumulative":
-                                incident_date = [
-                                    incident_date[0] - table.metadata.get('date_period'),
-                                    incident_date[0]]
+                        elif not incident_base_type and isinstance(column_name, AnnoSpan):
+                            contained_spans = entities_by_type['disease'].spans_contained_by_span(column_name)
+                            if len(contained_spans) > 0:
+                                incident_base_type = "caseCount"
+                                entity = contained_spans[0].metadata['disease']['entity']
+                                incident_disease = {
+                                    'id': entity['id'],
+                                    'label': entity['label'],
+                                }
+
                         if incident_location and incident_location != CANNOT_PARSE:
                             incident_location = incident_location.metadata['geoname'].to_dict()
                             del incident_location['parents']
+                        elif not incident_base_type and isinstance(column_name, AnnoSpan):
+                            contained_spans = entities_by_type['geoname'].spans_contained_by_span(column_name)
+                            if len(contained_spans) > 0:
+                                incident_base_type = "caseCount"
+                                incident_location = contained_spans[0].metadata['geoname'].to_dict()
+                                del incident_location['parents']
+
+                        if incident_date != CANNOT_PARSE:
+                            if incident_date:
+                                incident_date = incident_date.metadata['datetime_range']
+                            if table.metadata.get('date_period'):
+                                if incident_aggregation != "cumulative":
+                                    incident_date = [
+                                        incident_date[1] - table.metadata.get('date_period'),
+                                        incident_date[1]]
+                        if not incident_base_type:
+                            continue
                         row_incidents.append(AnnoSpan(value.start, value.end, doc, metadata={
                             'base_type': incident_base_type,
                             'aggregation': incident_aggregation,
                             'value': incident_count,
-                            'attributes': filter(lambda x: x, [count_status]),
+                            'attributes': list(filter(lambda x: x, [count_status])),
                             'location': incident_location,
                             'resolvedDisease': incident_disease,
                             'dateRange': incident_date,

@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
-import sys
+import six
 import csv
 import unicodecsv
 import re
-from StringIO import StringIO
+from six import BytesIO
 from zipfile import ZipFile
-from urllib import urlopen
+from six.moves.urllib import request
 from ..get_database_connection import get_database_connection
 from ..utils import parse_number, batched
 
@@ -38,11 +38,11 @@ geonames_field_mappings = [
 
 def read_geonames_csv():
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
-    url = urlopen(GEONAMES_ZIP_URL)
-    zipfile = ZipFile(StringIO(url.read()))
+    url = request.urlopen(GEONAMES_ZIP_URL)
+    zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
     # Loading geonames data may cause errors without this line:
-    csv.field_size_limit(sys.maxint)
+    csv.field_size_limit(six.MAXSIZE)
     with zipfile.open('allCountries.txt') as f:
         reader = unicodecsv.DictReader(f,
                                        fieldnames=[
@@ -113,7 +113,7 @@ def import_geonames(drop_previous=False):
                 tuple(geoname[field]
                       for field, sqltype in geonames_field_mappings
                       if sqltype))
-            for alternatename in set(geoname['alternatenames'] + [geoname['name']]):
+            for alternatename in set(geoname['alternatenames'] + [geoname['name'], geoname['asciiname']]):
                 alternatename_tuples.append((
                     geoname['geonameid'],
                     alternatename,
