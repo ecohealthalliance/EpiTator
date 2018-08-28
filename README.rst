@@ -58,7 +58,7 @@ Resolved Keyword Annotator
 The resolved keyword annotator uses an sqlite database of entities to resolve
 mentions of multiple synonyms for an entity to a single id.
 This project includes scripts for importing diseases and animal species into
-that database. The following commands cab be used to invoke them:
+that database. The following commands can be used to invoke them:
 
 The scripts import data from the `Disease Ontology <http://disease-ontology.org/>`_,
 `Wikidata <https://www.wikidata.org/>`_
