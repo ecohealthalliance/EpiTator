@@ -133,9 +133,14 @@ def generate_counts(tokens, strict_only=False, debug=False):
         token_is_not_lemma = [token.lower_ != token.lemma_ for token in tokens]
         token_is_noun = [token.pos_ == 'NOUN' for token in tokens]
         token_is_plural = ([l and n for l, n in zip(token_is_not_lemma, token_is_noun)])
-        if not any(token_is_plural):
+
+        # So we don't match "In any case" or other similar things.
+        exclude_articles = ["any"]
+        exclude = tokens[0].lower_ in exclude_articles
+
+        if not any(token_is_plural) and not exclude:
             metadata["count"] = 1
-            # metadata["attributes"].append("INFERRED_FROM_SINGULAR_NC")
+            debug_attributes.append("count_inferred_from_singular_nc")
 
     if "count" not in metadata.keys() and strict_only is False:
         # "Lax metadata generation" -- so-called because it looks for tokens which
@@ -201,7 +206,7 @@ def has_trigger_lemmas(metadata, lemmas=["infection", "death", "hospitalization"
 
 
 def has_single_count(metadata):
-    return "count" in metadata.keys() and not isinstance(metadata["count"], list)
+    return metadata.get("count") is not None and not isinstance(metadata["count"], list)
 
 
 def from_noun_chunks_with_infection_lemmas(doc, debug=False):
@@ -226,7 +231,7 @@ def from_noun_chunks_with_infection_lemmas(doc, debug=False):
 
         # If the noun chunk is the subject of the root verb, we check the
         # ancestors for metadata lemmas too.
-            if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass"]):
+            if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass", "dobj"]):
                 ancestors = [TokenSpan(a, doc, nc.offset) for a in nc.span.root.ancestors]
                 ancestor_metadata = merge_dicts([
                     generate_attributes(ancestors),
@@ -277,7 +282,7 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
         if "person" in metadata["attributes"]:
             out_tokens = nc_tokens
             debug_attributes.append("attributes from noun chunk")
-            if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass"]):
+            if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass", "dobj"]):
                 ancestors = [TokenSpan(a, doc, nc.offset) for a in nc.span.root.ancestors]
                 ancestor_metadata = merge_dicts([
                     generate_attributes(ancestors),
@@ -304,7 +309,6 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
                     metadata = merge_dicts([metadata, subtree_metadata],
                                            unique=True)
                     debug_attributes.append("attributes from disjoint subtree")
-                    print(disjoint_subtree)
 
         if debug:
             metadata["debug_attributes"] = debug_attributes
