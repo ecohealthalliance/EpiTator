@@ -4,6 +4,7 @@ import six
 import csv
 import unicodecsv
 import re
+import sys
 from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
@@ -42,7 +43,7 @@ def read_geonames_csv():
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
     # Loading geonames data may cause errors without this line:
-    csv.field_size_limit(six.MAXSIZE)
+    csv.field_size_limit(sys.maxint if six.PY2 else six.MAXSIZE)
     with zipfile.open('allCountries.txt') as f:
         reader = unicodecsv.DictReader(f,
                                        fieldnames=[
