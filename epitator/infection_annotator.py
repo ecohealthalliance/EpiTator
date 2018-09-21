@@ -88,8 +88,6 @@ def spacy_tokens_for_span(span):
     Given an AnnoSpan, will return a list of the spaCy tokens contained by it.
     """
     doc = span.doc
-    if "spacy.tokens" not in doc.tiers:
-        doc.add_tier(SpacyAnnotator())
     tokens_tier = span.doc.tiers["spacy.tokens"]
     tokens = [t.token for t in tokens_tier.spans_contained_by_span(span)]
     return(tokens)
@@ -262,9 +260,70 @@ def from_noun_chunks_with_infection_lemmas(doc, debug=False):
     return(infection_spans)
 
 
+def collapse_span_group(span_group):
+    if len(span_group.base_spans) == 0:
+        # Not a span group
+        return span_group
+    collapsed_metadata = {
+        'attributes': []
+    }
+    if span_group.label:
+        collapsed_metadata['attributes'] = [span_group.label]
+    for span in span_group.base_spans:
+        span = collapse_span_group(span)
+        if span.metadata:
+            collapsed_metadata = dict(
+                dict(collapsed_metadata, **span.metadata),
+                attributes=collapsed_metadata['attributes'] + span.metadata['attributes'])
+        # if span.label:
+        #     collapsed_metadata['attributes'].append(span.label)
+    collapsed_metadata['attributes'] = sorted(collapsed_metadata['attributes'])
+    return AnnoSpan(span_group.start, span_group.end, span_group.doc, metadata=collapsed_metadata)
+
+
+def add_count_modifiers(spans, doc):
+    spacy_tokens, spacy_nes = doc.require_tiers('spacy.tokens', 'spacy.nes', via=SpacyAnnotator)
+    span_tier = AnnoTier(spans)
+    spacy_lemmas = [span.token.lemma_ for span in spacy_tokens]
+
+    def search_lemmas(lemmas, match_name=None):
+        match_spans = []
+        lemmas = set(lemmas)
+        for span, lemma in zip(spacy_tokens, spacy_lemmas):
+            if lemma in lemmas:
+                match_spans.append(span)
+        return AnnoTier(match_spans, presorted=True).label_spans(match_name)
+
+    case_statuses = (
+        search_lemmas(['suspect'], 'suspected') +
+        search_lemmas(['confirm'], 'confirmed'))
+    span_tier += span_tier.with_nearby_spans_from(case_statuses, max_dist=1)
+
+    person_and_place_nes = spacy_nes.with_label('GPE') + spacy_nes.with_label('PERSON')
+    modifier_lemma_groups = [
+        'average|mean',
+        'annual|annually',
+        'monthly',
+        'weekly',
+        'cumulative|total|already',
+        'incremental|new|additional|recent',
+        'max|less|below|under|most|maximum|up',
+        'min|greater|above|over|least|minimum|down|exceeds',
+        'approximate|about|near|around',
+        'ongoing|active'
+    ]
+    for group in modifier_lemma_groups:
+        lemmas = group.split('|')
+        results = search_lemmas(lemmas, match_name=lemmas[0])
+        # prevent components of NEs like the "New" in New York from being
+        # treated as count descriptors.
+        results = results.without_overlaps(person_and_place_nes)
+        span_tier += span_tier.with_nearby_spans_from(results)
+    span_tier = span_tier.optimal_span_set(prefer="num_spans_and_no_linebreaks")
+    return AnnoTier([collapse_span_group(span) for span in span_tier], presorted=True)
+
+
 def from_noun_chunks_with_person_lemmas(doc, debug=False):
-    if 'spacy.tokens' not in doc.tiers:
-        doc.add_tiers(SpacyAnnotator())
     nc_tier = doc.tiers["spacy.noun_chunks"]
     tokens_tier = doc.tiers["spacy.tokens"]
 
@@ -325,8 +384,9 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
 
 class InfectionAnnotator(Annotator):
     def annotate(self, doc, debug=False):
+        doc.require_tiers('spacy.tokens', 'spacy.nes', via=SpacyAnnotator)
         spans = []
         spans.extend(from_noun_chunks_with_infection_lemmas(doc, debug))
         spans.extend(from_noun_chunks_with_person_lemmas(doc, debug))
-        tier = AnnoTier(spans).optimal_span_set(prefer="num_spans_and_no_linebreaks")
+        tier = add_count_modifiers(spans, doc)
         return {'infections': tier}

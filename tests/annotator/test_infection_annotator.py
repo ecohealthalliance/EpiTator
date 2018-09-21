@@ -148,6 +148,19 @@ class TestInfectionAnnotator(unittest.TestCase):
     #         doc = AnnoDoc(file.read())
     #         doc.add_tier(self.annotator)
 
+    def test_cumulative(self):
+        sent = 'In total nationwide, 613 cases of the disease have been reported as of 2 July 2014, with 63 deceased patients'
+        counts = [
+            {'count': 613, 'attributes': ['infection', 'cumulative']},
+            {'count': 63, 'attributes': ['death']}
+        ]
+        self.assertHasCounts(sent, counts)
+
+    def test_attributes(self):
+        self.assertHasCounts('There have been a total of 1715 confirmed cases of MERS-CoV infection. '
+                             'There was one suspected case of bird flu in the country.',
+                             [{'count': 1715, 'attributes': ['cumulative', 'confirmed', 'infection']},
+                              {'count': 1, 'attributes': ['infection', 'suspected']}])
 
 if __name__ == '__main__':
     unittest.main()
