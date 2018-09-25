@@ -10,14 +10,18 @@ Only includes spans which meet the criteria:
 - Seem like they indicate a definite count of a number or refer to an
   individual (i.e. count: 1)
 
-TODO:
-- decide the pattern we're going to use to contain multiple separate syntactic
-  formulations
-    - break out the "person lemma" and "case word" formulations
-- implement 'attribute' metadata for:
-    cumulative, age, approximate, min, max
+InfectionAnnotator errs on the side of excluding events. Internally, within
+its annotate method, it calls functions which are defined below. Each function
+contains code to extract a specific syntactic pattern, by looking for certain
+combinations of lemmas, parts of speech, etc. in spaCy properties. This design
+is due to the complexity of each of those individual patterns. By separating
+them into distinct function calls, it is easier to isolate errors, and to know
+where to add functionality. If a new syntactic pattern is to be added, you
+should add a new function, then add it to the set of functions that
+InfectionAnnotator calls in the annotate() method.
 
-These could be added in this annotator, but might be better suited elsewhere.
+In general, these inner functions all return metadata dicts, and rely on
+epitator.utils.merge_dicts() to merge them before generating AnnoSpans.
 """
 from itertools import groupby
 from operator import itemgetter
@@ -57,16 +61,24 @@ attribute_lemmas = {
 }
 
 
-# FIXME: This should work better. Right now it removes possessives by checking
-# that a token.pos_ == "NOUN" is not token.dep_ == "poss". Previously, it was
-# nice and parsimonious, and just extracted the inner lemma dicts by pos_.
-# It'd be nice to have a consistently applicable approach, where, say, you
-# state a set of conditions and then state a set of lemmas to look for.
-# Another approach would be to break this out of the function and just apply
-# the appropriate lemmas at different points based on the code. Or to change
-# the point of abstraction such that you pass in a sequence of tokens and the
-# inner lemma dict, and then just match without checking for part of speech.
 def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
+    """
+    Given a list of spaCy tokens and a dict of lemma attributes, return an
+    AnnoSpan metadata dict with the appropriate attributes object.
+
+    The attribute_lemmas dict should contain keys in the following form:
+    {
+        "pos_": {
+            "attribute_tag": ["lemmas", "to", "match"]
+        }
+    }
+
+    Multiple attribute tags may be supplied for a given part of speech.
+    Possessive nouns are excluded, because they cause problems with
+    assumptions elsewhere. This isn't the most elegant solution. A more
+    elegant solution might, say, provide a set of conditions (e.g. noun, not
+    possessive) and a set of indicator lemmas.
+    """
     metadata = {}
     attributes = []
     if not hasattr(tokens, "__iter__"):
@@ -82,21 +94,30 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
-# TODO: Maybe remove this function
-def spacy_tokens_for_span(span):
-    """
-    Given an AnnoSpan, will return a list of the spaCy tokens contained by it.
-    """
-    doc = span.doc
-    tokens_tier = span.doc.tiers["spacy.tokens"]
-    tokens = [t.token for t in tokens_tier.spans_contained_by_span(span)]
-    return(tokens)
-
-
 def generate_counts(tokens, strict_only=False, debug=False):
-    if len(tokens) == 0:
-        return {}
+    """
+    Given a set of spaCy tokens, return an AnnoSpan metadata dict containing
+    appropriate count metadata.
+
+    strict_only -- Do not apply "lax count generation" (default False). Lax
+    generation looks for numbers which are formatted with spaces as thousands
+    separators, by allowing counts to be found in successive tokens with the
+    cardinal/quantity properties *or* NUMMOD part of speech, rather than
+    requiring that both be present. To avoid interpreting years as counts,
+    there must be two successive tokens with these properties. If this causes
+    lots of false positive matches, we should disable it.
+
+    debug -- Include a debug_attributes key in the returned dictionary,
+    flagging when certain potentially problematic techniques (including the
+    above "lax" mode) have been used.
+
+    Note: Some parts of this function assume that the token passed in is a
+    noun chunk. Specifically, if no numeric counts can be found, we look for a
+    singular in the first token, and if it is found, assign a count of 1.
+    """
     metadata = {}
+    if len(tokens) == 0:
+        return metadata
     metadata["attributes"] = []
     debug_attributes = []
     quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] and t.dep_ == 'nummod']
@@ -122,12 +143,12 @@ def generate_counts(tokens, strict_only=False, debug=False):
     if "count" not in metadata.keys() and tokens[0].dep_ == "det":
         # If we haven't already extracted a count, and there is an article in
         # the noun chunk, we check to see if the chunk is plural. To do that,
-        # we look at all the tokens, and if a token is a noun (e.g.
-        # "patients") we check to see if the lower case version of it is the
-        # lemma (i.e. canonical singular) version of it. If none of the tokens
-        # are plural, we assume the noun phrase is singular and add a "1" to
-        # the count metadata. Otherwise, we assume that it must be a phrase
-        # like "some patients" and do nothing.
+        # we look at all the tokens, and if a token is a noun (e.g. "patients")
+        # we check to see if the lower case version of it is the lemma (i.e.
+        # canonical singular) version of it. If none of the tokens are plural,
+        # we assume the noun phrase is singular and add a "1" to the count
+        # metadata. Otherwise, we assume that it must be a phrase like "some
+        # patients" and do nothing.
         token_is_not_lemma = [token.lower_ != token.lemma_ for token in tokens]
         token_is_noun = [token.pos_ == 'NOUN' for token in tokens]
         token_is_plural = ([l and n for l, n in zip(token_is_not_lemma, token_is_noun)])
@@ -141,13 +162,13 @@ def generate_counts(tokens, strict_only=False, debug=False):
             debug_attributes.append("count_inferred_from_singular_nc")
 
     if "count" not in metadata.keys() and strict_only is False:
-        # "Lax metadata generation" -- so-called because it looks for tokens which
-        # are cardinal / quantity OR nummod.  This is meant to mostly cope with
-        # things in ProMED that are formatted like "193 533", which often trip up
-        # spaCy. If it finds a single token matching these criteria, it does
-        # nothing, because these are likely to be things like years or other
-        # single-token things, and this would increase the false positive rate. It
-        # handles multiple tokens in the same manner as above.
+        # "Lax metadata generation" -- so-called because it looks for tokens
+        # which are cardinal / quantity OR nummod.  This is meant to mostly
+        # cope with things in ProMED that are formatted like "193 533", which
+        # often trip up spaCy. If it finds a single token matching these
+        # criteria, it does nothing, because these are likely to be years or
+        # other single-token things, and this would increase the false positive
+        # rate. It handles multiple tokens in the same manner as above.
         try:
             lax_quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
             if len(lax_quant_idx) == 1:
@@ -171,47 +192,38 @@ def generate_counts(tokens, strict_only=False, debug=False):
     return(metadata)
 
 
-"""
-Initialized by passing in an AnnoSpan, this class will return a new
-span based on that AnnoSpan, but with 'attributes' and 'count'
-metadata slots populated, if appropriate.
+def has_trigger_lemmas(metadata,
+                       lemmas=["infection", "death", "hospitalization"]):
+    """
+    Return True if any lemmas in the metadata dict match lemmas of interest.
 
-If the noun chunk contains a word related to infection, we include it and
-stop looking, because we assume that the noun chunk refers to a
-resultative of an infection event.
+    By default, lemmas of interest are "infection", "death", and "hospitalization".
 
-If the noun chunk contains a lemma indicating a person, we continue
-looking for words in the subtree and ancestors which would indicate that
-this person was the victim of an infection event.
-
-Regardless, at the end of that process, we have a list of spaCy words and
-a list of attribute dicts. These are combined to generate the text span
-and a merged metadata object, which are used to create a AnnoSpan and
-returned.
-
-TODO: Have an argument flag for "compatibility mode", which would replace
-all attributes named "infection" with "case".
-
-If we continue down this path, I'd want to write a class which could take
-attribute-associated AnnoSpans -- say AttribSpans -- as arguments to event
-slots.
-"""
-
-
-# TODO: PUT IN INFECTION ANNOTATOR
-def has_trigger_lemmas(metadata, lemmas=["infection", "death", "hospitalization"]):
+    Written to improve readability, since this is used a lot in the annotation functions.
+    """
     return any([lemma in metadata["attributes"] for lemma in lemmas])
 
 
 def has_single_count(metadata):
+    """
+    Return True if the metadata dictionary has a single value for a "count" key.
+
+    Written to improve readability, since this is used a lot in the annotation functions.
+    """
     return metadata.get("count") is not None and not isinstance(metadata["count"], list)
 
 
 def from_noun_chunks_with_infection_lemmas(doc, debug=False):
-    if 'spacy.tokens' not in doc.tiers:
-        doc.add_tiers(SpacyAnnotator())
-    nc_tier = doc.tiers["spacy.noun_chunks"]
-    tokens_tier = doc.tiers["spacy.tokens"]
+    """
+    Given an AnnoDoc, return a list of AnnoSpans which contain spaCy noun
+    chunks and infection lemmas. Counts are also extracted and included in the
+    metadata dicts.
+
+    debug -- Include a "debug_attributes" list in AnnoSpan metadata
+    dictioanries, containing strings corresponding to certain parts of code in
+    this and other functions, to facilitate debugging.
+    """
+    nc_tier, tokens_tier = doc.require_tiers('spacy.noun_chunks', 'spacy.tokens', via=SpacyAnnotator)
 
     infection_spans = []
 
@@ -242,13 +254,6 @@ def from_noun_chunks_with_infection_lemmas(doc, debug=False):
                                            unique=True)
                     debug_attributes.append("attributes from ancestors")
 
-        # Generate counts from the noun chunk.
-        # counts = generate_counts(nc_tokens)
-        # metadata = merge_dicts([metadata, counts])
-
-        # Is "count" at most one value?
-        # if not has_single_count(metadata):
-        #     warning("Multiple count values found")
         if debug:
             metadata["debug_attributes"] = debug_attributes
 
@@ -324,8 +329,18 @@ def add_count_modifiers(spans, doc):
 
 
 def from_noun_chunks_with_person_lemmas(doc, debug=False):
-    nc_tier = doc.tiers["spacy.noun_chunks"]
-    tokens_tier = doc.tiers["spacy.tokens"]
+    """
+    Given an AnnoDoc, return a list of AnnoSpans which contain spaCy noun
+    chunks and person lemmas. Counts are also extracted and included in the
+    metadata dicts.
+
+    Not all person lemmas are returned. The annotator looks for infection lemmas in ancestors of person lemma tokens, to see if those people were infected, hospitalized, etc.
+
+    debug -- Include a "debug_attributes" list in AnnoSpan metadata
+    dictioanries, containing strings corresponding to certain parts of code in
+    this and other functions, to facilitate debugging.
+    """
+    nc_tier, tokens_tier = doc.require_tiers('spacy.noun_chunks', 'spacy.tokens', via=SpacyAnnotator)
 
     infection_spans = []
 
@@ -347,7 +362,7 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
                     generate_attributes(ancestors),
                     generate_counts(ancestors)
                 ], unique=True)
-                # TODO: Maybe this should include "or has_counts(ancestor_metadata)"
+                # Maybe this should include "or has_counts(ancestor_metadata)"
                 if has_trigger_lemmas(ancestor_metadata):
                     out_tokens.extend(ancestors)
                     metadata = merge_dicts([metadata, ancestor_metadata],
@@ -362,7 +377,7 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
                     generate_attributes(disjoint_subtree),
                     generate_counts(disjoint_subtree)
                 ], unique=True)
-                # TODO: Maybe this should include "or has_counts(subtree_metadata)"
+                # Maybe this should include "or has_counts(subtree_metadata)"
                 if has_trigger_lemmas(subtree_metadata):
                     out_tokens.extend(disjoint_subtree)
                     metadata = merge_dicts([metadata, subtree_metadata],

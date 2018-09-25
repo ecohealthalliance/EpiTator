@@ -142,13 +142,12 @@ def batched(iterable, batch_size=100):
 
 def flatten(l, unique=False, simplify=False):
     """
-    Flattens an arbitrarily deep list or set to a depth-one list.
+    Flatten an arbitrarily deep list or set to a depth-one list.
 
-    simplify -- Simplification is inspired by a similar concept in R, where a
-    value which would otherwise be a length-one list is returned as an atomic
-    value.
+    simplify -- If the function would return a length-one list, instead
+    returns the contents of that list (default False).
 
-    unique -- Removes duplicate values values.
+    unique -- Removes duplicate values (default False).
     """
     out = []
     for item in l:
@@ -156,9 +155,9 @@ def flatten(l, unique=False, simplify=False):
             out.extend(flatten(item))
         else:
             out.append(item)
-    if unique == True:
+    if unique is True:
         out = list(set(out))
-    if simplify == True:
+    if simplify is True:
         if len(out) == 0:
             return None
         if len(out) == 1:
@@ -170,36 +169,36 @@ def flatten(l, unique=False, simplify=False):
 
 def merge_dicts(dicts, unique=False, simplify=None):
     """
-    Merges a list of dictionaries, returning a single dictionary with combined
+    Merge a list of dictionaries, returning a single dictionary with combined
     values from all dictionaries in the list.
 
-    The parameters simplify and unique can be given as boolean, in which case
-    they apply to all keys, or as a list of keys which they apply to.
+    The arguments simplify and unique may be supplied as booleans or lists of
+    key names. If booleans, they apply to all keys in the dictionary. If lists
+    of key names, they are taken to be True for those keys, and False for all
+    others.
 
-    TODO: Which is the proper default value?
-    unique -- Removes duplicate values values.
+    unique -- Removes duplicate values (default False).
 
-    simplify -- Simplification is inspired by a similar concept in R, where a
-    value which would otherwise be a length-one list is returned as an atomic
-    value. If no argument is provided, attempts to simplify a key if any
-    instances of that key in the original dictionaries is not a list.
-
-    Note: There is commented-out code for a dict comprehension version which
-    is fancy but actually less understandable.
+    simplify -- If the function would return a length-one list, instead
+    returns the contents of that list (default None). If simplify is None, the
+    function will attempt to be smart, behaving as follows. If there is more
+    than one item for a key, that key's value in the merged dict will be a
+    list. If only one unique value is to be returned, it will be returned as a
+    list if the input dict's value is stored as a list, otherwise it will be
+    simplified.
     """
     if not isinstance(dicts, list):
         raise ValueError("first argument must be a list of dicts")
 
     merged_dicts = defaultdict(list)
-    
+
     for d in dicts:
         for key, value in d.items():
             merged_dicts[key].append(value)
-    
+
     for key, value in merged_dicts.items():
         u_arg = unique if isinstance(unique, bool) else (key in unique)
 
-        # s_arg = simplify if isinstance(simplify, bool) else (key in simplify)
         if simplify is None:
             has_key = [key in d.keys() for d in dicts]
             values = [d[key] for d in compress(dicts, has_key)]
@@ -209,8 +208,8 @@ def merge_dicts(dicts, unique=False, simplify=None):
         else:
             (key in simplify)
 
-        merged_dicts[key] = flatten(value, simplify=s_arg, unique=u_arg)        
-    
+        merged_dicts[key] = flatten(value, simplify=s_arg, unique=u_arg)
+
     return(dict(merged_dicts))
 
 
