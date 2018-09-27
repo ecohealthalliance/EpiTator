@@ -35,6 +35,17 @@ class AnnoSpan(object):
     def __len__(self):
         return self.end - self.start
 
+    def distance(self, other_span):
+        """
+        The number of characters between this span and the other one.
+        If the spans overlap the distance is the negative length of their
+        overlap.
+        """
+        if self.start < other_span.start:
+            other_span.start - self.end
+        else:
+            self.start - other_span.end
+
     def overlaps(self, other_span):
         return (
             (self.start >= other_span.start and self.start < other_span.end) or

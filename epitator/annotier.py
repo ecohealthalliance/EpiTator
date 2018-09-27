@@ -365,6 +365,23 @@ class AnnoTier(object):
                 break
         return span
 
+    def nearest_to(self, target_span):
+        """
+        Find the nearest span to the target span.
+        """
+        closest_span = None
+        min_distance = None
+        for span in self:
+            span_distance = span.distance(target_span)
+            if closest_span == None or span_distance <= min_distance:
+                closest_span = span
+                min_distance = span_distance
+            else:
+                # Once the span distance stops decreasing
+                # it will only increase.
+                break
+        return closest_span
+
     def label_spans(self, label):
         """
         Create a new tier based on this one
