@@ -2,7 +2,6 @@
 # coding=utf8
 from __future__ import absolute_import
 import json
-import six
 import re
 from .annospan import SpanGroup, AnnoSpan
 from . import maximum_weight_interval_set as mwis
@@ -373,7 +372,7 @@ class AnnoTier(object):
         min_distance = None
         for span in self:
             span_distance = span.distance(target_span)
-            if closest_span == None or span_distance <= min_distance:
+            if closest_span is None or span_distance <= min_distance:
                 closest_span = span
                 min_distance = span_distance
             else:

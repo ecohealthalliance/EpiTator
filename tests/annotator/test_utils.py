@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import six
-from itertools import compress
 
 
 def nested_items(d):

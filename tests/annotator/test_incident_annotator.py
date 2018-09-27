@@ -2,12 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import unittest
-from . import test_utils
 from epitator.annotator import AnnoDoc
-from epitator.count_annotator import CountAnnotator
 from epitator.infection_annotator import InfectionAnnotator
 from epitator.incident_annotator import IncidentAnnotator
-from six.moves import zip
 
 
 class TestIncidentAnnotator(unittest.TestCase):
@@ -30,3 +27,4 @@ class TestIncidentAnnotator(unittest.TestCase):
                 attribute_remappings.get(attribute, attribute)
                 for attribute in span.metadata['attributes']]
         doc.add_tier(self.annotator, case_counts=case_counts)
+

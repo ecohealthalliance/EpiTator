@@ -15,8 +15,7 @@ from .date_annotator import DateAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .geoname_annotator import GeonameAnnotator
 from .resolved_keyword_annotator import ResolvedKeywordAnnotator
-from .structured_incident_annotator import StructuredIncidentAnnotator, CANNOT_PARSE
-from . import utils
+from .structured_incident_annotator import StructuredIncidentAnnotator
 import datetime
 
 
@@ -158,14 +157,14 @@ class IncidentAnnotator(Annotator):
                 incident_data['type'] = 'activeCount'
             elif cumulative:
                 if 'case' in attributes:
-                  incident_data['type'] = 'cumulativeCaseCount'
+                    incident_data['type'] = 'cumulativeCaseCount'
                 elif 'death' in attributes:
-                  incident_data['type'] = 'cumulativeDeathCount'
+                    incident_data['type'] = 'cumulativeDeathCount'
             else:
                 if 'case' in attributes:
-                  incident_data['type'] = 'caseCount'
+                    incident_data['type'] = 'caseCount'
                 elif 'death' in attributes:
-                  incident_data['type'] = 'deathCount'
+                    incident_data['type'] = 'deathCount'
 
             disease_span = AnnoTier(disease_territory.metadata).nearest_to(count_span)
             if disease_span:

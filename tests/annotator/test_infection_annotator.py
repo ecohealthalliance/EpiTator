@@ -162,5 +162,6 @@ class TestInfectionAnnotator(unittest.TestCase):
                              [{'count': 1715, 'attributes': ['cumulative', 'confirmed', 'infection']},
                               {'count': 1, 'attributes': ['infection', 'suspected']}])
 
+
 if __name__ == '__main__':
     unittest.main()

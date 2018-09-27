@@ -185,7 +185,7 @@ def generate_counts(tokens, strict_only=False, debug=False):
                     count_text = "".join([tokens[i].text for i in groups[0]])
                     metadata["count"] = parse_count_text(count_text)
                     debug_attributes.extend(["joined consecutive tokens", "lax count identification"])
-        except ValueError as e:
+        except ValueError:
             metadata = {}
     if debug:
         metadata["debug_attributes"] = debug_attributes
