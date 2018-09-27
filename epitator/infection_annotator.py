@@ -269,21 +269,13 @@ def collapse_span_group(span_group):
     if len(span_group.base_spans) == 0:
         # Not a span group
         return span_group
-    collapsed_metadata = {
-        'attributes': []
-    }
-    if span_group.label:
-        collapsed_metadata['attributes'] = [span_group.label]
-    for span in span_group.base_spans:
-        span = collapse_span_group(span)
-        if span.metadata:
-            collapsed_metadata = dict(
-                dict(collapsed_metadata, **span.metadata),
-                attributes=collapsed_metadata['attributes'] + span.metadata['attributes'])
-        # if span.label:
-        #     collapsed_metadata['attributes'].append(span.label)
-    collapsed_metadata['attributes'] = sorted(collapsed_metadata['attributes'])
-    return AnnoSpan(span_group.start, span_group.end, span_group.doc, metadata=collapsed_metadata)
+    all_metadata = [
+        {"attributes": [span_group.label]} if span_group.label else None,
+        span_group.metadata if span_group.metadata else None,
+    ] + [collapse_span_group(span).metadata for span in span_group.base_spans]
+    all_metadata = [x for x in all_metadata if x is not None]
+    all_metadata = merge_dicts(all_metadata)
+    return AnnoSpan(span_group.start, span_group.end, span_group.doc, metadata=all_metadata)
 
 
 def add_count_modifiers(spans, doc):
