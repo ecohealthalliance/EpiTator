@@ -40,11 +40,18 @@ class AnnoSpan(object):
         The number of characters between this span and the other one.
         If the spans overlap the distance is the negative length of their
         overlap.
+        
+        >>> from .annotier import AnnoTier
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three')
+        >>> tier = AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(8, 13, doc)])
+        >>> tier.spans[0].distance(tier.spans[1])
+        5
         """
         if self.start < other_span.start:
-            other_span.start - self.end
+            return other_span.start - self.end
         else:
-            self.start - other_span.end
+            return self.start - other_span.end
 
     def overlaps(self, other_span):
         return (

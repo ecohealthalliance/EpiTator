@@ -27,4 +27,3 @@ class TestIncidentAnnotator(unittest.TestCase):
                 attribute_remappings.get(attribute, attribute)
                 for attribute in span.metadata['attributes']]
         doc.add_tier(self.annotator, case_counts=case_counts)
-
