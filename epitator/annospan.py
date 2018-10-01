@@ -40,7 +40,7 @@ class AnnoSpan(object):
         The number of characters between this span and the other one.
         If the spans overlap the distance is the negative length of their
         overlap.
-        
+
         >>> from .annotier import AnnoTier
         >>> from .annodoc import AnnoDoc
         >>> doc = AnnoDoc('one two three')

@@ -15,8 +15,32 @@ from .date_annotator import DateAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .geoname_annotator import GeonameAnnotator
 from .resolved_keyword_annotator import ResolvedKeywordAnnotator
-from .structured_incident_annotator import StructuredIncidentAnnotator
+from .structured_incident_annotator import StructuredIncidentAnnotator, CANNOT_PARSE
 import datetime
+
+
+def capitalize(s):
+    return s[0:1].upper() + s[1:]
+
+
+def camelize(s):
+    return "".join(
+        word if idx == 0 else capitalize(word)
+        for idx, word in enumerate(s.split("_")))
+
+
+def format_geoname(geoname):
+    """
+    Format a geoname dictionary in the style of EIDR-Connect.
+    """
+    result = {
+        "id": geoname["geonameid"]
+    }
+    for key, value in geoname.items():
+        if key in ["geonameid", "nameCount", "namesUsed", "score"]:
+            continue
+        result[camelize(key)] = value
+    return result
 
 
 def get_territories(spans, sent_spans):
@@ -121,7 +145,7 @@ class IncidentAnnotator(Annotator):
             for span in geoname_territory.metadata:
                 geoname = span.metadata['geoname'].to_dict()
                 del geoname['parents']
-                geonames_by_id[geoname['geonameid']] = geoname
+                geonames_by_id[geoname['geonameid']] = format_geoname(geoname)
                 incident_spans.append(span)
             incident_data = {
                 'value': count,
@@ -135,7 +159,7 @@ class IncidentAnnotator(Annotator):
             incident_data['dateRange'] = [
                 publish_date,
                 publish_date + datetime.timedelta(days=1)]
-            if len(date_territory) > 0:
+            if len(date_territory.metadata) > 0:
                 date_span = AnnoTier(date_territory.metadata).nearest_to(count_span)
                 incident_data['dateRange'] = date_span.metadata['datetime_range']
                 incident_spans.append(date_span)
@@ -180,5 +204,17 @@ class IncidentAnnotator(Annotator):
                 incident_data['species'] = species_span.metadata['species']
                 incident_spans.append(species_span)
             incidents.append(SpanGroup(incident_spans, metadata=incident_data))
-        incidents += structured_incidents
+        for incident in structured_incidents:
+            if not incident.metadata.get('dateRange') or not incident.metadata.get('location'):
+                continue
+            if CANNOT_PARSE in [
+                incident.metadata['type'],
+                incident.metadata['dateRange'],
+                incident.metadata['location'],
+                incident.metadata['value']]:
+                continue
+            metadata = dict(incident.metadata)
+            metadata['locations'] = [format_geoname(metadata['location'])]
+            del metadata['location']
+            incidents.append(SpanGroup(incident, metadata=metadata))
         return {'incidents': AnnoTier(incidents)}
