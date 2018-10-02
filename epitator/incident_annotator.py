@@ -64,9 +64,9 @@ def get_territories(spans, sent_spans):
 
 
 class IncidentAnnotator(Annotator):
-    def annotate(self, doc, case_counts=None, publish_date=None):
-        if publish_date:
-            publish_date = publish_date
+    def annotate(self, doc, case_counts=None):
+        if doc.date:
+            publish_date = doc.date
         else:
             publish_date = datetime.datetime.now()
         if case_counts:
@@ -182,17 +182,17 @@ class IncidentAnnotator(Annotator):
             elif cumulative:
                 if 'case' in attributes:
                     incident_data['type'] = 'cumulativeCaseCount'
-                elif 'death' in attributes:
+                if 'death' in attributes:
                     incident_data['type'] = 'cumulativeDeathCount'
             else:
                 if 'case' in attributes:
                     incident_data['type'] = 'caseCount'
-                elif 'death' in attributes:
+                if 'death' in attributes:
                     incident_data['type'] = 'deathCount'
 
             disease_span = AnnoTier(disease_territory.metadata).nearest_to(count_span)
             if disease_span:
-                incident_data['resolvedDisease'] = disease_span.metadata['disease']
+                incident_data['resolvedDisease'] = dict(disease_span.metadata['disease']['entity'])
                 incident_spans.append(disease_span)
             # Suggest humans as a default
             incident_data['species'] = {
@@ -203,15 +203,21 @@ class IncidentAnnotator(Annotator):
             if species_span:
                 incident_data['species'] = species_span.metadata['species']
                 incident_spans.append(species_span)
+            incident_data['approximate'] = 'approximate' in attributes
+            if 'suspected' in attributes:
+                incident_data['status'] = 'suspected'
+            elif 'confirmed' in attributes:
+                incident_data['status'] = 'confirmed'
             incidents.append(SpanGroup(incident_spans, metadata=incident_data))
         for incident in structured_incidents:
             if not incident.metadata.get('dateRange') or not incident.metadata.get('location'):
                 continue
-            if CANNOT_PARSE in [
+            required_properties = [
                 incident.metadata['type'],
                 incident.metadata['dateRange'],
                 incident.metadata['location'],
-                incident.metadata['value']]:
+                incident.metadata['value']]
+            if CANNOT_PARSE in required_properties:
                 continue
             metadata = dict(incident.metadata)
             metadata['locations'] = [format_geoname(metadata['location'])]
