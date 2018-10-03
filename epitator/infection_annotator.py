@@ -26,7 +26,7 @@ epitator.utils.merge_dicts() to merge them before generating AnnoSpans.
 from itertools import groupby
 from operator import itemgetter
 
-from .annospan import AnnoSpan
+from .annospan import AnnoSpan, SpanGroup
 from .annotier import AnnoTier
 from .annotator import Annotator
 from .spacy_annotator import SpacyAnnotator, TokenSpan
@@ -120,20 +120,29 @@ def generate_counts(tokens, strict_only=False, debug=False):
         return metadata
     metadata["attributes"] = []
     debug_attributes = []
-    quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] and t.dep_ == 'nummod']
-    if len(quant_idx) == 1:
-        count_text = tokens[quant_idx[0]].text
-        metadata["count"] = parse_count_text(count_text)
+    ent_types = [t.ent_type_ for t in tokens]
+    deps = [t.dep_ for t in tokens]
 
-    elif len(quant_idx) > 1:
+    # We get the indices for counts first by looking for things which are
+    # CARDINAL and nummod. We won't take one CARDINAL by itself as a number;
+    # this may be the wrong approach.
+    num_idx = []
+    if ent_types.count("CARDINAL") == 1 and deps.count("nummod") == 1:
+        num_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL'] and t.dep_ == 'nummod']
+    elif ent_types.count("CARDINAL") > 1:
+        num_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ == 'CARDINAL']
+
+    if len(num_idx) == 1:
+        count_text = tokens[num_idx[0]].text
+        metadata["count"] = parse_count_text(count_text)
+    elif len(num_idx) > 1:
         # If we find multiple tokens, we deal with them thus: First, we group
         # group consecutive tokens together in sub-lists: [1, 4, 5, 6, 8, 9]
         # becomes [[1], [4, 5, 6], [8, 9]]. If there is only one of these
         # groups, we process it as a single number. If there are multiple
-        # groups, we add them all to metadata["count"] as a list. This will
-        # cause InfectionAnnotator() to throw an error, however.
+        # groups, we do nothing.
         groups = []
-        for k, g in groupby(enumerate(quant_idx), lambda ix: ix[0] - ix[1]):
+        for k, g in groupby(enumerate(num_idx), lambda ix: ix[0] - ix[1]):
             groups.append(list(map(itemgetter(1), list(g))))
         if len(groups) == 1:
             count_text = " ".join([tokens[i].text for i in groups[0]])
@@ -161,34 +170,12 @@ def generate_counts(tokens, strict_only=False, debug=False):
             metadata["count"] = 1
             debug_attributes.append("count_inferred_from_singular_nc")
 
-    if "count" not in metadata.keys() and strict_only is False:
-        # "Lax metadata generation" -- so-called because it looks for tokens
-        # which are cardinal / quantity OR nummod.  This is meant to mostly
-        # cope with things in ProMED that are formatted like "193 533", which
-        # often trip up spaCy. If it finds a single token matching these
-        # criteria, it does nothing, because these are likely to be years or
-        # other single-token things, and this would increase the false positive
-        # rate. It handles multiple tokens in the same manner as above.
-        try:
-            lax_quant_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL', 'QUANTITY'] or t.dep_ == 'nummod']
-            if len(lax_quant_idx) == 1:
-                count_text = tokens[lax_quant_idx[0]].text
-                metadata["count"] = parse_count_text(count_text)
-                debug_attributes.append("LAX")
-            elif len(lax_quant_idx) > 1:
-                # warning("Using lax metadata generation.")
-                # This loop groups consecutive indices into sub-lists.
-                groups = []
-                for k, g in groupby(enumerate(lax_quant_idx), lambda ix: ix[0] - ix[1]):
-                    groups.append(list(map(itemgetter(1), list(g))))
-                if len(groups) == 1:
-                    count_text = "".join([tokens[i].text for i in groups[0]])
-                    metadata["count"] = parse_count_text(count_text)
-                    debug_attributes.extend(["joined consecutive tokens", "lax count identification"])
-        except ValueError:
-            metadata = {}
+    # except ValueError as e:
+    #     metadata = {}
+
     if debug:
         metadata["debug_attributes"] = debug_attributes
+
     return(metadata)
 
 
@@ -265,61 +252,6 @@ def from_noun_chunks_with_infection_lemmas(doc, debug=False):
     return(infection_spans)
 
 
-def collapse_span_group(span_group):
-    if len(span_group.base_spans) == 0:
-        # Not a span group
-        return span_group
-    all_metadata = [
-        {"attributes": [span_group.label]} if span_group.label else None,
-        span_group.metadata if span_group.metadata else None,
-    ] + [collapse_span_group(span).metadata for span in span_group.base_spans]
-    all_metadata = [x for x in all_metadata if x is not None]
-    all_metadata = merge_dicts(all_metadata)
-    return AnnoSpan(span_group.start, span_group.end, span_group.doc, metadata=all_metadata)
-
-
-def add_count_modifiers(spans, doc):
-    spacy_tokens, spacy_nes = doc.require_tiers('spacy.tokens', 'spacy.nes', via=SpacyAnnotator)
-    span_tier = AnnoTier(spans)
-    spacy_lemmas = [span.token.lemma_ for span in spacy_tokens]
-
-    def search_lemmas(lemmas, match_name=None):
-        match_spans = []
-        lemmas = set(lemmas)
-        for span, lemma in zip(spacy_tokens, spacy_lemmas):
-            if lemma in lemmas:
-                match_spans.append(span)
-        return AnnoTier(match_spans, presorted=True).label_spans(match_name)
-
-    case_statuses = (
-        search_lemmas(['suspect'], 'suspected') +
-        search_lemmas(['confirm'], 'confirmed'))
-    span_tier += span_tier.with_nearby_spans_from(case_statuses, max_dist=1)
-
-    person_and_place_nes = spacy_nes.with_label('GPE') + spacy_nes.with_label('PERSON')
-    modifier_lemma_groups = [
-        'average|mean',
-        'annual|annually',
-        'monthly',
-        'weekly',
-        'cumulative|total|already',
-        'incremental|new|additional|recent',
-        'max|less|below|under|most|maximum|up',
-        'min|greater|above|over|least|minimum|down|exceeds',
-        'approximate|about|near|around',
-        'ongoing|active'
-    ]
-    for group in modifier_lemma_groups:
-        lemmas = group.split('|')
-        results = search_lemmas(lemmas, match_name=lemmas[0])
-        # prevent components of NEs like the "New" in New York from being
-        # treated as count descriptors.
-        results = results.without_overlaps(person_and_place_nes)
-        span_tier += span_tier.with_nearby_spans_from(results)
-    span_tier = span_tier.optimal_span_set(prefer="num_spans_and_no_linebreaks")
-    return AnnoTier([collapse_span_group(span) for span in span_tier], presorted=True)
-
-
 def from_noun_chunks_with_person_lemmas(doc, debug=False):
     """
     Given an AnnoDoc, return a list of AnnoSpans which contain spaCy noun
@@ -387,6 +319,103 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
             infection_spans.append(AnnoSpan(start, end, doc, metadata=metadata))
 
     return(infection_spans)
+
+
+def collapse_span_group(span_group):
+    if len(span_group.base_spans) == 0:
+        # Not a span group
+        return span_group
+    all_metadata = [
+        {"attributes": [span_group.label]} if span_group.label else None,
+        span_group.metadata if span_group.metadata else None,
+    ] + [collapse_span_group(span).metadata for span in span_group.base_spans]
+    all_metadata = [x for x in all_metadata if x is not None]
+    all_metadata = merge_dicts(all_metadata, unique=True)
+    return AnnoSpan(span_group.start, span_group.end, span_group.doc, metadata=all_metadata)
+
+
+def max_modifiers_min_text(x):
+    """
+    Prefers sets with larger numbers of total modifiers.
+    After that, prefers spans which minimize the amount of text in spans.
+    """
+    num_modifier_tokens = sum([1 for t in x.iterate_leaf_base_spans() if isinstance(t, TokenSpan)])
+    return num_modifier_tokens + 1, -len(x)
+
+
+def add_count_modifiers(spans, doc):
+    spacy_tokens, spacy_nes, spacy_sentences = doc.require_tiers('spacy.tokens',
+                                                                 'spacy.nes',
+                                                                 "spacy.sentences",
+                                                                 via=SpacyAnnotator)
+    span_tier = AnnoTier(spans)
+
+    modifier_lemma_groups = [
+        'confirmed|confirm',
+        'suspected|suspect',
+        'average|mean',
+        'annual|annually',
+        'monthly',
+        'weekly',
+        'cumulative|total|already',
+        'incremental|new|additional|recent',
+        'max|less|below|under|most|maximum|up',
+        'min|greater|above|over|least|minimum|down|exceeds',
+        'approximate|about|near|around',
+        'ongoing|active'
+    ]
+
+    person_and_place_nes = spacy_nes.with_label('GPE') + spacy_nes.with_label('PERSON')
+
+    def modifiers_for_spans(spans, modifier_lemma_groups):
+        span_lemmas = [s.token.lemma_ for s in spans]
+
+        modifier_spans = []
+        modifier_attributes = []
+
+        for group in modifier_lemma_groups:
+            group_lemmas = group.split('|')
+            group_name = group_lemmas[0]
+
+            # If a lemma matches we add it to the candidate lemmas and metadata.
+            for candidate, lemma, in zip(spans, span_lemmas):
+                if lemma in group_lemmas:
+                    modifier_spans.append(candidate)
+                    modifier_attributes.append(group_name)
+
+        if len(modifier_spans) > 0:
+            modifiers = SpanGroup(base_spans = modifier_spans,
+                                  metadata = {"attributes": modifier_attributes})
+            return modifiers
+        else:
+            return None
+
+    candidate_tier = []
+    for base_span in span_tier:
+        candidates = [base_span]
+
+        # Prepare candidate modifier spans and lemmas
+        base_spans = [t for t in spacy_tokens.spans_overlapped_by_span(base_span)]
+        base_spans = AnnoTier(base_spans).without_overlaps(person_and_place_nes)
+        base_modifiers = modifiers_for_spans(base_spans, modifier_lemma_groups)
+        if base_modifiers is not None:
+            candidates.append(SpanGroup([base_span, base_modifiers]))
+
+        ancestor_spans = []
+        for t in base_spans:
+            ancestor_spans.extend([TokenSpan(a, doc, t.offset) for a in t.token.ancestors])
+        ancestor_spans = AnnoTier(ancestor_spans).without_overlaps(person_and_place_nes).\
+                                                  without_overlaps(base_spans).\
+                                                  optimal_span_set()
+        ancestor_modifiers = modifiers_for_spans(ancestor_spans, modifier_lemma_groups)
+        if ancestor_modifiers is not None:
+            candidates.append(SpanGroup([candidates[-1], ancestor_modifiers]))
+
+        # Both the modified span and the original core span are added to candidate infection spans.
+        candidate_tier.extend(candidates)
+
+    candidate_tier = AnnoTier(candidate_tier).optimal_span_set(prefer=max_modifiers_min_text)
+    return AnnoTier([collapse_span_group(span) for span in candidate_tier], presorted=True)
 
 
 class InfectionAnnotator(Annotator):
