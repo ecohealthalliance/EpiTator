@@ -2,7 +2,6 @@
 # coding=utf8
 from __future__ import absolute_import
 import json
-import six
 import re
 from .annospan import SpanGroup, AnnoSpan
 from . import maximum_weight_interval_set as mwis
@@ -25,7 +24,7 @@ class AnnoTier(object):
 
     def __repr__(self):
         return ('AnnoTier([' +
-                ', '.join([six.text_type(span) for span in self.spans]) +
+                ', '.join([span.__repr__() for span in self.spans]) +
                 '])')
 
     def __len__(self):
@@ -364,6 +363,23 @@ class AnnoTier(object):
             if span.start >= target_span.end:
                 break
         return span
+
+    def nearest_to(self, target_span):
+        """
+        Find the nearest span to the target span.
+        """
+        closest_span = None
+        min_distance = None
+        for span in self:
+            span_distance = span.distance(target_span)
+            if closest_span is None or span_distance <= min_distance:
+                closest_span = span
+                min_distance = span_distance
+            else:
+                # Once the span distance stops decreasing
+                # it will only increase.
+                break
+        return closest_span
 
     def label_spans(self, label):
         """

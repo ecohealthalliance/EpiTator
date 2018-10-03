@@ -37,8 +37,44 @@ def assertHasProps(d, props):
         dv = get_path(d, kpath)
         if dv != v:
             missing_props.append(kpath)
-
     if len(missing_props) > 0:
         raise AssertionError(
-            "Missing properties\n" + str(d) + "\n" + str(props)
+            "Missing properties:\n{}\n{}".format(str(d), str(props))
         )
+
+
+def assertMetadataContents(test, expected):
+    """
+    Checks to see whether the list of attributes contains all the expected
+    attributes provided.
+    """
+    missing_metadata = []
+    surplus_metadata = []
+    incorrect_metadata = []
+    for keypath, expected_val in nested_items(expected):
+        test_val = get_path(test, keypath)
+        if test_val is None:
+            missing_metadata.append(keypath)
+        elif hasattr(test_val, "__iter__"):
+            # Look for expected items absent from test
+            missing_idx = [attr not in test_val for attr in expected_val]
+            if any(missing_idx):
+                missing_attrs = [attr for attr, m in zip(expected_val, missing_idx) if m]
+                missing_metadata.append((keypath, missing_attrs))
+            # Look for test items not present in expected
+            surplus_idx = [attr not in expected_val for attr in test_val]
+            if any(surplus_idx):
+                surplus_attrs = [attr for attr, s in zip(test_val, surplus_idx) if s]
+                surplus_metadata.append((keypath, surplus_attrs))
+        else:
+            if test_val != expected_val:
+                incorrect_metadata.append((keypath, test_val))
+    if len(missing_metadata) > 0:
+        raise AssertionError("""
+Test Metadata: {}
+Expected Metadata {}
+Errors:
+    Missing: {}
+    Surplus: {}
+    Incorrect: {}
+""".format(test, expected, missing_metadata, surplus_metadata, incorrect_metadata))
