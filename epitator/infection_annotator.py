@@ -94,18 +94,10 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
     return(metadata)
 
 
-def generate_counts(tokens, strict_only=False, debug=False):
+def generate_counts(tokens, debug=False):
     """
     Given a set of spaCy tokens, return an AnnoSpan metadata dict containing
     appropriate count metadata.
-
-    strict_only -- Do not apply "lax count generation" (default False). Lax
-    generation looks for numbers which are formatted with spaces as thousands
-    separators, by allowing counts to be found in successive tokens with the
-    cardinal/quantity properties *or* NUMMOD part of speech, rather than
-    requiring that both be present. To avoid interpreting years as counts,
-    there must be two successive tokens with these properties. If this causes
-    lots of false positive matches, we should disable it.
 
     debug -- Include a debug_attributes key in the returned dictionary,
     flagging when certain potentially problematic techniques (including the
@@ -122,16 +114,17 @@ def generate_counts(tokens, strict_only=False, debug=False):
     debug_attributes = []
     ent_types = [t.ent_type_ for t in tokens]
     deps = [t.dep_ for t in tokens]
-
-    # We get the indices for counts first by looking for things which are
-    # CARDINAL and nummod. We won't take one CARDINAL by itself as a number;
-    # this may be the wrong approach.
     num_idx = []
     if ent_types.count("CARDINAL") == 1 and deps.count("nummod") == 1:
         num_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ in ['CARDINAL'] and t.dep_ == 'nummod']
-    elif ent_types.count("CARDINAL") > 1:
+    elif ent_types.count("CARDINAL") > 0:
+        # We will add to debug attributres if we are using only cardinal property.
         num_idx = [i for (i, t) in enumerate(tokens) if t.ent_type_ == 'CARDINAL']
-
+        if len(num_idx) == 1:
+            debug_attributes.append("single-length CARDINAL ent")
+    elif deps.count('nummod') > 0:
+        num_idx = [i for (i, t) in enumerate(tokens) if t.dep_ == 'nummod']
+        debug_attributes.append("nummod with no CARDINAL ent")
     if len(num_idx) == 1:
         count_text = tokens[num_idx[0]].text
         metadata["count"] = parse_count_text(count_text)
@@ -221,13 +214,13 @@ def from_noun_chunks_with_infection_lemmas(doc, debug=False):
         out_tokens = nc_tokens
         metadata = merge_dicts([
             generate_attributes(out_tokens),
-            generate_counts(out_tokens, strict_only=False)
+            generate_counts(out_tokens)
         ], unique=True)
         if has_trigger_lemmas(metadata):
             debug_attributes.append("attributes from noun chunk")
 
-        # If the noun chunk is the subject of the root verb, we check the
-        # ancestors for metadata lemmas too.
+            # If the noun chunk is the subject of the root verb, we check the
+            # ancestors for metadata lemmas too.
             if any(dep in [t.dep_ for t in nc_tokens] for dep in ["nsubj", "nsubjpass", "dobj"]):
                 ancestors = [TokenSpan(a, doc, nc.offset) for a in nc.span.root.ancestors]
                 ancestor_metadata = merge_dicts([
@@ -273,7 +266,7 @@ def from_noun_chunks_with_person_lemmas(doc, debug=False):
         nc_tokens = [t for t in tokens_tier.spans_contained_by_span(nc)]
         metadata = merge_dicts([
             generate_attributes(nc_tokens),
-            generate_counts(nc_tokens, strict_only=False)
+            generate_counts(nc_tokens)
         ], unique=True)
         # If the noun chunk's metadata indicates that it refers to a person,
         # we check the disjoint subtree.

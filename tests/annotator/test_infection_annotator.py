@@ -149,7 +149,7 @@ class TestInfectionAnnotator(unittest.TestCase):
     #         doc.add_tier(self.annotator)
 
     def test_cumulative(self):
-        sent = 'In total nationwide, 613 cases of the disease have been reported as of 2 July 2014, with 63 deceased patients'
+        sent = 'Nationwide, a total of 613 cases of the disease have been reported as of 2 July 2014, with 63 deceased patients'
         counts = [
             {'count': 613, 'attributes': ['infection', 'cumulative']},
             {'count': 63, 'attributes': ['death']}
