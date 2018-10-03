@@ -109,7 +109,7 @@ class IncidentAnnotator(Annotator):
                 continue
             if datetime_range[1].date() > publish_date.date():
                 # Truncate ranges that extend into the future
-                datetime_range[1] = publish_date
+                datetime_range[1] = datetime.datetime(publish_date.year, publish_date.month, publish_date.day)
             dates_out.append(AnnoSpan(span.start, span.end, span.doc, metadata={
                 'datetime_range': datetime_range
             }))
@@ -174,6 +174,8 @@ class IncidentAnnotator(Annotator):
                 cumulative = False
             elif 'cumulative' in attributes:
                 cumulative = True
+            elif date_range_duration.total_seconds() == 0:
+                cumulative = True
             # Infer cumulative is case rate is greater than 300 per day
             elif (count / (date_range_duration.total_seconds() / 60 / 60 / 24)) > 300:
                 cumulative = True
@@ -222,5 +224,5 @@ class IncidentAnnotator(Annotator):
             metadata = dict(incident.metadata)
             metadata['locations'] = [format_geoname(metadata['location'])]
             del metadata['location']
-            incidents.append(SpanGroup(incident, metadata=metadata))
+            incidents.append(SpanGroup([incident], metadata=metadata))
         return {'incidents': AnnoTier(incidents)}
