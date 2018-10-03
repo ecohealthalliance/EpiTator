@@ -8,6 +8,7 @@ from epitator.infection_annotator import InfectionAnnotator
 from epitator.incident_annotator import IncidentAnnotator
 import datetime
 
+
 class TestIncidentAnnotator(unittest.TestCase):
 
     def setUp(self):
@@ -16,7 +17,7 @@ class TestIncidentAnnotator(unittest.TestCase):
     def test_incident_1(self):
         doc = AnnoDoc(
             'It brings the number of cases reported to 28 in Jeddah since 27 March 2014',
-            date=datetime.datetime(2018,10,2))
+            date=datetime.datetime(2018, 10, 2))
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
             doc.tiers['incidents'].spans[0].metadata, {

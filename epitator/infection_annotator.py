@@ -384,8 +384,8 @@ def add_count_modifiers(spans, doc):
                     modifier_attributes.append(group_name)
 
         if len(modifier_spans) > 0:
-            modifiers = SpanGroup(base_spans = modifier_spans,
-                                  metadata = {"attributes": modifier_attributes})
+            modifiers = SpanGroup(base_spans=modifier_spans,
+                                  metadata={"attributes": modifier_attributes})
             return modifiers
         else:
             return None
@@ -404,9 +404,9 @@ def add_count_modifiers(spans, doc):
         ancestor_spans = []
         for t in base_spans:
             ancestor_spans.extend([TokenSpan(a, doc, t.offset) for a in t.token.ancestors])
-        ancestor_spans = AnnoTier(ancestor_spans).without_overlaps(person_and_place_nes).\
-                                                  without_overlaps(base_spans).\
-                                                  optimal_span_set()
+        ancestor_spans = AnnoTier(ancestor_spans).without_overlaps(person_and_place_nes)\
+            .without_overlaps(base_spans)\
+            .optimal_span_set()
         ancestor_modifiers = modifiers_for_spans(ancestor_spans, modifier_lemma_groups)
         if ancestor_modifiers is not None:
             candidates.append(SpanGroup([candidates[-1], ancestor_modifiers]))
