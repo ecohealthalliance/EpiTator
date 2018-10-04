@@ -6,7 +6,8 @@ Currently only animal diseases are imported.
 from __future__ import absolute_import
 from __future__ import print_function
 from ..get_database_connection import get_database_connection
-from urllib import urlopen, urlencode
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.parse import urlencode
 import json
 import datetime
 
