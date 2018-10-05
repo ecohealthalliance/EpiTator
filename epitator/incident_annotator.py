@@ -52,7 +52,7 @@ def get_territories(spans, sent_spans):
     doc = sent_spans[0].doc
     territories = []
     for sent_span, span_group in sent_spans.group_spans_by_containing_span(spans):
-        if len(span_group) == 0 or len(territories) == 0:
+        if len(territories) == 0 or (len(span_group) == 0 and len(territories[-1].metadata) > 0):
             territories.append(AnnoSpan(
                 sent_span.start, sent_span.end, doc,
                 metadata=span_group))
