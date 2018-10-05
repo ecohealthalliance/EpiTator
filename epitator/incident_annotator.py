@@ -169,6 +169,8 @@ class IncidentAnnotator(Annotator):
                 continue
             # Detect whether count is cumulative
             date_range_duration = incident_data['dateRange'][1] - incident_data['dateRange'][0]
+            duration_days = date_range_duration.total_seconds() / 60 / 60 / 24
+            incident_data['duration'] = duration_days
             cumulative = False
             if 'incremental' in attributes:
                 cumulative = False
@@ -177,7 +179,7 @@ class IncidentAnnotator(Annotator):
             elif date_range_duration.total_seconds() == 0:
                 cumulative = True
             # Infer cumulative is case rate is greater than 300 per day
-            elif (count / (date_range_duration.total_seconds() / 60 / 60 / 24)) > 300:
+            elif count / duration_days > 300:
                 cumulative = True
             if 'ongoing' in attributes:
                 incident_data['type'] = 'activeCount'

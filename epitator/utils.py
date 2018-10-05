@@ -202,7 +202,7 @@ def merge_dicts(dicts, unique=False, simplify=None):
         if simplify is None:
             has_key = [key in d.keys() for d in dicts]
             values = [d[key] for d in compress(dicts, has_key)]
-            s_arg = any([not isinstance(value, list) for value in values])
+            s_arg = any([not isinstance(v, list) for v in values])
         elif isinstance(simplify, bool):
             s_arg = simplify
         else:
