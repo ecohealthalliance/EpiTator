@@ -8,6 +8,8 @@ from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
 import logging
 import six
+import os
+import io
 logging.getLogger('epitator.geoname_annotator').setLevel(logging.ERROR)
 
 
@@ -173,8 +175,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
         self.assertEqual(len(doc.tiers['geonames'].spans), 0)
 
     def test_very_long_article(self):
-        import os
-        with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt", encoding='utf-8') as file:
+        with io.open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt", encoding='utf-8') as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 

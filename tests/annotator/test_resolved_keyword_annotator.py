@@ -5,6 +5,8 @@ from . import test_utils
 from epitator.annotator import AnnoDoc
 from epitator.resolved_keyword_annotator import ResolvedKeywordAnnotator
 from six.moves import zip
+import io
+import os
 import logging
 logging.getLogger('epitator.resolved_keyword_annotator').setLevel(logging.ERROR)
 
@@ -67,9 +69,8 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
             {'id': 'http://purl.obolibrary.org/obo/DOID_635'})
 
     def test_very_long_article(self):
-        import os
         path = os.path.dirname(__file__) + "/resources/WhereToItaly.txt"
-        with open(path, encoding='utf-8') as file:
+        with io.open(path, encoding='utf-8') as file:
             doc = AnnoDoc(file.read())
             doc.add_tier(self.annotator)
 

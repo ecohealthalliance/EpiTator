@@ -102,11 +102,11 @@ class DateAnnotator(Annotator):
 
         def clean_date_str(text):
             # strip extra words from the beginning of the date string
-            text = re.split(r"(\b(since|from|between)\s)?"
-                            r"(^the\s(month|year)\sof\s)?"
-                            r"(^the\s)?"
-                            r"((beginning|middle|start|end)\sof\s)?"
-                            r"((late|mid|early)\s)?", text, re.I)
+            text = re.split(r"(\b(since|from|between)\s)|"
+                            r"(^the\s(month|year)\sof\s)|"
+                            r"(^the\s)|"
+                            r"((beginning|middle|start|end)\sof\s)|"
+                            r"((late|mid|early)\s)", text, re.I)
             text = text[-1]
             # remove extra characters
             text = re.sub(r"\[|\]", "", text)
@@ -293,7 +293,7 @@ class DateAnnotator(Annotator):
                 continue
             elif len(range_components) == 1:
                 if date_span.label == 'since_date':
-                    date_str = [span for span in date_span.base_spans
+                    date_str = [span for span in date_span.base_spans[0].base_spans
                                 if span.label != 'since_token'][0].text
                     datetime_range = date_to_datetime_range(date_str)
                     if datetime_range is None:

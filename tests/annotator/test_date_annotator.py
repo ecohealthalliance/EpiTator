@@ -228,6 +228,14 @@ class DateAnnotatorTest(unittest.TestCase):
             [datetime.datetime(2010, 9, 1),
              datetime.datetime(2010, 12, 10)])
 
+    def test_since_date_2(self):
+        doc = AnnoDoc("Since April 6th 2013, 21 cases of infection have been confirmed.", date=datetime.datetime(2014, 12, 10))
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2013, 4, 6),
+             datetime.datetime(2014, 12, 10)])
+
     def test_long_entity_dates(self):
         # This tests dates that are extracted with peripheral text
         # by the current NER.

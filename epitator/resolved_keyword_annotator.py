@@ -34,8 +34,6 @@ class ResolvedKeywordSpan(AnnoSpan):
         result['resolutions'] = []
         for res in self.resolutions:
             res_dict = {k: res[k] for k in res.keys()}
-            entity = res['entity']
-            res_dict['entity'] = {k: entity[k] for k in entity.keys()}
             result['resolutions'].append(res_dict)
         return result
 
@@ -99,7 +97,7 @@ class ResolvedKeywordAnnotator(Annotator):
              WHERE id IN (''' + ','.join('?' for x in entity_ids) + ')', list(entity_ids))
         ids_to_entities = {}
         for result in results:
-            ids_to_entities[result['id']] = result
+            ids_to_entities[result['id']] = {k: result[k] for k in result.keys()}
         spans = []
         for span, resolved_keywords in spans_to_resolved_keywords.items():
             sorted_resolved_keywords = sorted(resolved_keywords,
