@@ -97,3 +97,37 @@ As of [Thu 7 Sep 2017], there have been a total of:
                     datetime.datetime(2017, 9, 7, 0, 0),
                     datetime.datetime(2017, 9, 8, 0, 0)]
             })
+
+    def test_disease_scope(self):
+        doc = AnnoDoc("""
+POLIOMYELITIS UPDATE:
+*****************************************************************************
+
+Poliovirus Weekly Update 26 Sep 2018, WHO
+-----------------------------------------
+New wild poliovirus cases reported this week: 0
+Total number of wild poliovirus cases in 2018: 18
+Total number of wild poliovirus cases in 2017: 22
+
+New cVDPV cases reported this week: 10
+Total number of cVDPV cases (all types) in 2018: 53
+Total number of cVDPV cases (all types) in 2017: 96
+
+Papua New Guinea
+- 2 new cases of cVDPV1 were reported in the past week, bringing the total number of cases in 2018 to 14.
+These latest reported cases are from Jiwaka and Eastern Highlands provinces and had onset of paralysis on [13 Aug 2018 and 16 Jun 2018], respectively.
+- The polio teams are coordinating with the broader humanitarian emergency network as was done during the recent Ebola outbreak that infected 17 people.
+- 5 deaths were reported in 2002.
+
+Middle East
+- No new cases of cVDPV2 were reported in the past week in Syria.
+""")
+        doc.add_tier(self.annotator)
+        # 17 cases of Ebola
+        self.assertEqual(
+            doc.tiers['incidents'].spans[-2].metadata['resolvedDisease']['id'],
+            'http://purl.obolibrary.org/obo/DOID_4325')
+        # The final report of 5 deaths should be associated with polio
+        self.assertEqual(
+            doc.tiers['incidents'].spans[-1].metadata['resolvedDisease']['id'],
+            'http://purl.obolibrary.org/obo/DOID_4953')

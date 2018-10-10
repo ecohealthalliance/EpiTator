@@ -132,6 +132,11 @@ def import_disease_ontology(drop_previous=False):
         ('HIV', 'http://purl.obolibrary.org/obo/DOID_526', 3),
         ('Ebola', 'http://purl.obolibrary.org/obo/DOID_4325', 3),
         ('EVD', 'http://purl.obolibrary.org/obo/DOID_4325', 3),
+        ('cVDPV1', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
+        ('cVDPV2', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
+        ('cVDPV3', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
+        ('poliovirus', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
+        ('polio', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
     ])
     cur.execute('''
     INSERT INTO synonyms

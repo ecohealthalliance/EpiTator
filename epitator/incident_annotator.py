@@ -17,6 +17,7 @@ from .geoname_annotator import GeonameAnnotator
 from .resolved_keyword_annotator import ResolvedKeywordAnnotator
 from .structured_incident_annotator import StructuredIncidentAnnotator, CANNOT_PARSE
 import datetime
+from collections import defaultdict
 
 
 def capitalize(s):
@@ -52,14 +53,30 @@ def get_territories(spans, sent_spans):
     doc = sent_spans[0].doc
     territories = []
     for sent_span, span_group in sent_spans.group_spans_by_containing_span(spans):
-        if len(territories) == 0 or (len(span_group) == 0 and len(territories[-1].metadata) > 0):
+        if len(territories) == 0 or len(span_group) > 0:
             territories.append(AnnoSpan(
                 sent_span.start, sent_span.end, doc,
                 metadata=span_group))
         else:
-            territories[-1] = AnnoSpan(
-                territories[-1].start, sent_span.end, doc,
-                metadata=territories[-1].metadata + span_group)
+            prev_territory = territories[-1]
+            prev_single_sent_spans = [
+                span for span in prev_territory.metadata
+                if span.metadata.get('scope') == 'sentence']
+            if len(prev_single_sent_spans) == 0:
+                territories[-1] = AnnoSpan(
+                    prev_territory.start, sent_span.end, doc,
+                    metadata=prev_territory.metadata)
+            else:
+                last_doc_scope_spans = []
+                for territory in reversed(territories):
+                    last_doc_scope_spans = [
+                        span for span in prev_territory.metadata
+                        if span.metadata.get('scope') == 'document']
+                    if len(last_doc_scope_spans) > 0:
+                        break
+                territories.append(AnnoSpan(
+                    sent_span.start, sent_span.end, doc,
+                    metadata=last_doc_scope_spans))
     return AnnoTier(territories)
 
 
@@ -77,6 +94,7 @@ class IncidentAnnotator(Annotator):
             'resolved_keywords', via=ResolvedKeywordAnnotator)
         species_list = []
         disease_list = []
+        disease_hist = defaultdict(lambda: 0)
         for k in resolved_keywords:
             for resolution in k.metadata.get('resolutions', []):
                 if resolution['entity']['type'] == 'species':
@@ -93,7 +111,16 @@ class IncidentAnnotator(Annotator):
                         k.end,
                         k.doc,
                         metadata={'disease': resolution}))
+                    disease_hist[resolution['entity']['id']] += 1
                     break
+        # scope one off disease mentions to sentences.
+        max_disease = max(disease_hist.values()) if len(disease_hist) > 0 else 0
+        if max_disease > 5:
+            for disease in disease_list:
+                if disease_hist[disease.metadata['disease']['entity']['id']] == 1:
+                    disease.metadata['scope'] = 'sentence'
+                else:
+                    disease.metadata['scope'] = 'document'
         species_tier = AnnoTier(species_list)
         disease_tier = AnnoTier(disease_list)
         geonames = doc.require_tiers('geonames', via=GeonameAnnotator)
