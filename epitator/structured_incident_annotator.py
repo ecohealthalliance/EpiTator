@@ -123,7 +123,10 @@ class StructuredIncidentAnnotator(Annotator):
             'date': dates,
             'species': AnnoTier(species_list).optimal_span_set(),
             'disease': AnnoTier(disease_list, presorted=True),
-            'number': numbers,
+            'integer': AnnoTier([span
+                for span in numbers
+                if span.metadata['number'] == int(span.metadata['number'])
+            ], presorted=True),
             'incident_type': spacy_tokens.search_spans(r'(case|death)s?'),
             'incident_status': spacy_tokens.search_spans(r'suspected|confirmed'),
         }
@@ -195,7 +198,7 @@ class StructuredIncidentAnnotator(Annotator):
                 column_type = "text"
                 for value_type, value_spans in entities_by_type.items():
                     filtered_value_spans = value_spans
-                    if value_type == "number":
+                    if value_type == "integer":
                         filtered_value_spans = value_spans.without_overlaps(dates)
                     column_entities = [
                         SpanGroup(contained_spans, metadata=combine_metadata(contained_spans)) if len(contained_spans) > 0 else None
@@ -322,7 +325,7 @@ class StructuredIncidentAnnotator(Annotator):
                 for column, value in zip(table.column_definitions, row):
                     if not value:
                         continue
-                    if column['type'] == "number":
+                    if column['type'] == "integer":
                         column_name = column.get('name')
                         if isinstance(column_name, AnnoSpan):
                             column_name_text = column_name.text.lower()

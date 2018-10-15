@@ -415,3 +415,16 @@ Venezuela / 17 [week ending 28 Apr 2017] / 2722 / 309 / D? / 7 / 0
 
 """)
         doc.add_tier(self.annotator)
+
+    def test_non_integer_value(self):
+        doc = AnnoDoc("""
+******
+
+[6] India, Pune, Marharastra, fatal human case
+
+Date: Mon 4 Jul 2016, 12.57 AM IST
+
+Source: The Times of India [edited]
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['structured_incidents']), 0)
