@@ -123,7 +123,8 @@ class StructuredIncidentAnnotator(Annotator):
             'date': dates,
             'species': AnnoTier(species_list).optimal_span_set(),
             'disease': AnnoTier(disease_list, presorted=True),
-            'integer': AnnoTier([span
+            'integer': AnnoTier([
+                span
                 for span in numbers
                 if span.metadata['number'] == int(span.metadata['number'])
             ], presorted=True),
