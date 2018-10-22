@@ -178,6 +178,7 @@ class IncidentAnnotator(Annotator):
                 'value': count,
                 'locations': list(geonames_by_id.values())
             }
+            incident_data['count_annotation'] = count_span
             incident_data['date_territory'] = date_territory
             incident_data['geoname_territory'] = geoname_territory
             incident_data['disease_territory'] = disease_territory
