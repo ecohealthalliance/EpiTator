@@ -50,15 +50,15 @@ class TestIncidentAnnotator(unittest.TestCase):
 
     def test_incident_3(self):
         doc = AnnoDoc("""
-As of [Thu 7 Sep 2017], there have been a total of:
-1715 laboratory-confirmed cases of MERS-CoV infection, including
-690 deaths [reported case fatality rate 40.2 percent],
-1003 recoveries, and 0 currently active cases/infections in Greece.
+As of [Thu 7 Sep 2017], there have been at total of:
+157 laboratory-confirmed cases of MERS-CoV infection, including
+69 deaths [reported case fatality rate 40.2 percent],
+103 recoveries, and 0 currently active cases/infections in Greece.
         """)
         doc.add_tier(self.annotator)
         test_utils.assertHasProps(
             doc.tiers['incidents'].spans[0].metadata, {
-                'value': 1715,
+                'value': 157,
                 'type': 'cumulativeCaseCount',
                 'status': 'confirmed',
                 'resolvedDisease': {
@@ -85,7 +85,7 @@ As of [Thu 7 Sep 2017], there have been a total of:
             })
         test_utils.assertHasProps(
             doc.tiers['incidents'].spans[1].metadata, {
-                'value': 690,
+                'value': 69,
                 'type': 'cumulativeDeathCount',
                 'species': {'id': 'tsn:180092', 'label': 'Homo sapiens'},
                 'resolvedDisease': {
