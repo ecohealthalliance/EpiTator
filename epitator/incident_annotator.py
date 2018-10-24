@@ -17,6 +17,7 @@ from .geoname_annotator import GeonameAnnotator
 from .resolved_keyword_annotator import ResolvedKeywordAnnotator
 from .structured_incident_annotator import StructuredIncidentAnnotator, CANNOT_PARSE
 import datetime
+import re
 from collections import defaultdict
 
 
@@ -125,6 +126,7 @@ class IncidentAnnotator(Annotator):
         disease_tier = AnnoTier(disease_list)
         geonames = doc.require_tiers('geonames', via=GeonameAnnotator)
         sent_spans = doc.require_tiers('spacy.sentences', via=SpacyAnnotator)
+
         structured_incidents = doc.require_tiers(
             'structured_incidents', via=StructuredIncidentAnnotator)
         date_tier = doc.require_tiers('dates', via=DateAnnotator)
@@ -187,8 +189,13 @@ class IncidentAnnotator(Annotator):
             incident_data['dateRange'] = [
                 publish_date,
                 publish_date + datetime.timedelta(days=1)]
+            cumulative = False
             if len(date_territory.metadata) > 0:
                 date_span = AnnoTier(date_territory.metadata).nearest_to(count_span)
+                as_of_dates = doc.create_regex_tier(
+                    re.compile(r"\bas of\b", re.I)
+                ).with_following_spans_from([date_span], max_dist=6, allow_overlap=True)
+                cumulative = len(as_of_dates) > 0
                 incident_data['dateRange'] = date_span.metadata['datetime_range']
                 incident_spans.append(date_span)
             # A date and location must be in the count territory to create
@@ -199,8 +206,9 @@ class IncidentAnnotator(Annotator):
             date_range_duration = incident_data['dateRange'][1] - incident_data['dateRange'][0]
             duration_days = date_range_duration.total_seconds() / 60 / 60 / 24
             incident_data['duration'] = duration_days
-            cumulative = False
-            if 'incremental' in attributes:
+            if cumulative:
+                pass
+            elif 'incremental' in attributes:
                 cumulative = False
             elif 'cumulative' in attributes:
                 cumulative = True
@@ -209,6 +217,7 @@ class IncidentAnnotator(Annotator):
             # Infer cumulative is case rate is greater than 300 per day
             elif count / duration_days > 300:
                 cumulative = True
+
             if 'ongoing' in attributes:
                 incident_data['type'] = 'activeCount'
             elif cumulative:
