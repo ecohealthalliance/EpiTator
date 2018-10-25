@@ -49,6 +49,7 @@ ordinal_date_re = re.compile(
     r" (?P<unit>week|day|month) (of|in)( the (year|month)( of)?)? "
     r"(?P<rest>.{3,})", re.I)
 ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
+relative_duration_range_re = re.compile(r"\bthe (last|past|prior|previous)\s+", re.I)
 
 
 class DateSpan(AnnoSpan):
@@ -115,6 +116,13 @@ class DateAnnotator(Annotator):
         def date_to_datetime_range(text,
                                    relative_base=doc_date,
                                    prefer_dates_from='past'):
+            # Handle relative date ranges like "the past ___ days"
+            relative_num_days = re.sub(relative_duration_range_re, "", text)
+            if len(relative_num_days) < len(text):
+                num_days_datetime_range = date_to_datetime_range(relative_num_days)
+                if not num_days_datetime_range:
+                    return None
+                return [num_days_datetime_range[0], relative_base]
             text = clean_date_str(text)
             # Handle ordinal dates like "the second month of 2006"
             match = ordinal_date_re.match(text)
@@ -287,7 +295,7 @@ class DateAnnotator(Annotator):
                         range_components = [
                             '-'.join(hyphenated_components[:3]),
                             '-'.join(hyphenated_components[3:])]
-            if ends_with_timeunit_re.match(range_components[-1]):
+            if ends_with_timeunit_re.match(date_span.text) and not relative_duration_range_re.match(date_span.text):
                 # Prevent durations like "5 days" from being parsed as specific
                 # dates like "5 days ago"
                 continue

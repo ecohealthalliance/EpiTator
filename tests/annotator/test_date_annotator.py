@@ -275,3 +275,13 @@ A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung
         doc = AnnoDoc("One of the guys has already received a laboratory confirmation of the diagnosis of botulism 17.05.2018 year.")
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['dates'].spans), 1)
+
+    def test_relative_date_range_2(self):
+        doc = AnnoDoc(
+            "In the past 20 days 285 cases of swine flu have been reported across the state.",
+            date=datetime.datetime(2018, 12, 21))
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['dates'].spans[0].datetime_range,
+            [datetime.datetime(2018, 12, 1),
+             datetime.datetime(2018, 12, 21)])
