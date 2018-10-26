@@ -55,7 +55,17 @@ class RawNumberAnnotator(Annotator):
         numbers += doc.create_regex_tier(
             r'[1-9]\d{0,2}(( \d{3})+|(,\d{3})+)').spans
         # Remove counts that overlap a date
-        numbers = AnnoTier(numbers).without_overlaps(dates).optimal_span_set()
+        filtered_numbers = []
+        for number_span, date_spans in AnnoTier(numbers).group_spans_by_containing_span(dates, allow_partial_containment=True):
+            if len(date_spans) > 1:
+                continue
+            # If the number span completely contains the date span keep it
+            # because it might be a number that was mistaken for a date.
+            # For instance, the number 1700 can be misinterpreted as a year.
+            elif len(date_spans) == 1 and not number_span.contains(date_spans[0]):
+                continue
+            filtered_numbers.append(number_span)
+        numbers = AnnoTier(filtered_numbers).optimal_span_set()
         return {
             'raw_numbers': AnnoTier([
                 AnnoSpan(number.start, number.end, doc, metadata={

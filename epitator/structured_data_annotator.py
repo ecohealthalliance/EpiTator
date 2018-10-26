@@ -79,6 +79,19 @@ class StructuredDataAnnotator(Annotator):
                     continue
                 elif any(re.match(r"\d*$", value.text) for value in new_value_spans):
                     continue
+            # Skip tables with differing numbers of columns in each row
+            else:
+                row_lengths = sorted([len(row) for row in data])
+                min_len = row_lengths[0]
+                # Determine the min and max difference between any two row lengths.
+                max_diff = row_lengths[-1] - row_lengths[0]
+                min_diff = max_diff
+                for row_len, next_row_len in zip(row_lengths, row_lengths[1:]):
+                    len_diff = next_row_len - row_len
+                    if len_diff < min_diff:
+                        min_diff = len_diff
+                if min_diff > 0 and max_diff > 1:
+                    continue
             spans.append(create_trimmed_annospan_for_doc(start, end, "table", metadata={
                 "type": "table",
                 "data": data,

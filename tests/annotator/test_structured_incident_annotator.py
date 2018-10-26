@@ -428,3 +428,21 @@ Source: The Times of India [edited]
 """)
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['structured_incidents']), 0)
+
+    def test_multiline_title(self):
+        doc = AnnoDoc("""
+Arizona, 3 May 2018.
+More text
+
+Species / Susceptible / Cases / Deaths / Killed and disposed of / Slaughtered
+
+Birds / 3000/ 1500 / 1500 / 0 / 0
+
+Affected population: Commercial layers
+""")
+        doc.add_tier(self.annotator)
+        # TODO: 1500 in the Deaths column is parsed as a year. To resolve this
+        # the annotator needs to use a heuristic based on the column
+        # name when determining column types. Simply giving integer interpretations
+        # priority in all cases doesn't work on docs like the one in test_unusual_format.
+        self.assertEqual(doc.tiers['structured_incidents'][0].metadata['location']['name'], 'Arizona')

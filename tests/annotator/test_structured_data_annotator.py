@@ -154,3 +154,16 @@ Integer County - 3 cases
             },
             'delimiter': '-'
         })
+
+    def test_fp_table(self):
+        doc = AnnoDoc("""
+[6] India, Pune, Marharastra, fatal human case
+
+Date: Mon 4 Jul 2016, 12.57 AM IST
+
+Source: The Times of India [edited]
+
+http://timesofindia.indiatimes.com/
+""")
+        doc.add_tier(self.annotator)
+        self.assertNotEqual(doc.tiers['structured_data'].spans[0].metadata.get('type'), 'table')

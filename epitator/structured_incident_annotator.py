@@ -133,9 +133,9 @@ class StructuredIncidentAnnotator(Annotator):
         }
         tables = []
         possible_titles = doc.create_regex_tier("[^\n]+\n")\
-            .chains(at_most=5, max_dist=0)\
+            .chains(at_most=4, max_dist=0)\
             .without_overlaps(doc.tiers['structured_data'])\
-            .optimal_span_set()
+            .optimal_span_set(prefer='text_length_min_spans')
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table':
                 continue
@@ -253,6 +253,7 @@ class StructuredIncidentAnnotator(Annotator):
                 {'name': '__implicit_metadata', 'type': 'species'}
             ] + column_definitions
             rows = list(zip(*parsed_column_entities))
+            # merge with prior table or create a new one
             if not has_header and len(tables) > 0 and len(column_definitions) == len(tables[-1].column_definitions):
                 # Special case for merging detached header rows
                 if len(tables[-1].rows) == 0:

@@ -173,6 +173,14 @@ class AnnoTier(object):
             """
             return len(x)
 
+        def text_length_min_spans(x):
+            """
+            Prefer the spans that cover the largest amount of text,
+            and as a secondary objective the minimizes the
+            overall number of matches.
+            """
+            return len(x), -1
+
         def num_spans(x):
             """
             Prefers the match with the most distinct base spans.
@@ -193,6 +201,8 @@ class AnnoTier(object):
             prefunc = first
         elif prefer == "text_length":
             prefunc = text_length
+        elif prefer == "text_length_min_spans":
+            prefunc = text_length_min_spans
         elif prefer == "num_spans":
             prefunc = num_spans
         elif prefer == "num_spans_and_no_linebreaks":
