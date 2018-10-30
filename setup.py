@@ -32,7 +32,7 @@ setup(
         'unicodecsv>=0.14.1',
         'spacy==2.0.16',
         'pyparsing==2.2.0',
-        'numpy>=1.14.0',
+        'numpy>=1.15.0',
         'rdflib>=4.2.2',
         'python-dateutil>=2.6.0',
         'six'],

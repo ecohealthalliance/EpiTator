@@ -82,7 +82,6 @@ class StructuredDataAnnotator(Annotator):
             # Skip tables with differing numbers of columns in each row
             else:
                 row_lengths = sorted([len(row) for row in data])
-                min_len = row_lengths[0]
                 # Determine the min and max difference between any two row lengths.
                 max_diff = row_lengths[-1] - row_lengths[0]
                 min_diff = max_diff
