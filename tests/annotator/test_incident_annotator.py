@@ -62,7 +62,6 @@ As of [Thu 7 Sep 2017], there have been at total of:
                 'type': 'cumulativeCaseCount',
                 'status': 'confirmed',
                 'resolvedDisease': {
-                    'type': 'disease',
                     'label': 'Middle East respiratory syndrome',
                     'id': 'https://www.wikidata.org/wiki/Q16654806'
                 },
@@ -87,9 +86,11 @@ As of [Thu 7 Sep 2017], there have been at total of:
             doc.tiers['incidents'].spans[1].metadata, {
                 'value': 69,
                 'type': 'cumulativeDeathCount',
-                'species': {'id': 'tsn:180092', 'label': 'Homo sapiens'},
+                'species': {
+                    'id': 'tsn:180092',
+                    'label': 'Homo sapiens'
+                },
                 'resolvedDisease': {
-                    'type': 'disease',
                     'label': 'Middle East respiratory syndrome',
                     'id': 'https://www.wikidata.org/wiki/Q16654806'
                 },
