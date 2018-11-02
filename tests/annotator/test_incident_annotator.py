@@ -132,3 +132,16 @@ Middle East
         self.assertEqual(
             doc.tiers['incidents'].spans[-1].metadata['resolvedDisease']['id'],
             'http://purl.obolibrary.org/obo/DOID_4953')
+
+    def test_date_handling(self):
+        doc = AnnoDoc("""
+As of today, 30 Sep 2014, there have been 31 cases reported in Poland.
+Yesterday 2 patients died.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['incidents'].spans[0].metadata['dateRange'],
+            [datetime.datetime(2014, 9, 30, 0, 0), datetime.datetime(2014, 10, 1, 0, 0)])
+        self.assertEqual(
+            doc.tiers['incidents'].spans[1].metadata['dateRange'],
+            [datetime.datetime(2014, 9, 29, 0, 0), datetime.datetime(2014, 9, 30, 0, 0)])

@@ -97,6 +97,10 @@ class DateAnnotator(Annotator):
         self.include_end_date = include_end_date
 
     def annotate(self, doc):
+        # If no date is associated with the document, the document's date will
+        # be treated as the most recent date explicitly mentioned in the
+        # the document.
+        detect_date = doc.date is None
         doc_date = doc.date or datetime.datetime.now()
         strict_parser = DateDataParser(['en'], settings={
             'STRICT_PARSING': True})
@@ -114,8 +118,10 @@ class DateAnnotator(Annotator):
             return text
 
         def date_to_datetime_range(text,
-                                   relative_base=doc_date,
+                                   relative_base=None,
                                    prefer_dates_from='past'):
+            if relative_base is None:
+                relative_base = doc_date
             # Handle relative date ranges like "the past ___ days"
             relative_num_days = re.sub(relative_duration_range_re, "", text)
             if len(relative_num_days) < len(text):
@@ -264,6 +270,24 @@ class DateAnnotator(Annotator):
             grouped_date_spans +
             date_span_tier.spans +
             since_date_tier.spans)
+
+        if detect_date:
+            simple_date_spans = AnnoTier(
+                grouped_date_spans +
+                date_span_tier.spans).optimal_span_set(prefer='text_length')
+            latest_date = None
+            for span in simple_date_spans:
+                if re.match(r"today|yesterday", span.text, re.I):
+                    continue
+                try:
+                    span_date = strict_parser.get_date_data(span.text)['date_obj']
+                except (TypeError, ValueError):
+                    continue
+                if span_date and span_date < datetime.datetime.now():
+                    if not latest_date or span_date > latest_date:
+                        latest_date = span_date
+            if latest_date:
+                doc_date = latest_date
 
         date_spans_without_structured_data = all_date_spans.without_overlaps(doc.tiers['structured_data'])
         date_spans_in_structured_data = []

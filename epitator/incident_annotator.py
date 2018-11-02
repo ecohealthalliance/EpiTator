@@ -178,7 +178,7 @@ class IncidentAnnotator(Annotator):
                 date_span = AnnoTier(date_territory.metadata).nearest_to(count_span)
                 as_of_dates = doc.create_regex_tier(
                     re.compile(r"\bas of\b", re.I)
-                ).with_following_spans_from([date_span], max_dist=6, allow_overlap=True)
+                ).with_following_spans_from([date_span], max_dist=8, allow_overlap=True)
                 cumulative = len(as_of_dates) > 0
                 incident_data['dateRange'] = date_span.metadata['datetime_range']
                 incident_spans.append(date_span)
