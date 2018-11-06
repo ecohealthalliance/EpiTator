@@ -35,7 +35,7 @@ setup(
         'numpy>=1.15.0',
         'rdflib>=4.2.2',
         'python-dateutil>=2.6.0',
-        'regex==2018.11.3',
+        'regex==2018.01.10',
         'six'],
     classifiers=[
         'Topic :: Text Processing',
