@@ -62,7 +62,6 @@ As of [Thu 7 Sep 2017], there have been at total of:
                 'type': 'cumulativeCaseCount',
                 'status': 'confirmed',
                 'resolvedDisease': {
-                    'type': 'disease',
                     'label': 'Middle East respiratory syndrome',
                     'id': 'https://www.wikidata.org/wiki/Q16654806'
                 },
@@ -87,9 +86,11 @@ As of [Thu 7 Sep 2017], there have been at total of:
             doc.tiers['incidents'].spans[1].metadata, {
                 'value': 69,
                 'type': 'cumulativeDeathCount',
-                'species': {'id': 'tsn:180092', 'label': 'Homo sapiens'},
+                'species': {
+                    'id': 'tsn:180092',
+                    'label': 'Homo sapiens'
+                },
                 'resolvedDisease': {
-                    'type': 'disease',
                     'label': 'Middle East respiratory syndrome',
                     'id': 'https://www.wikidata.org/wiki/Q16654806'
                 },
@@ -131,3 +132,48 @@ Middle East
         self.assertEqual(
             doc.tiers['incidents'].spans[-1].metadata['resolvedDisease']['id'],
             'http://purl.obolibrary.org/obo/DOID_4953')
+
+    def test_date_handling(self):
+        doc = AnnoDoc("""
+As of today, 30 Sep 2014, there have been 31 cases reported in Poland.
+Yesterday 2 patients died.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['incidents'].spans[0].metadata['dateRange'],
+            [datetime.datetime(2014, 9, 30, 0, 0), datetime.datetime(2014, 10, 1, 0, 0)])
+        self.assertEqual(
+            doc.tiers['incidents'].spans[1].metadata['dateRange'],
+            [datetime.datetime(2014, 9, 29, 0, 0), datetime.datetime(2014, 9, 30, 0, 0)])
+
+    def test_sentence_segmentation(self):
+        doc = AnnoDoc("""
+2 cases on 26 Dec 2014
+
+1- Riyadh: 31-year-old Saudi female, non-healthcare worker, currently in critical condition
+2- Quriat: 70-year-old Saudi male, non-healthcare worker, currently in stable condition
+
+
+
+1 case on 19 Dec 2014
+
+Alkharj: 53-year-old Saudi male, non-healthcare worker, history of animal exposure,
+no history of contact with suspected or confirmed cases in the healthcare environment or in the community
+
+
+
+2 cases on 25 Dec 2014
+
+Alkharj: 53-year-old Saudi male, non-healthcare worker, history of pre-existing co-morbidities
+
+Taif: 70-year-old Saudi female, non-healthcare worker, history of pre-existing co-morbidities
+
+
+
+1 case on 22 Dec 2014
+
+Taif: 29-year-old Expat female, healthcare worker, no history of co-morbidities
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['incidents'].spans[0].metadata['locations']), 2)
+        self.assertEqual(len(doc.tiers['incidents'].spans[-1].metadata['locations']), 1)

@@ -14,7 +14,8 @@ from .count_annotator import CountAnnotator
 from .date_annotator import DateAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .geoname_annotator import GeonameAnnotator
-from .resolved_keyword_annotator import ResolvedKeywordAnnotator
+from .species_annotator import SpeciesAnnotator
+from .disease_annotator import DiseaseAnnotator
 from .structured_incident_annotator import StructuredIncidentAnnotator, CANNOT_PARSE
 import datetime
 import re
@@ -39,7 +40,7 @@ def format_geoname(geoname):
         "id": geoname["geonameid"]
     }
     for key, value in geoname.items():
-        if key in ["geonameid", "nameCount", "namesUsed", "score"]:
+        if key in ["geonameid", "nameCount", "namesUsed", "score", "parents"]:
             continue
         result[camelize(key)] = value
     return result
@@ -91,41 +92,25 @@ class IncidentAnnotator(Annotator):
             case_counts = case_counts
         else:
             case_counts = doc.require_tiers('counts', via=CountAnnotator)
-        resolved_keywords = doc.require_tiers(
-            'resolved_keywords', via=ResolvedKeywordAnnotator)
-        species_list = []
-        disease_list = []
-        disease_hist = defaultdict(lambda: 0)
-        for k in resolved_keywords:
-            for resolution in k.metadata.get('resolutions', []):
-                if resolution['entity']['type'] == 'species':
-                    species_list.append(AnnoSpan(
-                        k.start,
-                        k.end,
-                        k.doc,
-                        metadata={'species': resolution}))
-                    break
-            for resolution in k.metadata.get('resolutions', []):
-                if resolution['entity']['type'] == 'disease':
-                    disease_list.append(AnnoSpan(
-                        k.start,
-                        k.end,
-                        k.doc,
-                        metadata={'disease': resolution}))
-                    disease_hist[resolution['entity']['id']] += 1
-                    break
-        # scope one off disease mentions to sentences.
-        max_disease = max(disease_hist.values()) if len(disease_hist) > 0 else 0
-        if max_disease > 5:
-            for disease in disease_list:
-                if disease_hist[disease.metadata['disease']['entity']['id']] == 1:
-                    disease.metadata['scope'] = 'sentence'
-                else:
-                    disease.metadata['scope'] = 'document'
-        species_tier = AnnoTier(species_list)
-        disease_tier = AnnoTier(disease_list)
         geonames = doc.require_tiers('geonames', via=GeonameAnnotator)
         sent_spans = doc.require_tiers('spacy.sentences', via=SpacyAnnotator)
+        disease_tier = doc.require_tiers('diseases', via=DiseaseAnnotator)
+        species_tier = doc.require_tiers('species', via=SpeciesAnnotator)
+        disease_mentions = defaultdict(lambda: 0)
+        for span in disease_tier:
+            disease_mentions[span.metadata['disease']['id']] += 1
+        # Copy disease tier
+        disease_tier = AnnoTier([
+            AnnoSpan(span.start, span.end, span.doc, metadata=span.metadata)
+            for span in disease_tier], presorted=True)
+        # scope one off disease mentions to sentences.
+        max_disease = max(disease_mentions.values()) if len(disease_mentions) > 0 else 0
+        if max_disease > 5:
+            for span in disease_tier:
+                if disease_mentions[span.metadata['disease']['id']] == 1:
+                    span.metadata['scope'] = 'sentence'
+                else:
+                    span.metadata['scope'] = 'document'
 
         structured_incidents = doc.require_tiers(
             'structured_incidents', via=StructuredIncidentAnnotator)
@@ -173,7 +158,6 @@ class IncidentAnnotator(Annotator):
             geonames_by_id = {}
             for span in geoname_territory.metadata:
                 geoname = span.metadata['geoname'].to_dict()
-                del geoname['parents']
                 geonames_by_id[geoname['geonameid']] = format_geoname(geoname)
                 incident_spans.append(span)
             incident_data = {
@@ -194,7 +178,7 @@ class IncidentAnnotator(Annotator):
                 date_span = AnnoTier(date_territory.metadata).nearest_to(count_span)
                 as_of_dates = doc.create_regex_tier(
                     re.compile(r"\bas of\b", re.I)
-                ).with_following_spans_from([date_span], max_dist=6, allow_overlap=True)
+                ).with_following_spans_from([date_span], max_dist=8, allow_overlap=True)
                 cumulative = len(as_of_dates) > 0
                 incident_data['dateRange'] = date_span.metadata['datetime_range']
                 incident_spans.append(date_span)
@@ -233,7 +217,7 @@ class IncidentAnnotator(Annotator):
 
             disease_span = AnnoTier(disease_territory.metadata).nearest_to(count_span)
             if disease_span:
-                incident_data['resolvedDisease'] = dict(disease_span.metadata['disease']['entity'])
+                incident_data['resolvedDisease'] = dict(disease_span.metadata['disease'])
                 incident_spans.append(disease_span)
             # Suggest humans as a default
             incident_data['species'] = {

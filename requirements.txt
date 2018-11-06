@@ -3,9 +3,10 @@ unicodecsv
 numpy==1.15.3
 geopy
 python-dateutil
-dateparser==0.6.0
+dateparser==0.7.0
 rdflib
 six
 spacy==2.0.16
 pyparsing==2.2.0
+regex==2018.11.3
 https://github.com/explosion/spacy-models/releases/download/en_core_web_md-2.0.0/en_core_web_md-2.0.0.tar.gz
