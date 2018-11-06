@@ -145,3 +145,35 @@ Yesterday 2 patients died.
         self.assertEqual(
             doc.tiers['incidents'].spans[1].metadata['dateRange'],
             [datetime.datetime(2014, 9, 29, 0, 0), datetime.datetime(2014, 9, 30, 0, 0)])
+
+    def test_sentence_segmentation(self):
+        doc = AnnoDoc("""
+2 cases on 26 Dec 2014
+
+1- Riyadh: 31-year-old Saudi female, non-healthcare worker, currently in critical condition
+2- Quriat: 70-year-old Saudi male, non-healthcare worker, currently in stable condition
+
+
+
+1 case on 19 Dec 2014
+
+Alkharj: 53-year-old Saudi male, non-healthcare worker, history of animal exposure,
+no history of contact with suspected or confirmed cases in the healthcare environment or in the community
+
+
+
+2 cases on 25 Dec 2014
+
+Alkharj: 53-year-old Saudi male, non-healthcare worker, history of pre-existing co-morbidities
+
+Taif: 70-year-old Saudi female, non-healthcare worker, history of pre-existing co-morbidities
+
+
+
+1 case on 22 Dec 2014
+
+Taif: 29-year-old Expat female, healthcare worker, no history of co-morbidities
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['incidents'].spans[0].metadata['locations']), 2)
+        self.assertEqual(len(doc.tiers['incidents'].spans[-1].metadata['locations']), 1)
