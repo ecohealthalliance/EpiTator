@@ -15,3 +15,4 @@ dist/
 MANIFEST
 annie.egg*
 .idea/
+docs/build/*

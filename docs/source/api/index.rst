@@ -1,0 +1,5 @@
+.. toctree::
+
+   annodoc
+   annotier
+   annospan
