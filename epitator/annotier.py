@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf8
 from __future__ import absolute_import
-import json
 import re
 from .annospan import SpanGroup, AnnoSpan
 from . import maximum_weight_interval_set as mwis
@@ -38,14 +37,6 @@ class AnnoTier(object):
 
     def __getitem__(self, idx):
         return self.spans[idx]
-
-    def to_json(self):
-        docless_spans = []
-        for span in self.spans:
-            span_dict = span.__dict__.copy()
-            del span_dict['doc']
-            docless_spans.append(span_dict)
-        return json.dumps(docless_spans)
 
     def group_spans_by_containing_span(self,
                                        other_tier,

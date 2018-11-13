@@ -3,7 +3,6 @@
 """Annotator"""
 from __future__ import absolute_import
 from __future__ import print_function
-import json
 from . import maximum_weight_interval_set as mwis
 import six
 import re
@@ -24,7 +23,6 @@ class AnnoDoc(object):
         else:
             raise TypeError("text must be string or unicode")
         self.tiers = {}
-        self.properties = {}
         self.date = date
 
     def add_tier(self, annotator, **kwargs):
@@ -69,21 +67,38 @@ class AnnoDoc(object):
                     match.group(0))], label))
         return AnnoTier(spans, presorted=True)
 
-    def to_json(self):
-        json_obj = {'text': self.text,
-                    'properties': self.properties}
+    def to_dict(self):
+        """
+        Convert the document into a json serializable dictionary.
+        This does not store all the document's data. For a complete
+        serialization use pickle.
 
+        >>> from .annospan import AnnoSpan
+        >>> from .annotier import AnnoTier
+        >>> import datetime
+        >>> doc = AnnoDoc('one two three', date=datetime.datetime(2011, 11, 11))
+        >>> doc.tiers = {
+        ...     'test': AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])}
+        >>> d = doc.to_dict()
+        >>> d['text']
+        'one two three'
+        >>> d['date']
+        '2011-11-11T00:00:00Z'
+        >>> sorted(d['tiers']['test'][0].items())
+        [('label', None), ('textOffsets', [[0, 3]])]
+        >>> sorted(d['tiers']['test'][1].items())
+        [('label', None), ('textOffsets', [[4, 7]])]
+        """
+        json_obj = {
+            'text': self.text
+        }
         if self.date:
             json_obj['date'] = self.date.strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
-
-        if self.properties:
-            json_obj['properties'] = self.properties
-
         json_obj['tiers'] = {}
         for name, tier in self.tiers.items():
-            json_obj['tiers'][name] = tier.to_json()
-
-        return json.dumps(json_obj)
+            json_obj['tiers'][name] = [
+                span.to_dict() for span in tier]
+        return json_obj
 
     def filter_overlapping_spans(self, tiers=None, tier_names=None, score_func=None):
         """Remove the smaller of any overlapping spans."""
