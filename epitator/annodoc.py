@@ -80,9 +80,9 @@ class AnnoDoc(object):
         >>> doc.tiers = {
         ...     'test': AnnoTier([AnnoSpan(0, 3, doc), AnnoSpan(4, 7, doc)])}
         >>> d = doc.to_dict()
-        >>> d['text']
+        >>> str(d['text'])
         'one two three'
-        >>> d['date']
+        >>> str(d['date'])
         '2011-11-11T00:00:00Z'
         >>> sorted(d['tiers']['test'][0].items())
         [('label', None), ('textOffsets', [[0, 3]])]
