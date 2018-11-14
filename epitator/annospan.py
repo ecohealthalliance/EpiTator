@@ -54,15 +54,25 @@ class AnnoSpan(object):
             return self.start - other_span.end
 
     def overlaps(self, other_span):
+        """
+        Return true if the span overlaps other_span.
+        """
         return (
             (self.start >= other_span.start and self.start < other_span.end) or
             (other_span.start >= self.start and other_span.start < self.end)
         )
 
     def contains(self, other_span):
+        """
+        Return true if the span completely contains other_span.
+        """
         return self.start <= other_span.start and self.end >= other_span.end
 
     def adjacent_to(self, other_span, max_dist=1):
+        """
+        Return true if the span comes before or after other_span with at most
+        max_dist charaters between them.
+        """
         return (
             self.comes_before(other_span, max_dist) or
             other_span.comes_before(self, max_dist)
@@ -113,9 +123,6 @@ class AnnoSpan(object):
         while start < end and doc_text[end - 1] == " ":
             end -= 1
         return AnnoSpan(start, end, self.doc, label=self.label, metadata=self.metadata)
-
-    def size(self):
-        return self.end - self.start
 
     @property
     def text(self):

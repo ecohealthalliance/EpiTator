@@ -535,7 +535,7 @@ class GeonameAnnotator(Annotator):
                 geo_span.start,
                 geo_span.end,
                 # If the size is equal the score is used as a tie breaker.
-                geo_span.size() + geo_span.geoname.score,
+                len(geo_span) + geo_span.geoname.score,
                 geo_span
             )
             for geo_span in geo_spans
@@ -615,6 +615,6 @@ class GeonameAnnotator(Annotator):
                 geo_span = GeoSpan(
                     span.start, span.end, doc, geoname)
                 geo_spans.append(geo_span)
-        culled_geospans = AnnoTier(geo_spans).optimal_span_set(prefer=lambda x: (x.size(), x.geoname.score,))
+        culled_geospans = AnnoTier(geo_spans).optimal_span_set(prefer=lambda x: (len(x), x.geoname.score,))
         logger.info('overlapping geospans removed')
         return {'geonames': culled_geospans}

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding=utf8
-"""Annotator"""
 from __future__ import absolute_import
 from __future__ import print_function
 from . import maximum_weight_interval_set as mwis

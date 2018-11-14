@@ -134,8 +134,13 @@ class AnnoTier(object):
 
     def optimal_span_set(self, prefer="text_length"):
         """
-        Create a tier with the set of non-overlapping spans from this tier that
-        maximizes the prefer function.
+        :param perfer: A function that takes a span and returns a numeric tuple score.
+            The following predefined functions may be specified via string:
+            text_length, text_length_min_spans, num_spans, and num_spans_and_no_linebreaks
+        :type prefer: string, function
+        :return: A tier with the set of non-overlapping spans from this tier that
+            maximizes the prefer function.
+        :rtype: AnnoTier
 
         >>> from .annospan import AnnoSpan
         >>> from .annodoc import AnnoDoc
