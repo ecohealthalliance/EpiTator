@@ -139,13 +139,17 @@ class AnnoSpan(object):
         >>> number_span_g = SpanGroup([AnnoSpan(0, 3, doc, 'number'),
         ...                            AnnoSpan(4, 7, doc, 'number'),
         ...                            AnnoSpan(8, 12, doc, 'animal')])
-        >>> number_span_g.groupdict()
-        {'number': [AnnoSpan(0-3, number), AnnoSpan(4-7, number)], 'animal': [AnnoSpan(8-12, animal)]}
+        >>> number_span_g.groupdict()['number']
+        [AnnoSpan(0-3, number), AnnoSpan(4-7, number)]
+        >>> number_span_g.groupdict()['animal']
+        [AnnoSpan(8-12, animal)]
         """
         out = {}
         for base_span in self.base_spans:
             for key, values in base_span.groupdict().items():
                 out[key] = out.get(key, []) + values
+        for values in out.values():
+            values.sort()
         if self.label:
             out[self.label] = [self]
         return out
