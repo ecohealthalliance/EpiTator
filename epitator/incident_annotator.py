@@ -245,6 +245,17 @@ class IncidentAnnotator(Annotator):
             if CANNOT_PARSE in required_properties:
                 continue
             metadata = dict(incident.metadata)
+            if metadata['species'] == CANNOT_PARSE:
+                metadata['species'] = {
+                    'id': 'tsn:180092',
+                    'label': 'Homo sapiens'
+                }
+            if metadata['resolvedDisease'] == CANNOT_PARSE:
+                del metadata['resolvedDisease']
+            if "suspected" in metadata['attributes']:
+                metadata['status'] = "suspected"
+            elif "confirmed" in metadata['attributes']:
+                metadata['status'] = "confirmed"
             metadata['locations'] = [format_geoname(metadata['location'])]
             del metadata['location']
             incidents.append(SpanGroup([incident], metadata=metadata))
