@@ -38,11 +38,61 @@ class AnnoTier(object):
     def __getitem__(self, idx):
         return self.spans[idx]
 
+    def subtract_overlaps(self, other_tier):
+        """
+        :param other_tier: The spans to be removed from the territory of this tier
+        :type other_tier: AnnoTier
+        :return: A copy of this tier with spans truncated and split so that
+            none of the new spans overlap a span in other_tier
+        :rtype: AnnoTier
+
+        >>> from .annospan import AnnoSpan
+        >>> from .annodoc import AnnoDoc
+        >>> doc = AnnoDoc('one two three four')
+        >>> tier_a = AnnoTier([AnnoSpan(0, 18, doc)])
+        >>> tier_b = AnnoTier([AnnoSpan(3, 8, doc), AnnoSpan(13, 18, doc)])
+        >>> tier_a.subtract_overlaps(tier_b)
+        AnnoTier([AnnoSpan(0-3, one), AnnoSpan(8-13, three)])
+        """
+        result_spans = []
+        for span, overlapping_spans in self.group_spans_by_containing_span(other_tier, allow_partial_containment=True):
+            new_start = span.start
+            for overlapping_span in overlapping_spans:
+                if overlapping_span.start <= new_start:
+                    new_start = max(overlapping_span.end, new_start)
+                else:
+                    result_spans.append(AnnoSpan(
+                        new_start,
+                        overlapping_span.start,
+                        span.doc,
+                        span.label,
+                        span.metadata
+                    ))
+                    new_start = overlapping_span.end
+                if new_start >= span.end:
+                    break
+            if new_start < span.end:
+                result_spans.append(AnnoSpan(
+                    new_start,
+                    span.end,
+                    span.doc,
+                    span.label,
+                    span.metadata
+                ))
+        return AnnoTier(result_spans)
+
     def group_spans_by_containing_span(self,
                                        other_tier,
                                        allow_partial_containment=False):
         """
-        Group spans in the other tier by the spans that contain them.
+        Group spans in other_tier by the spans that contain them in this one.
+
+        :param other_tier: The spans to be grouped together
+        :type other_tier: AnnoTier
+        :param allow_partial_containment: Include spans in groups for spans that partially overlap them.
+        :return: An iterator that returns pairs of values, the first of which is
+            the containing span from this tier, the second is an array of
+            spans from other_tier that the span from this tier contans.
 
         >>> from .annospan import AnnoSpan
         >>> from .annodoc import AnnoDoc

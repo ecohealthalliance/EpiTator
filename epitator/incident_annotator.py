@@ -46,11 +46,15 @@ def format_geoname(geoname):
     return result
 
 
-def get_territories(spans, sent_spans):
+def get_territories(spans, sent_spans, phrase_spans):
     """
     A annotation's territory is the sentence containing it,
     and all the following sentences until the next annotation.
     Annotations in the same sentence are grouped.
+    If sub-sentence phrase spans are provided, only the spans within each phase
+    are assigned to its territory, while outside of it the usual rules apply.
+    This is intended to improve associations when multiple counts for multiple
+    locations appear in the same sentence.
     """
     doc = sent_spans[0].doc
     territories = []
@@ -79,7 +83,14 @@ def get_territories(spans, sent_spans):
                 territories.append(AnnoSpan(
                     sent_span.start, sent_span.end, doc,
                     metadata=last_doc_scope_spans))
-    return AnnoTier(territories)
+    phrase_territories = []
+    for phrase_span, span_group in phrase_spans.group_spans_by_containing_span(spans, allow_partial_containment=True):
+        if len(span_group) > 0:
+            phrase_territories.append(AnnoSpan(
+                phrase_span.start, phrase_span.end, doc,
+                metadata=span_group))
+    phrase_territories = AnnoTier(phrase_territories, presorted=True)
+    return AnnoTier(territories).subtract_overlaps(phrase_territories) + phrase_territories
 
 
 class IncidentAnnotator(Annotator):
@@ -123,14 +134,18 @@ class IncidentAnnotator(Annotator):
                 continue
             if datetime_range[1].date() > publish_date.date():
                 # Truncate ranges that extend into the future
-                datetime_range[1] = datetime.datetime(publish_date.year, publish_date.month, publish_date.day)
+                datetime_range[1] = datetime.datetime(publish_date.year, publish_date.month, publish_date.day + 1)
             dates_out.append(AnnoSpan(span.start, span.end, span.doc, metadata={
                 'datetime_range': datetime_range
             }))
         date_tier = AnnoTier(dates_out, presorted=True)
-        date_territories = get_territories(date_tier, sent_spans)
-        geoname_territories = get_territories(geonames, sent_spans)
-        disease_territories = get_territories(disease_tier, sent_spans)
+        phrase_spans = []
+        for sent_span, comma_group in sent_spans.group_spans_by_containing_span(doc.create_regex_tier(",")):
+            phrase_spans += AnnoTier([sent_span]).subtract_overlaps(comma_group).spans
+        phrase_spans = AnnoTier(phrase_spans)
+        date_territories = get_territories(date_tier, sent_spans, phrase_spans)
+        geoname_territories = get_territories(geonames, sent_spans, phrase_spans)
+        disease_territories = get_territories(disease_tier, sent_spans, phrase_spans)
         # Only include the sentence the word appears in for species territories since
         # the species is implicitly human in most of the articles we're analyzing.
         species_territories = []

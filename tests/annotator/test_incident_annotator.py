@@ -9,6 +9,14 @@ from epitator.incident_annotator import IncidentAnnotator
 import datetime
 
 
+def find(li, func):
+    if len(li) > 0:
+        if func(li[0]):
+            return li[0]
+        else:
+            return find(li[1:], func)
+
+
 class TestIncidentAnnotator(unittest.TestCase):
 
     def setUp(self):
@@ -177,3 +185,21 @@ Taif: 29-year-old Expat female, healthcare worker, no history of co-morbidities
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['incidents'].spans[0].metadata['locations']), 2)
         self.assertEqual(len(doc.tiers['incidents'].spans[-1].metadata['locations']), 1)
+
+    def test_location_grouping(self):
+        doc = AnnoDoc("""
+In an update yesterday, officials reported 6 more cases,
+which include 1 case in Paris, 1 case in London, and 4 cases in Australia,
+which is in a security "red zone" area.
+Today, the health ministry reported 3 more Ebola deaths.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            len(find(doc.tiers['incidents'], lambda span: span.metadata['value'] == 6).metadata['locations']),
+            3)
+        self.assertEqual(
+            len(find(doc.tiers['incidents'], lambda span: span.metadata['value'] == 1).metadata['locations']),
+            1)
+        self.assertEqual(
+            len(find(doc.tiers['incidents'], lambda span: span.metadata['value'] == 3).metadata['locations']),
+            3)
