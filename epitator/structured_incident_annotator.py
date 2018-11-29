@@ -81,24 +81,12 @@ class StructuredIncidentAnnotator(Annotator):
     """
 
     def annotate(self, doc):
-        if 'structured_data' not in doc.tiers:
-            doc.add_tiers(StructuredDataAnnotator())
-        if 'geonames' not in doc.tiers:
-            doc.add_tiers(GeonameAnnotator())
-        if 'dates' not in doc.tiers:
-            doc.add_tiers(DateAnnotator())
-        if 'resolved_keywords' not in doc.tiers:
-            doc.add_tiers(ResolvedKeywordAnnotator())
-        if 'spacy.tokens' not in doc.tiers:
-            doc.add_tiers(SpacyAnnotator())
-        if 'raw_numbers' not in doc.tiers:
-            doc.add_tiers(RawNumberAnnotator())
-
-        geonames = doc.tiers['geonames']
-        dates = doc.tiers['dates']
-        resolved_keywords = doc.tiers['resolved_keywords']
-        spacy_tokens = doc.tiers['spacy.tokens']
-        numbers = doc.tiers['raw_numbers']
+        structured_data = doc.require_tiers('structured_data', via=StructuredDataAnnotator)
+        geonames = doc.require_tiers('geonames', via=GeonameAnnotator)
+        dates = doc.require_tiers('dates', via=DateAnnotator)
+        resolved_keywords = doc.require_tiers('resolved_keywords', via=ResolvedKeywordAnnotator)
+        spacy_tokens = doc.require_tiers('spacy.tokens', via=SpacyAnnotator)
+        numbers = doc.require_tiers('raw_numbers', via=RawNumberAnnotator)
         species_list = []
         disease_list = []
         for k in resolved_keywords:
@@ -134,7 +122,7 @@ class StructuredIncidentAnnotator(Annotator):
         tables = []
         possible_titles = doc.create_regex_tier("[^\n]+\n")\
             .chains(at_most=4, max_dist=0)\
-            .without_overlaps(doc.tiers['structured_data'])\
+            .without_overlaps(structured_data)\
             .optimal_span_set(prefer='text_length_min_spans')
         for span in doc.tiers['structured_data'].spans:
             if span.metadata['type'] != 'table':
@@ -194,22 +182,22 @@ class StructuredIncidentAnnotator(Annotator):
                 column_values = AnnoTier(column_values)
                 # Choose column type based on greatest percent match,
                 # if under 30, choose text.
-                max_matches = 0
+                max_score = 0
                 matching_column_entities = None
                 column_type = "text"
                 for value_type, value_spans in entities_by_type.items():
                     filtered_value_spans = value_spans
-                    if value_type == "integer":
-                        filtered_value_spans = value_spans.without_overlaps(dates)
                     column_entities = [
                         SpanGroup(contained_spans, metadata=combine_metadata(contained_spans)) if len(contained_spans) > 0 else None
                         for group_span, contained_spans in column_values.group_spans_by_containing_span(filtered_value_spans)]
                     num_matches = sum(
                         contained_spans is not None
                         for contained_spans in column_entities)
+                    # Prefer other types like dates over integers if all else is equal.
+                    match_score = num_matches + (0 if value_type == "integer" else 1)
                     if num_non_null_rows > 0 and float(num_matches) / num_non_null_rows > 0.3:
-                        if num_matches > max_matches:
-                            max_matches = num_matches
+                        if match_score > max_score:
+                            max_score = match_score
                             matching_column_entities = column_entities
                             column_type = value_type
                     if matching_column_entities is None:
@@ -228,6 +216,9 @@ class StructuredIncidentAnnotator(Annotator):
                 column_definitions = [
                     {'type': column_type}
                     for column_type in column_types]
+            # This is designed to detect rows that cover weekly or montly intervals
+            # with some potentially missing entries.
+            # Irregular intervals are not detected.
             date_period = None
             for column_def, entities in zip(column_definitions, parsed_column_entities):
                 if column_def['type'] == 'date':

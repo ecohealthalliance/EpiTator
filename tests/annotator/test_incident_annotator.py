@@ -203,3 +203,23 @@ Today, the health ministry reported 3 more Ebola deaths.
         self.assertEqual(
             len(find(doc.tiers['incidents'], lambda span: span.metadata['value'] == 3).metadata['locations']),
             3)
+
+    def test_abiguous_date_count(self):
+        doc = AnnoDoc("""
+Dengue in West Virginia, United States:
+Date / Cases / New cases per week
+
+23 May 2018 / 106
+
+29 Jun 2018 / 404 / 59
+
+13 Jul 2018 / 540 / 68
+
+9 Nov 2018 / 1774 / 49
+
+16 Nov 2018 / 1859 / 85
+
+23 Nov 2018 / 1907 / 48
+""")
+        doc.add_tier(self.annotator)
+        self.assertTrue(1907 in [span.metadata['value'] for span in doc.tiers['incidents']])

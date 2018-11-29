@@ -6,7 +6,7 @@ python-dateutil
 dateparser==0.7.0
 rdflib
 six
-spacy==2.0.16
+spacy==2.0.17
 pyparsing==2.2.0
 regex==2018.01.10
 https://github.com/explosion/spacy-models/releases/download/en_core_web_md-2.0.0/en_core_web_md-2.0.0.tar.gz

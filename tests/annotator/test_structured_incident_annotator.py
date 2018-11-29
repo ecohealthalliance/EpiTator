@@ -446,3 +446,23 @@ Affected population: Commercial layers
         # name when determining column types. Simply giving integer interpretations
         # priority in all cases doesn't work on docs like the one in test_unusual_format.
         self.assertEqual(doc.tiers['structured_incidents'][0].metadata['location']['name'], 'Arizona')
+
+    # @with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
+    def test_missing_count_bug(self):
+        doc = AnnoDoc("""
+State / Number of Cases
+
+Alabama / 25
+
+Arizona / 6
+
+Arkansas / 9
+
+California / 54
+
+Colorado / 18
+
+Connecticut / 9
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['structured_incidents']), 6)
