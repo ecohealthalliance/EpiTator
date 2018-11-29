@@ -111,6 +111,8 @@ def parse_spelled_number(num_str):
 
 def parse_count_text(count_text, verbose=False):
     # verboseprint = print if verbose else lambda *a, **k: None
+    if count_text[0] == '0' and len(count_text) > 1:
+        return
     try:
         count = int(count_text)
     except ValueError:
@@ -119,8 +121,7 @@ def parse_count_text(count_text, verbose=False):
         count = parse_spelled_number(count_text)
     except ValueError:
         pass
-    if count is None:
-        # warning("count '{}' could not be parsed".format(count_text))
+    if count is None or int(count) != count:
         return
     else:
         return(count)
