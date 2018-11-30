@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 blocklist = set([
     'January', 'February', 'March', 'April', 'May', 'June', 'July',
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
     'August', 'September', 'October', 'November', 'December',
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun',
     'North', 'East', 'West', 'South',
     'Northeast', 'Southeast', 'Northwest', 'Southwest',
     'Eastern', 'Western', 'Southern', 'Northern',

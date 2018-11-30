@@ -3,6 +3,7 @@ from __future__ import print_function
 import six
 import csv
 import unicodecsv
+import unicodedata
 import re
 import sys
 from six import BytesIO
@@ -114,7 +115,13 @@ def import_geonames(drop_previous=False):
                 tuple(geoname[field]
                       for field, sqltype in geonames_field_mappings
                       if sqltype))
-            for alternatename in set(geoname['alternatenames'] + [geoname['name'], geoname['asciiname']]):
+            possible_names = set([geoname['name'], geoname['asciiname']] + geoname['alternatenames'])
+            for possible_name in geoname['alternatenames']:
+                normalized_name = unicodedata.normalize('NFKD', possible_name)\
+                    .encode('ascii', 'ignore').strip()
+                if len(normalized_name) > 0 and normalized_name != possible_name:
+                    possible_names.add(normalized_name)
+            for alternatename in possible_names:
                 alternatename_tuples.append((
                     geoname['geonameid'],
                     alternatename,
