@@ -345,11 +345,7 @@ class GeonameAnnotator(Annotator):
         document may refer to.
         The dicts are extended with lists of associated AnnoSpans.
         """
-        if 'ngrams' not in doc.tiers:
-            doc.add_tiers(NgramAnnotator())
-        logger.info('Ngrams annotated')
-        if 'nes' not in doc.tiers:
-            doc.add_tiers(NEAnnotator())
+        doc.require_tiers('nes', via=NEAnnotator)
         logger.info('Named entities annotated')
 
         def is_possible_geoname(text):
@@ -362,11 +358,29 @@ class GeonameAnnotator(Annotator):
             if len(text) < 3 and text != text.upper():
                 return False
             return True
-        all_ngrams = list(set([span.text.lower()
-                               for span in doc.tiers['ngrams'].spans
-                               if is_possible_geoname(span.text)
-                               ]))
-        logger.info('%s ngrams extracted' % len(all_ngrams))
+
+        all_ngrams = doc.require_tiers('ngrams', via=NgramAnnotator)
+        # Associate spans with the geonames.
+        # This is done up front so span information can be used in the scoring
+        # function
+        span_text_to_spans = defaultdict(list)
+        possible_geonames = []
+        expansions = {
+            "N ": "North ",
+            "S ": "South ",
+            "E ": "East ",
+            "W ": "West "
+        }
+        for span in all_ngrams:
+            if is_possible_geoname(span.text):
+                for trigger, expansion in expansions.items():
+                    if span.text.startswith(trigger):
+                        expanded_text = span.text.replace(trigger, expansion, 1).lower()
+                        possible_geonames.append(expanded_text)
+                        span_text_to_spans[expanded_text].append(span)
+                possible_geonames.append(span.text.lower())
+                span_text_to_spans[span.text.lower()].append(span)
+        logger.info('%s possible geoname texts' % len(possible_geonames))
         cursor = self.connection.cursor()
         geoname_results = list(cursor.execute('''
         SELECT
@@ -377,17 +391,10 @@ class GeonameAnnotator(Annotator):
         JOIN alternatename_counts USING ( geonameid )
         JOIN alternatenames USING ( geonameid )
         WHERE alternatename_lemmatized IN
-        (''' + ','.join('?' for x in all_ngrams) + ''')
-        GROUP BY geonameid''', all_ngrams))
+        (''' + ','.join('?' for x in possible_geonames) + ''')
+        GROUP BY geonameid''', possible_geonames))
         logger.info('%s geonames fetched' % len(geoname_results))
         geoname_results = [GeonameRow(g) for g in geoname_results]
-        # Associate spans with the geonames.
-        # This is done up front so span information can be used in the scoring
-        # function
-        span_text_to_spans = defaultdict(list)
-        for span in doc.tiers['ngrams'].spans:
-            if is_possible_geoname(span.text):
-                span_text_to_spans[span.text.lower()].append(span)
         candidate_geonames = []
         for geoname in geoname_results:
             geoname.add_spans(span_text_to_spans)

@@ -462,7 +462,16 @@ California / 54
 
 Colorado / 18
 
+N Dakota / 1
+
+S Dakota / 1
+
 Connecticut / 9
 """)
         doc.add_tier(self.annotator)
-        self.assertEqual(len(doc.tiers['structured_incidents']), 6)
+        locations = [span.metadata['location']['geonameid']
+                     for span in doc.tiers['structured_incidents']]
+        self.assertEqual(locations, [
+            '4829764', '5551752', '4099753',
+            '5332921', '5417618', '5690763',
+            '5769223', '4831725'])
