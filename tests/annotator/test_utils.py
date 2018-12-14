@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import six
+import logging
 
 
 def nested_items(d):
@@ -78,3 +79,20 @@ Errors:
     Surplus: {}
     Incorrect: {}
 """.format(test, expected, missing_metadata, surplus_metadata, incorrect_metadata))
+
+
+def with_log_level(logger, level):
+    old_level = logger.level or logging.ERROR
+
+    def decorator(fun):
+        def logged_fun(*args, **kwargs):
+            logger.setLevel(level)
+            try:
+                result = fun(*args, **kwargs)
+                logger.setLevel(old_level)
+                return result
+            except:  # noqa: E722
+                logger.setLevel(old_level)
+                raise
+        return logged_fun
+    return decorator

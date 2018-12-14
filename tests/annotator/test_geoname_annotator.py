@@ -6,11 +6,11 @@ from __future__ import absolute_import
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
-import logging
+# import logging
+# from .test_utils import with_log_level
 import six
 import os
 import io
-logging.getLogger('epitator.geoname_annotator').setLevel(logging.ERROR)
 
 
 class GeonameAnnotatorTest(unittest.TestCase):
@@ -226,7 +226,20 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
         # Imat is resolved to a location with a non-matching unicode i.
         doc = AnnoDoc(u"They are in Imat, Corum, Turkey.")
         doc.add_tier(self.annotator)
-        # print([span.metadata['geoname']['geonameid'] for span in doc.tiers['geonames']])
+
+    # @with_log_level(logging.getLogger('epitator.geoname_annotator'), logging.INFO)
+    def test_linebreak_handling(self):
+        doc = AnnoDoc("""They will perform in West
+Virginia on Friday.""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '4826850')
+
+    def test_example(self):
+        doc = AnnoDoc("Where is Chiang Mai?")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '1153671')
 
 
 if __name__ == '__main__':

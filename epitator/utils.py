@@ -216,3 +216,14 @@ def merge_dicts(dicts, unique=False, simplify=None):
 
 def verboseprint(verbose=False, *args, **kwargs):
     print(*args, **kwargs) if verbose else lambda *args, **kwargs: None
+
+
+def median(li):
+    if len(li) == 0:
+        return None
+    mid_idx = int((len(li) - 1) / 2)
+    li = sorted(li)
+    if len(li) % 2 == 1:
+        return li[mid_idx]
+    else:
+        return (li[mid_idx] + li[mid_idx + 1]) / 2
