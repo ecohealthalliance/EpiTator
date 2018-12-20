@@ -24,6 +24,9 @@ class AnnoDoc(object):
         self.tiers = {}
         self.date = date
 
+    def __len__(self):
+        return len(self.text)
+
     def add_tier(self, annotator, **kwargs):
         return self.add_tiers(annotator, **kwargs)
 

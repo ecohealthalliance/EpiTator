@@ -133,8 +133,10 @@ class IncidentAnnotator(Annotator):
                 # Omit future dates
                 continue
             if datetime_range[1].date() > publish_date.date():
-                # Truncate ranges that extend into the future
-                datetime_range[1] = datetime.datetime(publish_date.year, publish_date.month, publish_date.day + 1)
+                # Truncate ranges that extend into the future to end at the end
+                # of the publication date.
+                datetime_range[1] = datetime.datetime(publish_date.year, publish_date.month, publish_date.day)
+                datetime_range[1] += datetime.timedelta(1)
             dates_out.append(AnnoSpan(span.start, span.end, span.doc, metadata={
                 'datetime_range': datetime_range
             }))

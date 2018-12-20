@@ -4,6 +4,9 @@ from __future__ import print_function
 import re
 from collections import defaultdict
 from itertools import compress
+import unicodedata
+
+space_punct_re = re.compile(r"[\s\(\)\[\]\.\-\/\,]+")
 
 NUMBERS = {
     'zero': 0,
@@ -216,3 +219,25 @@ def merge_dicts(dicts, unique=False, simplify=None):
 
 def verboseprint(verbose=False, *args, **kwargs):
     print(*args, **kwargs) if verbose else lambda *args, **kwargs: None
+
+
+def median(li):
+    if len(li) == 0:
+        return None
+    mid_idx = int((len(li) - 1) / 2)
+    li = sorted(li)
+    if len(li) % 2 == 1:
+        return li[mid_idx]
+    else:
+        return (li[mid_idx] + li[mid_idx + 1]) / 2
+
+
+def normalize_text(text):
+    text = text.replace('\u2019', "'")
+    result = unicodedata.normalize('NFKD', text)\
+        .encode('ascii', 'ignore').decode()
+    result = space_punct_re.sub(' ', result).strip()
+    if len(result) < 3:
+        result = space_punct_re.sub(' ', text).strip()
+    assert not result.startswith(' ')
+    return result

@@ -8,6 +8,7 @@ from .resolved_keyword_annotator import ResolvedKeywordAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
+from .utils import median
 import re
 import logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
@@ -27,17 +28,6 @@ class Table():
 def is_null(val_string):
     val_string = val_string.strip()
     return val_string == "" or val_string == "-"
-
-
-def median(li):
-    if len(li) == 0:
-        return None
-    mid_idx = int((len(li) - 1) / 2)
-    li = sorted(li)
-    if len(li) % 2 == 1:
-        return li[mid_idx]
-    else:
-        return (li[mid_idx] + li[mid_idx + 1]) / 2
 
 
 def merge_metadata(sofar, child_metadata):

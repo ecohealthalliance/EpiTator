@@ -37,12 +37,12 @@ def get_database_connection(create_database=False):
             cur.execute('''
             CREATE INDEX synonym_index ON synonyms (synonym);
             ''')
-            cur.execute("INSERT INTO metadata VALUES ('dbversion', '0.0.0')")
+            cur.execute("INSERT INTO metadata VALUES ('dbversion', '0.0.1')")
             connection.commit()
         db_version = next(cur.execute("""
         SELECT value AS version FROM metadata WHERE property = 'dbversion'
         """), None)
-        if not db_version or db_version[0] != "0.0.0":
+        if not db_version or db_version[0] != "0.0.1":
             raise Exception("The database at " + ANNOTATOR_DB_PATH +
                             " has a version that is not compatible by this version of EpiTator.\n"
                             "You will need to rerun the data import scripts.")
