@@ -11,7 +11,7 @@ from .ngram_annotator import NgramAnnotator
 from .ne_annotator import NEAnnotator
 from .spacy_annotator import SpacyAnnotator
 from geopy.distance import great_circle
-from .utils import median
+from .utils import median, normalize_text
 
 from .get_database_connection import get_database_connection
 from . import geoname_classifier
@@ -31,7 +31,7 @@ blocklist = set([
     'Eastern', 'Western', 'Southern', 'Northern',
     'About', 'Many', 'See', 'Also', 'As', 'In', 'About', 'Health', 'Some',
     'International', 'City', 'World', 'Federal', 'Federal District', 'The city',
-    'British', 'Russian',
+    'British', 'Russian', 'German',
     'Valley', 'University', 'Center', 'Central',
     # These locations could be legitimate,
     # but they are rarely referred to in a context
@@ -122,6 +122,7 @@ GEONAME_ATTRS = [
     'population',
     'asciiname',
     'names_used',
+    'lemmas_used',
     'name_count']
 
 
@@ -135,6 +136,7 @@ ADMINNAME_ATTRS = [
 class GeonameRow(object):
     __slots__ = GEONAME_ATTRS + ADMINNAME_ATTRS + [
         'alternate_locations',
+        'overlapping_locations',
         'spans',
         'parents',
         'score',
@@ -148,13 +150,14 @@ class GeonameRow(object):
                 setattr(self, key, sqlite3_row[key])
         self.lat_long = (self.latitude, self.longitude,)
         self.alternate_locations = set()
+        self.overlapping_locations = set()
         self.spans = set()
         self.parents = set()
         self.score = None
 
     def add_spans(self, span_text_to_spans):
-        for name in self.names_used.split(';'):
-            for span in span_text_to_spans[name.lower().strip()]:
+        for name in set(self.lemmas_used.split(';')):
+            for span in span_text_to_spans[name]:
                 self.spans.add(span)
 
     def __hash__(self):
@@ -189,22 +192,26 @@ class GeonameFeatures(object):
         'log_population',
         'name_count',
         'names_used',
+        'exact_name_match',
         'multiple_spans',
         'span_length',
         'cannonical_name_used',
         'loc_NE_portion',
+        'other_NE_portion',
         'noun_portion',
         'num_tokens',
-        'ambiguity',
+        'med_token_prob',
+        'exact_alternatives',
         'PPL_feature_code',
         'ADM_feature_code',
-        'CONT_feature_code',
+        'PCL_feature_code',
         'other_feature_code',
         'first_order',
-        # 'combined_span',
+        'combined_span',
         # contextual features
         'close_locations',
         'very_close_locations',
+        'base_score',
         'base_score_margin',
         'contained_locations',
         'containing_locations',
@@ -221,7 +228,13 @@ class GeonameFeatures(object):
         # Geonames with lots of alternate names
         # tend to be the ones most commonly referred to.
         d['name_count'] = math.log(geoname.name_count)
-        d['names_used'] = math.log(len(geoname.names_used.split(';')))
+        names_used = geoname.names_used.split(';')
+        d['names_used'] = math.log(len(names_used))
+        for name in names_used:
+            for span in geoname.spans:
+                if span.text == name:
+                    d['exact_name_match'] = 1.0
+                    break
         d['multiple_spans'] = 1 if len(geoname.spans) > 1 else 0
         d['span_length'] = median([
             len(span.text) for span in geoname.spans])
@@ -248,16 +261,18 @@ class GeonameFeatures(object):
                 else:
                     other_NEs_overlap += 1
         d['loc_NE_portion'] = float(loc_NEs_overlap) / total_spans
-
+        d['other_NE_portion'] = float(other_NEs_overlap) / total_spans
         noun_portions = []
         other_pos_portions = []
         token_lens = []
+        token_probs = []
         for span in geoname.spans:
             noun_pos_tags = 0
             other_pos_tags = 0
             pos_tags = 0
             for token_span in span_to_tokens[span]:
                 token = token_span.token
+                token_probs.append(token.prob)
                 pos_tags += 1
                 if token.tag_.startswith("NN") or token.tag_ == "FW":
                     noun_pos_tags += 1
@@ -266,20 +281,21 @@ class GeonameFeatures(object):
             noun_portions.append(float(noun_pos_tags) / pos_tags)
             other_pos_portions.append(float(other_pos_tags) / pos_tags)
             token_lens.append(pos_tags)
-        # d['combined_span'] = 1 if len(geoname.parents) > 0 else 0
+        d['combined_span'] = 1 if len(geoname.parents) > 0 else 0
         d['noun_portion'] = median(noun_portions)
         d['num_tokens'] = median(token_lens)
-        d['ambiguity'] = math.log(len(geoname.alternate_locations) + 1)
+        d['med_token_prob'] = median(token_probs)
+        d['exact_alternatives'] = math.log(len(geoname.alternate_locations) + 1)
         feature_code = geoname.feature_code
         if feature_code.startswith('PPL'):
             d['PPL_feature_code'] = 1
         elif feature_code.startswith('ADM'):
             d['ADM_feature_code'] = 1
-        elif feature_code.startswith('CONT'):
-            d['CONT_feature_code'] = 1
+        elif feature_code.startswith('PCL'):
+            d['PCL_feature_code'] = 1
         else:
             d['other_feature_code'] = 1
-        if '1' in feature_code:
+        if '1' in feature_code or feature_code == 'PPLA':
             d['first_order'] = 1
         self._values = [0] * len(self.feature_names)
         self.set_values(d)
@@ -317,14 +333,15 @@ class GeonameFeatures(object):
                 close_locations += 1
             if distance < 100:
                 very_close_locations += 1
-        greatest_alternate_score = 0.0
-        for location in geoname.alternate_locations:
-            if location.base_score > greatest_alternate_score:
-                greatest_alternate_score = location.base_score
+        greatest_overlapping_score = 0.0
+        for location in geoname.overlapping_locations:
+            if location.base_score > greatest_overlapping_score:
+                greatest_overlapping_score = location.base_score
         self.set_values(dict(
             close_locations=close_locations,
             very_close_locations=very_close_locations,
-            base_score_margin=geoname.base_score - greatest_alternate_score,
+            base_score=geoname.base_score,
+            base_score_margin=geoname.base_score - greatest_overlapping_score,
             containing_locations=containing_locations,
             contained_locations=contained_locations,
         ))
@@ -356,21 +373,29 @@ class GeonameAnnotator(Annotator):
         tokens = doc.require_tiers('spacy.tokens', via=SpacyAnnotator)
         doc.require_tiers('nes', via=NEAnnotator)
         logger.info('Named entities annotated')
-        single_alphanumeric_char = re.compile(r"[a-z0-9]$", re.I)
+        single_letter_or_empty = re.compile(r"[a-z]?$", re.I)
+        numeric_or_punct_start = re.compile(r"^[0-9\(\)\[\]\.\s\,\-\"\/\|]+")
+        lower_case_direction = re.compile(r"^(north|south|east|west)")
 
-        def is_possible_geoname(text, tokens):
-            if text in blocklist:
+        def is_possible_geoname_text(text):
+            if len(text) < 3 and text != text.upper():
+                return False
+            elif single_letter_or_empty.match(text) or numeric_or_punct_start.match(text):
                 return False
             # We can rule out a few FPs and make the query much faster
             # by only looking at capitalized names.
-            # This does fail for some cases (southern California) but they are
-            # rare enough in our corpus that the speed and precision increase
-            # outweights the increase in FNs.
-            elif text[0] != text[0].upper():
+            # This can fail for some cases (southern California) so directions
+            # are omitted.
+            elif text[0] != text[0].upper() and not lower_case_direction.match(text):
                 return False
-            elif len(text) < 3 and text != text.upper():
+            elif text in blocklist:
                 return False
-            elif single_alphanumeric_char.match(text):
+            return True
+
+        def is_possible_geoname(text, tokens):
+            if not is_possible_geoname_text(text):
+                return False
+            elif tokens[-1].token.is_punct:
                 return False
             # require a noun or foreign word token.
             elif all(not (token.token.tag_.startswith("NN") or token.token.tag_ == "FW") for token in tokens):
@@ -382,33 +407,36 @@ class GeonameAnnotator(Annotator):
         # This is done up front so span information can be used in the scoring
         # function
         span_text_to_spans = defaultdict(list)
-        possible_geonames = []
         expansions = {
             "N ": "North ",
             "S ": "South ",
             "E ": "East ",
             "W ": "West "
         }
-        space_re = re.compile(r"\s+")
         for span, tokens in all_ngrams.group_spans_by_containing_span(tokens):
-            # Remove new-lines and extra spaces
-            text = space_re.sub(" ", span.text)
+            # Replace non-standard apostrophes
+            text = span.text.replace('\u2019', "'")
             if is_possible_geoname(text, tokens):
-                for trigger, expansion in expansions.items():
-                    if text.startswith(trigger):
-                        expanded_text = text.replace(trigger, expansion, 1).lower()
-                        possible_geonames.append(expanded_text)
-                        span_text_to_spans[expanded_text].append(span)
-                possible_geonames.append(text.lower())
-                span_text_to_spans[text.lower()].append(span)
-        logger.info(possible_geonames)
+                text = normalize_text(text)
+                if is_possible_geoname_text(text):
+                    for trigger, expansion in expansions.items():
+                        if text.startswith(trigger):
+                            expanded_text = text.replace(trigger, expansion, 1).lower()
+                            span_text_to_spans[expanded_text].append(span)
+                    span_text_to_spans[text.lower()].append(span)
+        # Add dehyphenated variants and extended directions.
+        for span_text, spans in list(span_text_to_spans.items()):
+            if lower_case_direction.match(span_text):
+                span_text_to_spans[re.sub(r"(north|south|east|west)\s(.+)", r"\1ern \2", span_text)].extend(spans)
+        possible_geonames = list(span_text_to_spans.keys())
         logger.info('%s possible geoname texts' % len(possible_geonames))
         cursor = self.connection.cursor()
         geoname_results = list(cursor.execute('''
         SELECT
             geonames.*,
             count AS name_count,
-            group_concat(alternatename, ";") AS names_used
+            group_concat(alternatename, ";") AS names_used,
+            group_concat(alternatename_lemmatized, ";") AS lemmas_used
         FROM geonames
         JOIN alternatename_counts USING ( geonameid )
         JOIN alternatenames USING ( geonameid )
@@ -468,8 +496,19 @@ class GeonameAnnotator(Annotator):
             geoname_set = set(geonames)
             for geoname in geonames:
                 geoname.alternate_locations |= geoname_set
+        possible_geoname_tier = AnnoTier([
+            AnnoSpan(span.start, span.end, span.doc, metadata=set(geonames))
+            for span, geonames in span_to_geonames.items()])
+        grouped_possible_geonames = possible_geoname_tier.group_spans_by_containing_span(
+            possible_geoname_tier,
+            allow_partial_containment=True)
+        for outer_span, overlapping_spans in grouped_possible_geonames:
+            for geoname in outer_span.metadata:
+                for overlapping_span in overlapping_spans:
+                    geoname.overlapping_locations |= overlapping_span.metadata
         for geoname in candidate_geonames:
-            geoname.alternate_locations -= set([geoname])
+            geoname.alternate_locations.remove(geoname)
+            geoname.overlapping_locations.remove(geoname)
         logger.info('%s alternative locations found' % sum([
             len(geoname.alternate_locations)
             for geoname in candidate_geonames]))

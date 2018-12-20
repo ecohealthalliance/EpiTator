@@ -7,57 +7,70 @@ from numpy import array, int32
 
 
 HIGH_CONFIDENCE_THRESHOLD = 0.5
-GEONAME_SCORE_THRESHOLD = 0.11
+GEONAME_SCORE_THRESHOLD = 0.1
 base_classifier =\
 {
-    'multi_class': 'warn',
-    'verbose': 0,
-    'C': 1.0,
-    'dual': False,
-    'warm_start': False,
-    'intercept_scaling': 1,
+    'C': 0.05,
+    'tol': 0.0001,
     'max_iter': 100,
-    'random_state': None,
-    'n_jobs': None,
-    'intercept_': array([-9.28343916]),
-    'fit_intercept': True,
-    'classes_': array([False,  True]),
-    'n_iter_': array([46], dtype=int32),
+    'multi_class': 'warn',
+    'solver': 'liblinear',
     'class_weight': None,
+    'intercept_': array([-12.96847368]),
+    'fit_intercept': True,
+    'dual': False,
+    'n_iter_': array([34], dtype=int32),
+    'n_jobs': None,
+    'classes_': array([False,  True]),
+    'random_state': None,
+    'warm_start': False,
+    'verbose': 0,
+    'penalty': 'l1',
+    'intercept_scaling': 1,
     'coef_': array([[
         # log_population
-        0.34262552094358173,
+        0.3400265114642491,
         # name_count
-        0.34084684504565244,
+        0.18126370788639004,
         # names_used
-        1.8760592161283256,
+        1.0416505478329494,
+        # exact_name_match
+        0.48689572888105914,
         # multiple_spans
-        0.42667954045606565,
+        0.22213375908341862,
         # span_length
-        0.13772152678130364,
+        0.16577113689171946,
         # cannonical_name_used
-        2.940636263595021,
+        2.6193075762116154,
         # loc_NE_portion
-        1.1234447868729431,
+        0.8983857499144656,
+        # other_NE_portion
+        -0.5361526642339721,
         # noun_portion
-        1.0109412123401722,
-        # num_tokens
-        -0.058910757761115005,
-        # ambiguity
-        -1.0635941967766,
-        # PPL_feature_code
         0.0,
+        # num_tokens
+        0.44255248015322196,
+        # med_token_prob
+        -0.33997541370846585,
+        # exact_alternatives
+        -0.8703166373667724,
+        # PPL_feature_code
+        -0.8950069636944499,
         # ADM_feature_code
-        -0.567473372564782,
-        # CONT_feature_code
-        -1.882831379443239,
+        -1.0800760155305875,
+        # PCL_feature_code
+        2.305217045860327,
         # other_feature_code
-        1.0499054778077563,
+        0.0,
         # first_order
-        0.8440389864769996,
+        0.8649855654975414,
+        # combined_span
+        1.5066603200498148,
         # close_locations
         0.0,
         # very_close_locations
+        0.0,
+        # base_score
         0.0,
         # base_score_margin
         0.0,
@@ -66,72 +79,79 @@ base_classifier =\
         # containing_locations
         0.0,
     ]]),
-    'tol': 0.0001,
-    'penalty': 'l1',
-    'solver': 'warn',
 }
 
 contextual_classifier =\
 {
-    'multi_class': 'warn',
-    'verbose': 0,
-    'C': 1.0,
-    'dual': False,
-    'warm_start': False,
-    'intercept_scaling': 1,
+    'C': 0.05,
+    'tol': 0.0001,
     'max_iter': 100,
-    'random_state': None,
-    'n_jobs': None,
-    'intercept_': array([-8.840484]),
-    'fit_intercept': True,
-    'classes_': array([False,  True]),
-    'n_iter_': array([48], dtype=int32),
+    'multi_class': 'warn',
+    'solver': 'liblinear',
     'class_weight': None,
+    'intercept_': array([-11.07012273]),
+    'fit_intercept': True,
+    'dual': False,
+    'n_iter_': array([36], dtype=int32),
+    'n_jobs': None,
+    'classes_': array([False,  True]),
+    'random_state': None,
+    'warm_start': False,
+    'verbose': 0,
+    'penalty': 'l1',
+    'intercept_scaling': 1,
     'coef_': array([[
         # log_population
-        0.2939483940730553,
+        0.26919239530569744,
         # name_count
-        0.2580094721076477,
+        0.15391926141591555,
         # names_used
-        0.5029191676114552,
-        # multiple_spans
-        0.09977916646861679,
-        # span_length
-        0.11418661641029156,
-        # cannonical_name_used
-        2.155326844199699,
-        # loc_NE_portion
-        0.8623937844915512,
-        # noun_portion
-        0.9604347978115251,
-        # num_tokens
-        0.1937812183183358,
-        # ambiguity
-        -0.7964553990195704,
-        # PPL_feature_code
+        0.6093336386171238,
+        # exact_name_match
         0.0,
+        # multiple_spans
+        0.04710799001512861,
+        # span_length
+        0.15858394656503427,
+        # cannonical_name_used
+        2.0938712567600373,
+        # loc_NE_portion
+        1.1419115133690598,
+        # other_NE_portion
+        -0.23217155527316988,
+        # noun_portion
+        0.0,
+        # num_tokens
+        0.41401940754982003,
+        # med_token_prob
+        -0.23775837288538074,
+        # exact_alternatives
+        -0.6874573373702897,
+        # PPL_feature_code
+        -0.47120680323948294,
         # ADM_feature_code
-        -0.7748943387772271,
-        # CONT_feature_code
-        -1.9281915222896282,
+        -0.6101137869203587,
+        # PCL_feature_code
+        1.722979737294853,
         # other_feature_code
-        0.7077227108933093,
+        0.0,
         # first_order
-        0.841264045454143,
+        0.6738287702092822,
+        # combined_span
+        0.0,
         # close_locations
-        0.22854094991329404,
+        0.16276667569596484,
         # very_close_locations
-        0.5533668273177214,
+        0.007244809408803627,
+        # base_score
+        -0.015164066836945362,
         # base_score_margin
-        2.3501013895182505,
+        2.4171623267857085,
         # contained_locations
-        -0.12912768061046315,
+        0.059708073294993246,
         # containing_locations
-        -0.07385016929934174,
+        0.673294874427792,
     ]]),
-    'tol': 0.0001,
-    'penalty': 'l1',
-    'solver': 'warn',
 }
 
 # Logistic regression code from scipy

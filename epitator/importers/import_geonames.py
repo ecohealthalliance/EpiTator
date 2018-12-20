@@ -3,14 +3,13 @@ from __future__ import print_function
 import six
 import csv
 import unicodecsv
-import unicodedata
 import re
 import sys
 from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
 from ..get_database_connection import get_database_connection
-from ..utils import parse_number, batched
+from ..utils import parse_number, batched, normalize_text
 
 
 GEONAMES_ZIP_URL = "http://download.geonames.org/export/dump/allCountries.zip"
@@ -115,17 +114,13 @@ def import_geonames(drop_previous=False):
                 tuple(geoname[field]
                       for field, sqltype in geonames_field_mappings
                       if sqltype))
-            possible_names = set([geoname['name'], geoname['asciiname']] + geoname['alternatenames'])
-            for possible_name in geoname['alternatenames']:
-                normalized_name = unicodedata.normalize('NFKD', possible_name)\
-                    .encode('ascii', 'ignore').strip()
-                if len(normalized_name) > 0 and normalized_name != possible_name:
-                    possible_names.add(normalized_name)
-            for alternatename in possible_names:
-                alternatename_tuples.append((
-                    geoname['geonameid'],
-                    alternatename,
-                    alternatename.lower().strip()))
+            for possible_name in set([geoname['name'], geoname['asciiname']] + geoname['alternatenames']):
+                normalized_name = normalize_text(possible_name)
+                if len(normalized_name) > 0:
+                    alternatename_tuples.append((
+                        geoname['geonameid'],
+                        possible_name,
+                        normalized_name.lower()))
         cur.executemany(geonames_insert_command, geoname_tuples)
         cur.executemany(alternatenames_insert_command, alternatename_tuples)
         cur.executemany(adminnames_insert_command, adminname_tuples)

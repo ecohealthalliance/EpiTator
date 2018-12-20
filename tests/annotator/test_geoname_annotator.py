@@ -33,6 +33,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
         del geoname['name_count']
         del geoname['score']
         del geoname['population']
+        del geoname['lemmas_used']
         self.assertEqual(geoname, {
             'admin1_code': u'IL',
             'admin1_name': u'Illinois',
@@ -185,9 +186,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         combined_span_found = False
         for geoname in candidates:
             self.assertTrue(geoname not in geoname.alternate_locations)
-            for alternate in geoname.alternate_locations:
-                self.assertTrue(
-                    len(set(alternate.spans).intersection(geoname.spans)) > 0)
             for span in geoname.spans:
                 if span.start == 3 and span.end == 47:
                     combined_span_found = True
@@ -198,8 +196,8 @@ class GeonameAnnotatorTest(unittest.TestCase):
         # that the ascii version works.
         doc = AnnoDoc(u"At Cao Bang, Vietnam 5 cases were recorded.")
         doc.add_tier(self.annotator)
-        self.assertEqual(
-            doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
+        self.assertTrue(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'] in ['1586182', '1586185'])
 
     def test_ne_overlap(self):
         doc = AnnoDoc("""

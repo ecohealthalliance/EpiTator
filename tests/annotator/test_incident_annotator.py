@@ -158,8 +158,8 @@ Yesterday 2 patients died.
         doc = AnnoDoc("""
 2 cases on 26 Dec 2014
 
-1- Riyadh: 31-year-old Saudi female, non-healthcare worker, currently in critical condition
-2- Quriat: 70-year-old Saudi male, non-healthcare worker, currently in stable condition
+1- Riyadh, Saudi Arabia: 31-year-old Saudi female, non-healthcare worker, currently in critical condition
+2- Qurayyat, Saudi Arabia: 70-year-old Saudi male, non-healthcare worker, currently in stable condition
 
 
 
@@ -183,8 +183,7 @@ Taif: 70-year-old Saudi female, non-healthcare worker, history of pre-existing c
 Taif: 29-year-old Expat female, healthcare worker, no history of co-morbidities
 """)
         doc.add_tier(self.annotator)
-        # TODO: Quriat is missing
-        # self.assertEqual(len(doc.tiers['incidents'].spans[0].metadata['locations']), 2)
+        self.assertEqual(len(doc.tiers['incidents'].spans[0].metadata['locations']), 2)
         self.assertEqual(len(doc.tiers['incidents'].spans[-1].metadata['locations']), 1)
 
     def test_location_grouping(self):
