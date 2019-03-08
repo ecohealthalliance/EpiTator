@@ -137,6 +137,7 @@ def import_disease_ontology(drop_previous=False):
         ('cVDPV3', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
         ('poliovirus', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
         ('polio', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
+        ('CCHF', 'http://purl.obolibrary.org/obo/DOID_12287', 3),
     ])
     cur.execute('''
     INSERT INTO synonyms

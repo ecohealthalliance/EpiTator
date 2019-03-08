@@ -50,18 +50,15 @@ def import_wikidata(drop_previous=False):
         for result in results])
     print("Importing manually added diseases not in disease ontology...")
     # Wikidata entities are used in place of those from the disease ontology.
-    cur.execute("""
-                INSERT INTO entities VALUES
-                ('https://www.wikidata.org/wiki/Q16654806',
-                 'Middle East respiratory syndrome',
-                 'disease', 'Wikidata'
-                )""")
-    cur.executemany("INSERT INTO synonyms VALUES (?, ?, ?)", [
-        ('Middle East respiratory syndrome', 'https://www.wikidata.org/wiki/Q16654806', 3),
-        ('MERS', 'https://www.wikidata.org/wiki/Q16654806', 3),
-        ('Middle East respiratory syndrome coronavirus', 'https://www.wikidata.org/wiki/Q16654806', 3),
-        ('MERS-CoV', 'https://www.wikidata.org/wiki/Q16654806', 3),
-    ])
+    additional_diseases = [
+        ('https://www.wikidata.org/wiki/Q16654806', 'Middle East respiratory syndrome',),
+        ('https://www.wikidata.org/wiki/Q1142751', 'Norovirus',),
+        ('https://www.wikidata.org/wiki/Q15928531', 'Nipah virus',),
+        ('https://www.wikidata.org/wiki/Q18350119', 'Acute flaccid myelitis',),
+        ('https://www.wikidata.org/wiki/Q6163830', 'Seoul virus',)]
+    cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", additional_diseases)
+    cur.executemany("INSERT INTO synonyms VALUES (?, ?, 3)", [
+        (disease_name, uri,) for uri, disease_name in additional_diseases])
     connection.commit()
     connection.close()
 
