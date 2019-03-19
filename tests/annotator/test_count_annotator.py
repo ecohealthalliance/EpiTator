@@ -338,82 +338,28 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
         self.assertHasCounts('There were 197 000 deaths in 2007.',
                              [{'count': 197000, 'attributes': ['case', 'death']}])
 
-    # Currently failing. Uncomment after spacy model update.
-    # def test_counts_with_spaces(self):
-    #     doc = AnnoDoc("Ther were 565 749 new cases")
-    #     doc.add_tier(self.annotator)
-    #     actual_counts = [count.metadata['count']
-    #                      for count in doc.tiers['counts'].spans
-    #                      if 'case' in count.metadata['attributes']]
-    #     print(actual_counts)
+    def test_counts_with_spaces(self):
+        doc = AnnoDoc("Ther were 565 749 new cases")
+        doc.add_tier(self.annotator)
+        actual_counts = [count.metadata['count']
+                         for count in doc.tiers['counts'].spans
+                         if 'case' in count.metadata['attributes']]
+        self.assertEqual(actual_counts, [565749])
 
-    # def test_count_table(self):
-    #     doc = AnnoDoc('''
-    #     Cases / 22 / 544 / 140 / 75 / 759
-    #     Deaths / 14 / 291 / 128 / 48 / 467
-
-    #     *New cases were reported between 25-29 Jun 2014
-
-    #     The total number of cases is subject to change
-    #     ''')
-    #     doc.add_tier(self.annotator)
-    #     self.assertEqual(len(doc.tiers['counts']), 10)
-
-
-#     def test_count_list(self):
-#         doc = AnnoDoc('''
-# The 15 non-fatal cases confirmed across the state since the year began are as follows:
-#
-# ArithmeticError County - 1 case
-#
-# TypeError County - 1 case
-#
-# Python County - 2 cases
-#
-# Java County - 2 cases
-#
-# Scala County - 1 case
-#
-# Scheme County - 1 case
-#
-# Meteor County - 1 case
-#
-# Boolean County - 1 case (not including the fatality)
-#
-# Integer County - 3 cases
-# ''')
-#         doc.add_tier(self.annotator)
-#         expected_counts = [
-#             15,
-#             1,
-#             1,
-#             2,
-#             2,
-#             1,
-#             1,
-#             1,
-#             1,
-#             3
-#         ]
-#         actual_counts = [count.metadata['count']
-#                          for count in doc.tiers['counts'].spans
-#                          if 'case' in count.metadata['attributes']]
-#         self.assertSequenceEqual(actual_counts, expected_counts)
-#
-#     def test_count_list_2(self):
-#         doc = AnnoDoc('Ica 562 cases, Chincha 17 cases, Nasca 152 cases, Palpa 409 cases, Pisco 299 cases.')
-#         doc.add_tier(self.annotator)
-#         expected_counts = [
-#             562,
-#             17,
-#             152,
-#             409,
-#             299,
-#         ]
-#         actual_counts = [count.metadata['count']
-#                          for count in doc.tiers['counts'].spans
-#                          if 'case' in count.metadata['attributes']]
-#         self.assertSequenceEqual(actual_counts, expected_counts)
+    def test_count_list(self):
+        doc = AnnoDoc('Ica 562 cases, Chincha 17 cases, Nasca 152 cases, Palpa 409 cases, Pisco 299 cases.')
+        doc.add_tier(self.annotator)
+        expected_counts = [
+            562,
+            17,
+            152,
+            409,
+            299,
+        ]
+        actual_counts = [count.metadata['count']
+                         for count in doc.tiers['counts'].spans
+                         if 'case' in count.metadata['attributes']]
+        self.assertSequenceEqual(actual_counts, expected_counts)
 
 
 if __name__ == '__main__':

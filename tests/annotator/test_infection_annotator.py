@@ -66,8 +66,6 @@ class TestInfectionAnnotator(unittest.TestCase):
         ]
         self.assertHasCounts(sent, counts)
 
-    # TODO: This test currently fails because it stops looking after
-    # "patients", because that implies that they are infected.
     def test_complex_2(self):
         sent = 'Two patients died out of four patients.'
         counts = [
@@ -85,7 +83,6 @@ class TestInfectionAnnotator(unittest.TestCase):
             sent, counts = example
             self.assertHasCounts(sent, counts)
 
-# TODO: Investigate this.
     def test_tokenization_edge_cases(self):
         """
         These examples triggered some bugs with word token alignment in the past.
@@ -93,7 +90,7 @@ class TestInfectionAnnotator(unittest.TestCase):
         examples = [
             ('These numbers include laboratory-confirmed, probable, and suspect cases and deaths of EVD.', []),
             ("""22 new cases of EVD, including 14 deaths, were reported as follows:
-        Guinea, 3 new cases and 5 deaths; Liberia, 8 new cases with 7 deaths; and Sierra Leone 11 new cases and 2 deaths.
+        Guinea, 3 new cases and 5 deaths; Liberia, 8 new cases with 7 deaths; and Sierra Leone, 11 new cases and 2 deaths.
         """, [{'count': 22}, {'count': 14}, {'count': 3}, {'count': 5}, {'count': 8}, {'count': 7}, {'count': 11}, {'count': 2}])]
         for example in examples:
             sent, counts = example
@@ -111,11 +108,6 @@ class TestInfectionAnnotator(unittest.TestCase):
         self.assertHasCounts('They reported a patient infected with hepatitis B from a blood transfusion.',
                              [{'count': 1}])
 
-# There's no way we'd find this yet.
-    # def test_singular_cases_4(self):
-    #     self.assertHasCounts('the cases include a 27-year-old woman and 2 males, each of 37 years',
-    #                          [{'count': 1}, {'count': 2}])
-
     def test_year_count(self):
         self.assertHasCounts("""As of [Sun 19 March 2017] (epidemiological week 11),
         a total of 1407 suspected cases of meningitis have been reported.""", [
@@ -129,24 +121,15 @@ class TestInfectionAnnotator(unittest.TestCase):
         Montserrado County, remain the epicentres of this Ebola outbreak.
         ''')
         doc.add_tier(self.annotator)
-        # self.assertEqual(len(doc.tiers['infections']), 2)
         test_utils.assertMetadataContents(
             doc.tiers['infections'].spans[0].metadata, {
                 'count': 26,
                 'attributes': ['death']
             })
 
-    # TODO: Fix
     def test_space_delimited_counts(self):
         self.assertHasCounts('There were 197 000 deaths in 2007.',
                              [{'count': 197000, 'attributes': ['death']}])
-
-    # Not going to include this because it takes a long time to run.
-    # def test_very_long_article(self):
-    #     import os
-    #     with open(os.path.dirname(__file__) + "/resources/WhereToItaly.txt") as file:
-    #         doc = AnnoDoc(file.read())
-    #         doc.add_tier(self.annotator)
 
     def test_cumulative(self):
         sent = 'Nationwide, a total of 613 cases of the disease have been reported as of 2 July 2014, with 63 deceased patients'

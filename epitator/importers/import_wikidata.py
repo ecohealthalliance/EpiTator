@@ -1,7 +1,7 @@
 """
 Script for importing labels from wikidata into the sqlite synonym table so
 they can be resolved by the resolved keyword annotator.
-Currently only animal diseases are imported.
+Currently only animal diseases and hand selected human diseases are imported.
 """
 from __future__ import absolute_import
 from __future__ import print_function
@@ -31,7 +31,7 @@ def import_wikidata(drop_previous=False):
         return
     cur.execute("INSERT INTO metadata VALUES ('wikidata_retrieval_date', ?)",
                 (datetime.date.today().isoformat(),))
-    response = urlopen("https://query.wikidata.org/sparql", urlencode({
+    response = urlopen("https://query.wikidata.org/sparql", str.encode(urlencode({
         "format": "json",
         "query": """
         SELECT ?item ?itemLabel WHERE {
@@ -39,7 +39,7 @@ def import_wikidata(drop_previous=False):
           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
         }
         """
-    }))
+    })))
     results = json.loads(response.read())['results']['bindings']
     print("Importing synonyms...")
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [
@@ -59,6 +59,11 @@ def import_wikidata(drop_previous=False):
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", additional_diseases)
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, 3)", [
         (disease_name, uri,) for uri, disease_name in additional_diseases])
+    cur.executemany("INSERT INTO synonyms VALUES (?, ?, ?)", [
+        ('MERS', 'https://www.wikidata.org/wiki/Q16654806', 3),
+        ('Middle East respiratory syndrome coronavirus', 'https://www.wikidata.org/wiki/Q16654806', 3),
+        ('MERS-CoV', 'https://www.wikidata.org/wiki/Q16654806', 3),
+    ])
     connection.commit()
     connection.close()
 

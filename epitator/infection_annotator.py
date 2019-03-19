@@ -85,7 +85,7 @@ def generate_attributes(tokens, attribute_lemmas=attribute_lemmas):
         tokens = [tokens]
     for t in tokens:
         if t.pos_ == "NOUN" and t.dep_ == "poss":
-                continue
+            continue
         for category, lemmas in attribute_lemmas.get(t.pos_, {}).items():
             if t.lemma_ in lemmas:
                 attributes.append(category)

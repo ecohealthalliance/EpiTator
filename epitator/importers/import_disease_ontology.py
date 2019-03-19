@@ -14,7 +14,9 @@ from ..utils import batched
 DISEASE_ONTOLOGY_URL = "http://purl.obolibrary.org/obo/doid.owl"
 
 
-def import_disease_ontology(drop_previous=False):
+def import_disease_ontology(drop_previous=False, root_uri=None):
+    if not root_uri:
+        root_uri = "obo:DOID_0050117"
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
@@ -58,10 +60,10 @@ def import_disease_ontology(drop_previous=False):
     SELECT ?entity ?label
     WHERE {
         # only include diseases by infectious agent
-        ?entity rdfs:subClassOf* obo:DOID_0050117
+        ?entity rdfs:subClassOf* %s
         ; rdfs:label ?label
     }
-    """)
+    """ % (root_uri,))
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Disease Ontology')", [
         (str(result[0]), str(result[1]))
         for result in disease_labels])
@@ -155,6 +157,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--drop-previous", dest='drop_previous', action='store_true')
+    parser.add_argument("--root-uri", default=None)
     parser.set_defaults(drop_previous=False)
     args = parser.parse_args()
-    import_disease_ontology(args.drop_previous)
+    import_disease_ontology(args.drop_previous, args.root_uri)

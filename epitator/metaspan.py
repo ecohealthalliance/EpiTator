@@ -50,7 +50,7 @@ class MetaSpan(AnnoSpan):
     def update_metadata(self, metagen, *args, **kwargs):
         result = metagen.generate(self, *args, **kwargs)
         if isinstance(result, dict):
-                self._metadata = merge_dicts([result, self._metadata], unique=True)
+            self._metadata = merge_dicts([result, self._metadata], unique=True)
         return self.metadata
 
     @property
@@ -125,7 +125,7 @@ class MetaGroup(MetaSpan, SpanGroup):
     def update_group_metadata(self, metagen, *args, **kwargs):
         result = metagen.generate(self, *args, **kwargs)
         if isinstance(result, dict):
-                self._metadata = merge_dicts([result, self._metadata], unique=True)
+            self._metadata = merge_dicts([result, self._metadata], unique=True)
         return self.metadata
 
     def update_base_span_metadata(self, metagen, *args, **kwargs):

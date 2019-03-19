@@ -132,6 +132,8 @@ class DateAnnotator(Annotator):
                     return None
                 return [num_days_datetime_range[0], relative_base]
             text = clean_date_str(text)
+            if len(text) < 3:
+                return None
             # Handle ordinal dates like "the second month of 2006"
             match = ordinal_date_re.match(text)
             if match:
@@ -215,6 +217,8 @@ class DateAnnotator(Annotator):
         # Regex for formatted dates
         regex = re.compile(
             r"\b("
+            # parenthetical year
+            r"((?<=[\[\(])[1-2]\d{3}(?=[\]\)]))|"
             # date MonthName yyyy
             r"(\d{1,2} [a-zA-Z]{3,} \[?\d{4})|"
             # dd-mm-yyyy
@@ -388,4 +392,8 @@ class DateAnnotator(Annotator):
             # like 2 to 3 weeks ago.
             if datetime_range[0] <= datetime_range[1]:
                 tier_spans.append(DateSpan(date_span, datetime_range))
-        return {'dates': AnnoTier(tier_spans, presorted=True)}
+        return {
+            'dates': AnnoTier(tier_spans, presorted=True),
+            # Include unparsable and non-specific dates
+            'dates.all': all_date_spans
+        }

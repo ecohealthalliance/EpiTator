@@ -27,7 +27,7 @@ class Table():
 
 def is_null(val_string):
     val_string = val_string.strip()
-    return val_string == "" or val_string == "-"
+    return val_string == "" or val_string == "-" or val_string == "0"
 
 
 def merge_metadata(sofar, child_metadata):
@@ -167,7 +167,7 @@ class StructuredIncidentAnnotator(Annotator):
             table_by_column = list(zip(*data_rows))
             column_types = []
             parsed_column_entities = []
-            for column_values in table_by_column:
+            for column_values, column_name in zip(table_by_column, first_row):
                 num_non_null_rows = sum(not is_null(value.text) for value in column_values)
                 column_values = AnnoTier(column_values)
                 # Choose column type based on greatest percent match,
@@ -183,8 +183,13 @@ class StructuredIncidentAnnotator(Annotator):
                     num_matches = sum(
                         contained_spans is not None
                         for contained_spans in column_entities)
-                    # Prefer other types like dates over integers if all else is equal.
-                    match_score = num_matches + (0 if value_type == "integer" else 1)
+                    match_score = num_matches
+                    if value_type == "integer":
+                        if column_name.text.lower() in set(['cases', 'deaths', 'susceptible', 'culled']):
+                            match_score += 2
+                    else:
+                        # Prefer other types like dates over integers if all else is equal.
+                        match_score += 1
                     if num_non_null_rows > 0 and float(num_matches) / num_non_null_rows > 0.3:
                         if match_score > max_score:
                             max_score = match_score
@@ -305,7 +310,10 @@ class StructuredIncidentAnnotator(Annotator):
                         row_incident_status = value
 
                 row_incidents = []
+                logger.info('---')
                 for column, value in zip(table.column_definitions, row):
+                    logger.info(column)
+                    logger.info(value)
                     if not value:
                         continue
                     if column['type'] == "integer":
@@ -354,6 +362,7 @@ class StructuredIncidentAnnotator(Annotator):
                         elif not incident_base_type and isinstance(column_name, AnnoSpan):
                             contained_spans = entities_by_type['species'].spans_contained_by_span(column_name)
                             if len(contained_spans) > 0:
+                                logger.info(contained_spans[0].text)
                                 incident_base_type = "caseCount"
                                 entity = contained_spans[0].metadata['species']['entity']
                                 incident_species = {
