@@ -223,3 +223,10 @@ Date / Cases / New cases per week
 """)
         doc.add_tier(self.annotator)
         self.assertTrue(1907 in [span.metadata['value'] for span in doc.tiers['incidents']])
+
+    def test_non_cumulative_total(self):
+        doc = AnnoDoc("""
+Between 1 January 2011 - 22 Dec 2014, a total of 103 confirmed cases of hantavirus have been reported in Antarctica.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.tiers['incidents'][0].metadata['type'], 'caseCount')

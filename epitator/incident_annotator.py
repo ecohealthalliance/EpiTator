@@ -190,13 +190,13 @@ class IncidentAnnotator(Annotator):
             incident_data['dateRange'] = [
                 publish_date,
                 publish_date + datetime.timedelta(days=1)]
-            cumulative = False
+            has_as_of_date = False
             if len(date_territory.metadata) > 0:
                 date_span = AnnoTier(date_territory.metadata).nearest_to(count_span)
                 as_of_dates = doc.create_regex_tier(
                     re.compile(r"\bas of\b", re.I)
                 ).with_following_spans_from([date_span], max_dist=8, allow_overlap=True)
-                cumulative = len(as_of_dates) > 0
+                has_as_of_date = len(as_of_dates) > 0
                 incident_data['dateRange'] = date_span.metadata['datetime_range']
                 incident_spans.append(date_span)
             # A date and location must be in the count territory to create
@@ -207,8 +207,11 @@ class IncidentAnnotator(Annotator):
             date_range_duration = incident_data['dateRange'][1] - incident_data['dateRange'][0]
             duration_days = date_range_duration.total_seconds() / 60 / 60 / 24
             incident_data['duration'] = duration_days
-            if cumulative:
-                pass
+            cumulative = False
+            if date_range_duration.total_seconds() >= 60 * 60 * 48:
+                cumulative = False
+            elif has_as_of_date:
+                cumulative = True
             elif 'incremental' in attributes:
                 cumulative = False
             elif 'cumulative' in attributes:

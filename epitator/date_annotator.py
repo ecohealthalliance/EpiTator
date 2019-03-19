@@ -50,6 +50,20 @@ ordinal_date_re = re.compile(
     r"(?P<rest>.{3,})", re.I)
 ends_with_timeunit_re = re.compile(r".*(months|days|years)$", re.I)
 relative_duration_range_re = re.compile(r"\bthe (last|past|prior|previous)\s+", re.I)
+extra_word_re = re.compile(
+    r"(\b(since|from|between)\s)|"
+    r"(^the\s(month|year)\sof\s)|"
+    r"(^the\s)|"
+    r"((beginning|middle|start|end)\sof\s)|"
+    r"((late|mid|early)\s)", re.I)
+
+
+def clean_date_str(text):
+    # strip extra words from the beginning of the date string
+    text = extra_word_re.sub("", text, re.I)
+    # remove extra characters
+    text = re.sub(r"\[|\]", "", text)
+    return text.strip()
 
 
 class DateSpan(AnnoSpan):
@@ -104,18 +118,6 @@ class DateAnnotator(Annotator):
         doc_date = doc.date or datetime.datetime.now()
         strict_parser = DateDataParser(['en'], settings={
             'STRICT_PARSING': True})
-
-        def clean_date_str(text):
-            # strip extra words from the beginning of the date string
-            text = re.split(r"(\b(since|from|between)\s)|"
-                            r"(^the\s(month|year)\sof\s)|"
-                            r"(^the\s)|"
-                            r"((beginning|middle|start|end)\sof\s)|"
-                            r"((late|mid|early)\s)", text, re.I)
-            text = text[-1]
-            # remove extra characters
-            text = re.sub(r"\[|\]", "", text)
-            return text
 
         def date_to_datetime_range(text,
                                    relative_base=None,
@@ -337,6 +339,13 @@ class DateAnnotator(Annotator):
                     if datetime_range is None:
                         continue
             elif len(range_components) == 2:
+                # Handle partial years (e.g.: 2001-12)
+                if re.match(r"\d{1,2}$", range_components[1]):
+                    if re.match(r".*\d{1,2}$", range_components[0]):
+                        characters_to_sub = "1"
+                        if len(range_components[1]) > 1:
+                            characters_to_sub = "1,2"
+                        range_components[1] = re.sub(r"\d{" + characters_to_sub + "}$", range_components[1], range_components[0])
                 # Check for a non-relative date in the range that can be used as
                 # a relative base date the other date.
                 # Example: March 3 to November 2 1984
