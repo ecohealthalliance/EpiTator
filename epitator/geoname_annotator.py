@@ -195,6 +195,7 @@ class GeonameFeatures(object):
         'exact_name_match',
         'multiple_spans',
         'span_length',
+        'all_acronyms',
         'cannonical_name_used',
         'loc_NE_portion',
         'other_NE_portion',
@@ -238,6 +239,7 @@ class GeonameFeatures(object):
         d['multiple_spans'] = 1 if len(geoname.spans) > 1 else 0
         d['span_length'] = median([
             len(span.text) for span in geoname.spans])
+        d['all_acronyms'] = max(len(span.text.replace('.', '')) for span in geoname.spans) < 4
 
         def cannonical_name_match(span, geoname):
             first_leaf = next(span.iterate_leaf_base_spans(), None)
