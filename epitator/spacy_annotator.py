@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoSpan, AnnoTier
 import re
-from .spacy_nlp import spacy_nlp, sent_nlp
+from .spacy_nlp import spacy_nlp, custom_sentencizer
 
 
 class TokenSpan(AnnoSpan):
@@ -68,7 +68,7 @@ class SpacyAnnotator(Annotator):
         # is not memory constrained.
         # https://github.com/explosion/spaCy/issues/1636
         sentences = AnnoTier([
-            SentSpan(sent, doc) for sent in sent_nlp(doc.text).sents])
+            SentSpan(sent, doc) for sent in custom_sentencizer(doc.text)])
         tiers['spacy.sentences'] = sentences
         group_size = 10
         for sent_group_idx in range(0, len(sentences), group_size):

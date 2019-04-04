@@ -30,7 +30,7 @@ setup(
         'dateparser==0.7.1',
         'geopy>=1.11.0',
         'unicodecsv>=0.14.1',
-        'spacy==2.1.2',
+        'spacy==2.1.3',
         'pyparsing==2.2.0',
         'numpy>=1.16.1',
         'rdflib>=4.2.2',

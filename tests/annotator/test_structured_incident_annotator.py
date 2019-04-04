@@ -76,11 +76,6 @@ class TestStructuredIncidentAnnotator(unittest.TestCase):
             'attributes': []
         }])
 
-    # TODO: Alagoas is resolved to incorrect location.
-    # Alagoas (AL) resolves to a location in Alagoas
-    # Marechal Deodoro, because one of its alternative names is Alagoas,
-    # so it is mistaken for being a compound name which scores higher than
-    # Alagoas due to its reduced ambiguity.
     # @with_log_level(logging.getLogger('epitator.structured_incident_annotator'), logging.INFO)
     def test_location_count_table(self):
         doc = AnnoDoc("""
@@ -119,10 +114,10 @@ Total / 5131 / 2951 / 1023 / 1157 / 342
             remove_empty_props(span.metadata)
             for span in doc.tiers['structured_incidents']
         ]
-        incident = metadatas[1]
-        self.assertEqual(incident['value'], 8)
+        incident = metadatas[0]
+        self.assertEqual(incident['value'], 1)
         self.assertEqual(incident['type'], 'caseCount')
-        self.assertEqual(incident['location']['geonameid'], '6319493')
+        self.assertEqual(incident['location']['geonameid'], '3665474')
         self.assertEqual(
             incident['dateRange'],
             [datetime.datetime(2017, 7, 1),

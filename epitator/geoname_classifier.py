@@ -27,45 +27,45 @@ base_classifier =\
     'classes_': array([False,  True]),
     'coef_': array([[
         # log_population
-        0.3429166761571069,
+        0.3288826652391892,
         # name_count
-        0.21709830611570793,
+        0.21180346761017554,
         # names_used
-        0.8269376580293233,
+        0.6921137888810455,
         # exact_name_match
-        0.7878854182406542,
+        0.8907122816181057,
         # multiple_spans
-        0.42317571947152266,
+        0.4385195357489847,
         # span_length
-        0.11635624170666362,
+        0.14885276617871698,
         # all_acronyms
-        -2.328731808328372,
+        -2.4168746146102844,
         # cannonical_name_used
-        2.385204467844477,
+        2.179668174506593,
         # loc_NE_portion
-        0.9329501759634057,
+        1.116805637212708,
         # other_NE_portion
-        -0.2987093084510809,
+        -0.19762918486107944,
         # noun_portion
         0.0,
         # num_tokens
-        0.6928142361575395,
+        0.45408740342595283,
         # med_token_prob
-        -0.3397337893668447,
+        -0.3287514923579695,
         # exact_alternatives
-        -0.9036023140885108,
+        -0.9026051613064152,
         # PPL_feature_code
-        -0.9397288188035898,
+        -0.8713730521972315,
         # ADM_feature_code
-        -1.2550824212955247,
+        -1.3357916436134925,
         # PCL_feature_code
-        2.5134423822820797,
+        2.2270435390046472,
         # other_feature_code
         0.0,
         # first_order
-        1.1084960371415022,
+        1.217498915455807,
         # combined_span
-        1.4932312460013852,
+        1.5478451457037072,
         # close_locations
         0.0,
         # very_close_locations
@@ -79,8 +79,8 @@ base_classifier =\
         # containing_locations
         0.0,
     ]]),
-    'intercept_': array([-13.1126576]),
-    'n_iter_': array([39], dtype=int32),
+    'intercept_': array([-12.90888507]),
+    'n_iter_': array([42], dtype=int32),
 }
 
 contextual_classifier =\
@@ -102,60 +102,60 @@ contextual_classifier =\
     'classes_': array([False,  True]),
     'coef_': array([[
         # log_population
-        0.31206770841202336,
+        0.28228248087215385,
         # name_count
-        0.2005454877333416,
+        0.19424959537231867,
         # names_used
-        0.648225709888574,
+        0.4115855267983377,
         # exact_name_match
-        0.26445683289728583,
+        0.339488954171464,
         # multiple_spans
-        0.3307522320457672,
+        0.3082735346279554,
         # span_length
-        0.12130650943509746,
+        0.15794944543924766,
         # all_acronyms
-        -2.163337787453372,
+        -2.0910830240634297,
         # cannonical_name_used
-        2.3090619705615563,
+        1.9360786322544647,
         # loc_NE_portion
-        1.4508913007712096,
+        1.5434804936396482,
         # other_NE_portion
         0.0,
         # noun_portion
         0.0,
         # num_tokens
-        0.7907962702562655,
+        0.4670721503329358,
         # med_token_prob
-        -0.2923973470351299,
+        -0.2642808804913221,
         # exact_alternatives
-        -0.8011614417553122,
+        -0.7689405320821576,
         # PPL_feature_code
-        -0.5475447417562185,
+        -0.450305349464007,
         # ADM_feature_code
-        -0.9261497922203902,
+        -0.9421785297062796,
         # PCL_feature_code
-        2.299107106153456,
+        1.885630901040498,
         # other_feature_code
         0.0,
         # first_order
-        1.033140751957464,
+        1.0904825221747996,
         # combined_span
-        0.36278895602219524,
+        0.31258233468268437,
         # close_locations
-        0.12774614812147872,
+        0.1364085867326155,
         # very_close_locations
-        -0.01864384833938384,
+        -0.00243964840385385,
         # base_score
-        -1.478626994083764,
+        -1.1232711320877737,
         # base_score_margin
-        2.5041655302244554,
+        2.6704843451856335,
         # contained_locations
-        0.1104326082786128,
+        0.0784905901350068,
         # containing_locations
-        0.40453329344238753,
+        0.47875034021904533,
     ]]),
-    'intercept_': array([-12.44492995]),
-    'n_iter_': array([36], dtype=int32),
+    'intercept_': array([-11.7165164]),
+    'n_iter_': array([33], dtype=int32),
 }
 
 # Logistic regression code from scipy
