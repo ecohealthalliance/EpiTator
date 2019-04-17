@@ -91,13 +91,14 @@ def location_contains(loc_outer, loc_inner):
 
 
 class GeoSpan(AnnoSpan):
-    def __init__(self, start, end, doc, geoname):
+    def __init__(self, original_span, geoname):
         super(GeoSpan, self).__init__(
-            start,
-            end,
-            doc,
+            original_span.start,
+            original_span.end,
+            original_span.doc,
             metadata={
-                'geoname': geoname
+                'geoname': geoname,
+                'original_span': original_span
             })
         self.geoname = geoname
         self.label = geoname.name
@@ -138,6 +139,7 @@ class GeonameRow(object):
         'alternate_locations',
         'overlapping_locations',
         'spans',
+        'original_spans',
         'parents',
         'score',
         'lat_long',
@@ -152,6 +154,7 @@ class GeonameRow(object):
         self.alternate_locations = set()
         self.overlapping_locations = set()
         self.spans = set()
+        self.original_spans = set()
         self.parents = set()
         self.score = None
 
@@ -450,6 +453,7 @@ class GeonameAnnotator(Annotator):
         candidate_geonames = []
         for geoname in geoname_results:
             geoname.add_spans(span_text_to_spans)
+            geoname.original_spans = set(geoname.spans)
             # In rare cases geonames may have no matching spans because
             # sqlite unicode equivalency rules match geonames that use different
             # characters the document spans used to query them.
@@ -463,7 +467,7 @@ class GeonameAnnotator(Annotator):
             for span in geoname.spans:
                 span_to_geonames[span].append(geoname)
         geoname_spans = span_to_geonames.keys()
-        combined_spans = AnnoTier(geoname_spans).chains(at_least=2, at_most=4, max_dist=4)
+        combined_spans = AnnoTier(geoname_spans).chains(at_least=2, at_most=4, max_dist=4).label_spans('combined_span')
         for combined_span in combined_spans:
             leaf_spans = combined_span.iterate_leaf_base_spans()
             first_spans = next(leaf_spans)
@@ -603,7 +607,7 @@ class GeonameAnnotator(Annotator):
         for feature in features:
             feature.set_contextual_features()
 
-    def annotate(self, doc, show_features_for_geonameids=None):
+    def annotate(self, doc, show_features_for_geonameids=None, split_compound_geonames=False):
         logger.info('geoannotator started')
         candidate_geonames = self.get_candidate_geonames(doc)
         features = self.extract_features(candidate_geonames, doc)
@@ -669,12 +673,24 @@ class GeonameAnnotator(Annotator):
                     setattr(geoname, attr, val)
                     prev_val = val
         logger.info('admin names added')
-        geo_spans = []
+        geospans = []
         for geoname in culled_geonames:
             for span in geoname.spans:
-                geo_span = GeoSpan(
-                    span.start, span.end, doc, geoname)
-                geo_spans.append(geo_span)
-        culled_geospans = AnnoTier(geo_spans).optimal_span_set(prefer=lambda x: (len(x), x.geoname.score,))
+                geospan = GeoSpan(span, geoname)
+                geospans.append(geospan)
+        culled_geospans = AnnoTier(geospans).optimal_span_set(prefer=lambda x: (len(x), x.geoname.score,))
+        if split_compound_geonames:
+            result = []
+            for geospan in culled_geospans:
+                original_span = geospan.metadata['original_span']
+                if original_span.label == 'combined_span':
+                    possible_geonames = geospan.metadata['geoname'].parents | set([geospan.metadata['geoname']])
+                    for original_leaf_span in original_span.iterate_leaf_base_spans():
+                        for geoname in possible_geonames:
+                            if original_leaf_span in geoname.original_spans:
+                                result.append(GeoSpan(original_leaf_span, geoname))
+                else:
+                    result.append(geospan)
+            culled_geospans = AnnoTier(result)
         logger.info('overlapping geospans removed')
         return {'geonames': culled_geospans}

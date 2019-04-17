@@ -88,6 +88,16 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['geonames'].spans), 2)
 
+    def test_multipart_names_5(self):
+        text = 'From Seattle, WA, Canada is not far away.'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator, split_compound_geonames=True)
+
+        self.assertEqual(doc.text, text)
+        self.assertEqual(len(doc.tiers['geonames'].spans), 3)
+        self.assertEqual(doc.tiers['geonames'].spans[0].text, "Seattle")
+        self.assertEqual(doc.tiers['geonames'].spans[1].text, "WA")
+
     def test_bug_causing_sentence(self):
         text = u"""
         In late June 2012, an increase in cases of prolonged fever for ≥3 days
