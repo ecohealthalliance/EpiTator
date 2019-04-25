@@ -239,5 +239,4 @@ def normalize_text(text):
     result = space_punct_re.sub(' ', result).strip()
     if len(result) < 3:
         result = space_punct_re.sub(' ', text).strip()
-    assert not result.startswith(' ')
     return result

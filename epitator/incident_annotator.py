@@ -104,6 +104,41 @@ class IncidentAnnotator(Annotator):
         else:
             case_counts = doc.require_tiers('counts', via=CountAnnotator)
         geonames = doc.require_tiers('geonames', via=GeonameAnnotator)
+        geoname_spans = [
+            AnnoSpan(
+                span.start,
+                span.end,
+                span.doc,
+                metadata=format_geoname(span.metadata['geoname'].to_dict()))
+            for span in geonames]
+        geoname_spans += [
+            AnnoSpan(
+                span.start,
+                span.end,
+                span.doc,
+                metadata={
+                    'name': 'Earth',
+                    'id': '6295630',
+                    'asciiname': 'Earth',
+                    'featureCode': 'AREA',
+                    'countryCode': '',
+                    'countryName': '',
+                    'admin1Name': '',
+                    'admin2Name': '',
+                    'admin1Code': '',
+                    'admin2Code': '',
+                    'latitude': 0,
+                    'longitude': 0,
+                })
+            for span in doc.create_regex_tier(r"\b(global(ly)?|worldwide)\b").spans]
+        geoname_spans += [
+            AnnoSpan(
+                span.start,
+                span.end,
+                span.doc,
+                metadata=None)
+            for span in doc.create_regex_tier(r"\b(national(ly)?|nationwide)\b").spans]
+        geonames = AnnoTier(geoname_spans)
         sent_spans = doc.require_tiers('spacy.sentences', via=SpacyAnnotator)
         disease_tier = doc.require_tiers('diseases', via=DiseaseAnnotator)
         species_tier = doc.require_tiers('species', via=SpeciesAnnotator)
@@ -174,8 +209,9 @@ class IncidentAnnotator(Annotator):
             # grouping is done to deduplicate geonames
             geonames_by_id = {}
             for span in geoname_territory.metadata:
-                geoname = span.metadata['geoname'].to_dict()
-                geonames_by_id[geoname['geonameid']] = format_geoname(geoname)
+                geoname = span.metadata
+                if geoname:
+                    geonames_by_id[geoname['id']] = geoname
                 incident_spans.append(span)
             incident_data = {
                 'value': count,

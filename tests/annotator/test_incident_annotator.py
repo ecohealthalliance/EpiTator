@@ -230,3 +230,10 @@ Between 1 January 2011 - 22 Dec 2014, a total of 103 confirmed cases of hantavir
 """)
         doc.add_tier(self.annotator)
         self.assertEqual(doc.tiers['incidents'][0].metadata['type'], 'caseCount')
+
+    def test_global_cases(self):
+        doc = AnnoDoc("""
+As of June 2018 a total of 100 cases have been reported globally.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.tiers['incidents'][0].metadata['locations'][0]['name'], 'Earth')

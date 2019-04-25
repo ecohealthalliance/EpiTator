@@ -75,7 +75,7 @@ def import_geonames(drop_previous=False):
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='geonames'"""))) > 0
     if table_exists:
-        print("The geonames table already exists."
+        print("The geonames table already exists. "
               "Run this again with --drop-previous to recreate it.")
         return
     # Create table
@@ -116,7 +116,8 @@ def import_geonames(drop_previous=False):
                       if sqltype))
             for possible_name in set([geoname['name'], geoname['asciiname']] + geoname['alternatenames']):
                 normalized_name = normalize_text(possible_name)
-                if len(normalized_name) > 0:
+                # require at least 2 word characters.
+                if re.match(r"(.*\w){2,}", normalized_name):
                     alternatename_tuples.append((
                         geoname['geonameid'],
                         possible_name,

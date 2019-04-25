@@ -11,6 +11,7 @@ from .raw_number_annotator import RawNumberAnnotator
 from .utils import median
 import re
 import logging
+import datetime
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -222,7 +223,7 @@ class StructuredIncidentAnnotator(Annotator):
                         date_diffs += [
                             abs(d.metadata['datetime_range'][0] - next_d.metadata['datetime_range'][0])
                             for d, next_d in zip(entity_group, entity_group[1:])]
-                    date_period = median(date_diffs)
+                    date_period = median([d for d in date_diffs if d < datetime.timedelta(365 * 11)])
                     break
             # Implicit metadata has to come first so values in other rows will
             # overrite it.
@@ -396,9 +397,8 @@ class StructuredIncidentAnnotator(Annotator):
                                 incident_location = contained_spans[0].metadata['geoname'].to_dict()
                                 del incident_location['parents']
 
-                        if incident_date != CANNOT_PARSE:
-                            if incident_date:
-                                incident_date = incident_date.metadata['datetime_range']
+                        if incident_date and incident_date != CANNOT_PARSE:
+                            incident_date = incident_date.metadata['datetime_range']
                             if table.metadata.get('date_period'):
                                 if incident_aggregation != "cumulative":
                                     incident_date = [
