@@ -361,6 +361,10 @@ Concerned citizens have said, "50,012, 412, 73, 200 and 16"
                          if 'case' in count.metadata['attributes']]
         self.assertSequenceEqual(actual_counts, expected_counts)
 
+    def test_infinity(self):
+        doc = AnnoDoc("Nmult 22-InF cases of Ebola.")
+        doc.add_tier(self.annotator)
+
 
 if __name__ == '__main__':
     unittest.main()

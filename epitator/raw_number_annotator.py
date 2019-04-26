@@ -6,6 +6,7 @@ from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from . import utils
 import re
+import math
 
 
 def is_valid_number(num_string):
@@ -15,7 +16,7 @@ def is_valid_number(num_string):
     if num_string[0] == '0' and len(num_string) > 1:
         return False
     value = utils.parse_spelled_number(num_string)
-    return value is not None
+    return value not in [None, math.inf]
 
 
 class RawNumberAnnotator(Annotator):
