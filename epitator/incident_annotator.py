@@ -109,14 +109,14 @@ class IncidentAnnotator(Annotator):
                 span.start,
                 span.end,
                 span.doc,
-                metadata=format_geoname(span.metadata['geoname'].to_dict()))
+                metadata=dict(geoname=format_geoname(span.metadata['geoname'].to_dict())))
             for span in geonames]
         geoname_spans += [
             AnnoSpan(
                 span.start,
                 span.end,
                 span.doc,
-                metadata={
+                metadata=dict(geoname={
                     'name': 'Earth',
                     'id': '6295630',
                     'asciiname': 'Earth',
@@ -129,14 +129,14 @@ class IncidentAnnotator(Annotator):
                     'admin2Code': '',
                     'latitude': 0,
                     'longitude': 0,
-                })
+                }))
             for span in doc.create_regex_tier(r"\b(global(ly)?|worldwide)\b").spans]
         geoname_spans += [
             AnnoSpan(
                 span.start,
                 span.end,
                 span.doc,
-                metadata=None)
+                metadata={})
             for span in doc.create_regex_tier(r"\b(national(ly)?|nationwide)\b").spans]
         geonames = AnnoTier(geoname_spans)
         sent_spans = doc.require_tiers('spacy.sentences', via=SpacyAnnotator)
@@ -209,7 +209,7 @@ class IncidentAnnotator(Annotator):
             # grouping is done to deduplicate geonames
             geonames_by_id = {}
             for span in geoname_territory.metadata:
-                geoname = span.metadata
+                geoname = span.metadata.get('geoname')
                 if geoname:
                     geonames_by_id[geoname['id']] = geoname
                 incident_spans.append(span)
