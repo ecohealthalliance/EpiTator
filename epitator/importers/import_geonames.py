@@ -10,8 +10,8 @@ from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
 from six.moves.urllib.error import URLError
-from epitator.get_database_connection import get_database_connection
-from epitator.utils import parse_number, batched, normalize_text
+from ..get_database_connection import get_database_connection
+from ..utils import parse_number, batched, normalize_text
 
 
 GEONAMES_ZIP_URL = "http://download.geonames.org/export/dump/allCountries.zip"

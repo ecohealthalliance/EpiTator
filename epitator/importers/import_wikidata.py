@@ -5,7 +5,7 @@ Currently only animal diseases and hand selected human diseases are imported.
 """
 from __future__ import absolute_import
 from __future__ import print_function
-from epitator.get_database_connection import get_database_connection
+from ..get_database_connection import get_database_connection
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.error import URLError
