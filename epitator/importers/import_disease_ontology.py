@@ -7,6 +7,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 import rdflib
 import re
+import os
+from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
 from ..utils import batched
 
@@ -14,7 +16,7 @@ from ..utils import batched
 DISEASE_ONTOLOGY_URL = "http://purl.obolibrary.org/obo/doid.owl"
 
 
-def import_disease_ontology(drop_previous=False, root_uri=None):
+def import_disease_ontology(drop_previous=False, root_uri=None, http_proxy=None, https_proxy=None):
     if not root_uri:
         root_uri = "obo:DOID_0050117"
     connection = get_database_connection(create_database=True)
@@ -42,7 +44,17 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
     )""")
     print("Loading disease ontology...")
     disease_ontology = rdflib.Graph()
-    disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+    if http_proxy:
+        os.environ["HTTP_PROXY"] = http_proxy
+    if https_proxy:
+        os.environ["HTTPS_PROXY"] = https_proxy
+    try:
+        disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+    except URLError as e:
+        print(e)
+        print('You might be operating behind a proxy. Try repeating the import '
+              'using the --http_proxy and --https_proxy flag')
+        return
 
     # Store disease ontology version
     version_query = disease_ontology.query("""
@@ -158,6 +170,15 @@ if __name__ == '__main__':
     parser.add_argument(
         "--drop-previous", dest='drop_previous', action='store_true')
     parser.add_argument("--root-uri", default=None)
+    parser.add_argument("--http_proxy",
+                        dest="http_proxy")
+    parser.add_argument("--https_proxy",
+                        dest="https_proxy")
     parser.set_defaults(drop_previous=False)
+    parser.set_defaults(http_proxy=None)
+    parser.set_defaults(https_proxy=None)
     args = parser.parse_args()
-    import_disease_ontology(args.drop_previous, args.root_uri)
+    import_disease_ontology(drop_previous=args.drop_previous,
+                            root_uri=args.root_uri,
+                            http_proxy=args.http_proxy,
+                            https_proxy=args.https_proxy)

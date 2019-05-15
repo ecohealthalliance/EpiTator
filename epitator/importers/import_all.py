@@ -18,9 +18,23 @@ if __name__ == '__main__':
         "--drop-previous", dest='drop_previous', action='store_true')
     parser.add_argument(
         "--accept-licenses", dest='accept_licenses', action='store_true')
+    parser.add_argument("--http_proxy",
+                        dest="http_proxy")
+    parser.add_argument("--https_proxy",
+                        dest="https_proxy")
     parser.set_defaults(drop_previous=False)
+    parser.set_defaults(http_proxy=None)
+    parser.set_defaults(https_proxy=None)
     args = parser.parse_args()
-    import_disease_ontology(args.drop_previous)
-    import_species(args.drop_previous)
-    import_geonames(args.drop_previous)
-    import_wikidata(args.drop_previous)
+    import_disease_ontology(drop_previous=args.drop_previous,
+                            http_proxy=args.http_proxy,
+                            https_proxy=args.https_proxy)
+    import_species(drop_previous=args.drop_previous,
+                   http_proxy=args.http_proxy,
+                   https_proxy=args.https_proxy)
+    import_geonames(drop_previous=args.drop_previous,
+                    http_proxy=args.http_proxy,
+                    https_proxy=args.https_proxy)
+    import_wikidata(drop_previous=args.drop_previous,
+                    http_proxy=args.http_proxy,
+                    https_proxy=args.https_proxy)

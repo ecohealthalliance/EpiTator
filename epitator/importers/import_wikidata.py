@@ -5,14 +5,15 @@ Currently only animal diseases and hand selected human diseases are imported.
 """
 from __future__ import absolute_import
 from __future__ import print_function
-from ..get_database_connection import get_database_connection
+from epitator.get_database_connection import get_database_connection
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
+from six.moves.urllib.error import URLError
 import json
 import datetime
+import os
 
-
-def import_wikidata(drop_previous=False):
+def import_wikidata(drop_previous=False, http_proxy=None, https_proxy=None):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
@@ -31,15 +32,25 @@ def import_wikidata(drop_previous=False):
         return
     cur.execute("INSERT INTO metadata VALUES ('wikidata_retrieval_date', ?)",
                 (datetime.date.today().isoformat(),))
-    response = urlopen("https://query.wikidata.org/sparql", str.encode(urlencode({
-        "format": "json",
-        "query": """
-        SELECT ?item ?itemLabel WHERE {
-          ?item wdt:P31 wd:Q9190427.
-          SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-        }
-        """
-    })))
+    if http_proxy:
+        os.environ["HTTP_PROXY"] = http_proxy
+    if https_proxy:
+        os.environ["HTTPS_PROXY"] = https_proxy
+    try:
+        response = urlopen("https://query.wikidata.org/sparql", str.encode(urlencode({
+            "format": "json",
+            "query": """
+            SELECT ?item ?itemLabel WHERE {
+              ?item wdt:P31 wd:Q9190427.
+              SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+            }
+            """
+        })))
+    except URLError as e:
+        print(e)
+        print('You might be operating behind a proxy. Try repeating the import '
+              'using the --http_proxy and --https_proxy flag')
+        return
     results = json.loads(response.read())['results']['bindings']
     print("Importing synonyms...")
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [
@@ -73,6 +84,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--drop-previous", dest='drop_previous', action='store_true')
+    parser.add_argument("--http_proxy",
+                        dest="http_proxy")
+    parser.add_argument("--https_proxy",
+                        dest="https_proxy")
     parser.set_defaults(drop_previous=False)
+    parser.set_defaults(http_proxy=None)
+    parser.set_defaults(https_proxy=None)
     args = parser.parse_args()
-    import_wikidata(args.drop_previous)
+    import_wikidata(drop_previous=args.drop_previous,
+                    http_proxy=args.http_proxy,
+                    https_proxy=args.https_proxy)
