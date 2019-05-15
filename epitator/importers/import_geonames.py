@@ -37,13 +37,36 @@ geonames_field_mappings = [
 ]
 
 
-def read_geonames_csv():
+def windows_max_int():
+    # Find largest integer that does not cause an OverflowError for csv.field_size_limit using "binary search"
+    top = 2**32  # Largest int in Python has 64 bit but largest int in Windows has 32 bit
+    lower = 2**30  # The largest int is between 2^30 and 2^32
+    diff = top - lower
+    while diff > 1:
+        try:
+            mid = int(top - lower / 2)
+            csv.field_size_limit(mid)
+            lower = top
+            top = 2 ** 32
+            diff = abs(top - lower)
+        except OverflowError:
+            top_old = top
+            top = int(top_old / 2)
+            diff = abs(top - lower)
+    return top - 1
+
+
+def read_geonames_csv(http_proxy, https_proxy):
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
     url = request.urlopen(GEONAMES_ZIP_URL)
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
     # Loading geonames data may cause errors without this line:
-    csv.field_size_limit(sys.maxint if six.PY2 else six.MAXSIZE)
+    if sys.platform == "win32":
+        max_int = windows_max_int()
+        csv.field_size_limit(max_int)
+    else:
+        csv.field_size_limit(sys.maxint if six.PY2 else six.MAXSIZE)
     with zipfile.open('allCountries.txt') as f:
         reader = unicodecsv.DictReader(f,
                                        fieldnames=[
