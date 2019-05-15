@@ -13,6 +13,7 @@ import json
 import datetime
 import os
 
+
 def import_wikidata(drop_previous=False, http_proxy=None, https_proxy=None):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
