@@ -5,7 +5,6 @@ import csv
 import unicodecsv
 import re
 import sys
-import os
 from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
@@ -39,18 +38,13 @@ geonames_field_mappings = [
 ]
 
 
-def read_geonames_csv(http_proxy, https_proxy):
+def read_geonames_csv():
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
-    if http_proxy:
-        os.environ["HTTP_PROXY"] = http_proxy
-    if https_proxy:
-        os.environ["HTTPS_PROXY"] = https_proxy
     try:
         url = request.urlopen(GEONAMES_ZIP_URL)
     except URLError as e:
         print(e)
-        print('You might be operating behind a proxy. Try repeating the import '
-              'using the --http_proxy and --https_proxy flag')
+        print("You might be operating behind a proxy. Try adopting your proxy settings.")
         return
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
@@ -74,7 +68,7 @@ def read_geonames_csv(http_proxy, https_proxy):
             yield d
 
 
-def import_geonames(drop_previous=False, http_proxy=None, https_proxy=None):
+def import_geonames(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
@@ -105,7 +99,7 @@ def import_geonames(drop_previous=False, http_proxy=None, https_proxy=None):
         '?' for x, sqltype in geonames_field_mappings if sqltype]) + ')'
     alternatenames_insert_command = 'INSERT INTO alternatenames VALUES (?, ?, ?)'
     adminnames_insert_command = 'INSERT OR IGNORE INTO adminnames VALUES (?, ?, ?, ?, ?)'
-    for batch in batched(read_geonames_csv(http_proxy, https_proxy)):
+    for batch in batched(read_geonames_csv()):
         geoname_tuples = []
         alternatename_tuples = []
         adminname_tuples = []
@@ -160,14 +154,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--drop-previous", dest='drop_previous', action='store_true')
-    parser.add_argument("--http_proxy",
-                        dest="http_proxy")
-    parser.add_argument("--https_proxy",
-                        dest="https_proxy")
     parser.set_defaults(drop_previous=False)
-    parser.set_defaults(http_proxy=None)
-    parser.set_defaults(https_proxy=None)
     args = parser.parse_args()
-    import_geonames(drop_previous=args.drop_previous,
-                    http_proxy=args.http_proxy,
-                    https_proxy=args.https_proxy)
+    import_geonames(args.drop_previous)

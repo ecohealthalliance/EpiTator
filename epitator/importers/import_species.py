@@ -22,17 +22,12 @@ ITIS_URL = "https://www.itis.gov/downloads/itisSqlite.zip"
 
 # The data model for the itis database is available here:
 # https://www.itis.gov/pdf/ITIS_ConceptualModelEntityDefinition.pdf
-def download_itis_database(http_proxy, https_proxy):
+def download_itis_database():
     print("Downloading ITIS data from: " + ITIS_URL)
-    if http_proxy:
-        os.environ["HTTP_PROXY"] = http_proxy
-    if https_proxy:
-        os.environ["HTTPS_PROXY"] = https_proxy
     try:
         url = request.urlopen(ITIS_URL)
     except URLError:
-        print('You might be operating behind a proxy. Try repeating the import '
-              'using the --http_proxy and --https_proxy flag')
+        print("You might be operating behind a proxy. Try adopting your proxy settings.")
         sys.exit(1)
     zipfile = ZipFile(BytesIO(url.read(int(url.headers['content-length']))))
     print("Download complete")
@@ -49,7 +44,7 @@ def download_itis_database(http_proxy, https_proxy):
     return named_temp_file, itis_version
 
 
-def import_species(drop_previous=False, http_proxy=None, https_proxy=None):
+def import_species(drop_previous=False):
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
@@ -68,7 +63,7 @@ def import_species(drop_previous=False, http_proxy=None, https_proxy=None):
         itis_db_file = open(os.environ.get('ITIS_DB_PATH'))
         itis_version = os.environ.get('ITIS_VERSION')
     else:
-        itis_db_file, itis_version = download_itis_database(http_proxy, https_proxy)
+        itis_db_file, itis_version = download_itis_database()
     itis_db = sqlite3.connect(itis_db_file.name)
     cur.execute("INSERT INTO metadata VALUES ('itis_version', ?)", (itis_version,))
     itis_cur = itis_db.cursor()
@@ -160,14 +155,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--drop-previous", dest='drop_previous', action='store_true')
-    parser.add_argument("--http_proxy",
-                        dest="http_proxy")
-    parser.add_argument("--https_proxy",
-                        dest="https_proxy")
     parser.set_defaults(drop_previous=False)
-    parser.set_defaults(http_proxy=None)
-    parser.set_defaults(https_proxy=None)
     args = parser.parse_args()
-    import_species(drop_previous=args.drop_previous,
-                   http_proxy=args.http_proxy,
-                   https_proxy=args.https_proxy)
+    import_species(args.drop_previous)
