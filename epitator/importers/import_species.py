@@ -12,7 +12,6 @@ from six.moves.urllib import request
 from six.moves.urllib_error import URLError
 from tempfile import NamedTemporaryFile
 import os
-import sys
 from ..get_database_connection import get_database_connection
 from ..utils import batched
 

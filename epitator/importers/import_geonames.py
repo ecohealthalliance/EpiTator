@@ -42,7 +42,7 @@ def read_geonames_csv():
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
     try:
         url = request.urlopen(GEONAMES_ZIP_URL)
-    except URLError as e:
+    except URLError:
         print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
         raise
     zipfile = ZipFile(BytesIO(url.read()))

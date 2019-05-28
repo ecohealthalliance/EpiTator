@@ -45,7 +45,7 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
     disease_ontology = rdflib.Graph()
     try:
         disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
-    except URLError as e:
+    except URLError:
         print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
         raise
 
