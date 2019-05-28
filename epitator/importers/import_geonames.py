@@ -8,6 +8,7 @@ import sys
 from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
+from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
 from ..utils import parse_number, batched, normalize_text
 
@@ -39,7 +40,12 @@ geonames_field_mappings = [
 
 def read_geonames_csv():
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
-    url = request.urlopen(GEONAMES_ZIP_URL)
+    try:
+        url = request.urlopen(GEONAMES_ZIP_URL)
+    except URLError as e:
+        print(e)
+        print("You might be operating behind a proxy. Try adopting your proxy settings.")
+        return
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
     # Loading geonames data may cause errors without this line:

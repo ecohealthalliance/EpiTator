@@ -8,6 +8,7 @@ from __future__ import print_function
 from ..get_database_connection import get_database_connection
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
+from six.moves.urllib.error import URLError
 import json
 import datetime
 
@@ -31,15 +32,20 @@ def import_wikidata(drop_previous=False):
         return
     cur.execute("INSERT INTO metadata VALUES ('wikidata_retrieval_date', ?)",
                 (datetime.date.today().isoformat(),))
-    response = urlopen("https://query.wikidata.org/sparql", str.encode(urlencode({
-        "format": "json",
-        "query": """
-        SELECT ?item ?itemLabel WHERE {
-          ?item wdt:P31 wd:Q9190427.
-          SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-        }
-        """
-    })))
+    try:
+        response = urlopen("https://query.wikidata.org/sparql", str.encode(urlencode({
+            "format": "json",
+            "query": """
+            SELECT ?item ?itemLabel WHERE {
+              ?item wdt:P31 wd:Q9190427.
+              SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+            }
+            """
+        })))
+    except URLError as e:
+        print(e)
+        print("You might be operating behind a proxy. Try adopting your proxy settings.")
+        return
     results = json.loads(response.read())['results']['bindings']
     print("Importing synonyms...")
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [

@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import rdflib
 import re
+from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
 from ..utils import batched
 
@@ -42,7 +43,12 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
     )""")
     print("Loading disease ontology...")
     disease_ontology = rdflib.Graph()
-    disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+    try:
+        disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+    except URLError as e:
+        print(e)
+        print("You might be operating behind a proxy. Try adopting your proxy settings.")
+        return
 
     # Store disease ontology version
     version_query = disease_ontology.query("""
