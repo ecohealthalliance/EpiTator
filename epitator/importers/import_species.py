@@ -27,8 +27,8 @@ def download_itis_database():
     try:
         url = request.urlopen(ITIS_URL)
     except URLError:
-        print("You might be operating behind a proxy. Try adopting your proxy settings.")
-        sys.exit(1)
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
     zipfile = ZipFile(BytesIO(url.read(int(url.headers['content-length']))))
     print("Download complete")
     named_temp_file = NamedTemporaryFile()

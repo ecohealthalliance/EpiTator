@@ -43,9 +43,8 @@ def import_wikidata(drop_previous=False):
             """
         })))
     except URLError as e:
-        print(e)
-        print("You might be operating behind a proxy. Try adopting your proxy settings.")
-        return
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
     results = json.loads(response.read())['results']['bindings']
     print("Importing synonyms...")
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [

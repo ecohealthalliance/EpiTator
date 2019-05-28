@@ -43,9 +43,8 @@ def read_geonames_csv():
     try:
         url = request.urlopen(GEONAMES_ZIP_URL)
     except URLError as e:
-        print(e)
-        print("You might be operating behind a proxy. Try adopting your proxy settings.")
-        return
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
     # Loading geonames data may cause errors without this line:

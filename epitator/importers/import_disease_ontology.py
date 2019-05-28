@@ -46,9 +46,8 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
     try:
         disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
     except URLError as e:
-        print(e)
-        print("You might be operating behind a proxy. Try adopting your proxy settings.")
-        return
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
 
     # Store disease ontology version
     version_query = disease_ontology.query("""
