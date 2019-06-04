@@ -60,7 +60,8 @@ def import_wikidata(drop_previous=False):
         ('https://www.wikidata.org/wiki/Q1142751', 'Norovirus',),
         ('https://www.wikidata.org/wiki/Q15928531', 'Nipah virus',),
         ('https://www.wikidata.org/wiki/Q18350119', 'Acute flaccid myelitis',),
-        ('https://www.wikidata.org/wiki/Q6163830', 'Seoul virus',)]
+        ('https://www.wikidata.org/wiki/Q6163830', 'Seoul virus',),
+        ('https://www.wikidata.org/wiki/Q101896', 'Gonorrhoea')]
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", additional_diseases)
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, 3)", [
         (disease_name, uri,) for uri, disease_name in additional_diseases])

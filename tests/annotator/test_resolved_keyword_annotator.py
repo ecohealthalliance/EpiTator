@@ -49,6 +49,13 @@ class ResolvedKeywordAnnotatorTest(unittest.TestCase):
         self.assertEqual(first_span.resolutions[0]['entity_id'],
                          'https://www.wikidata.org/wiki/Q16654806')
 
+    def test_meningitis(self):
+        doc = AnnoDoc('The patient was diagnosed with viral meningitis.')
+        doc.add_tier(self.annotator)
+        first_span = doc.tiers['resolved_keywords'].spans[0]
+        self.assertEqual(first_span.resolutions[0]['entity_id'],
+                         'http://purl.obolibrary.org/obo/DOID_10310')
+
     def test_acroynms(self):
         doc = AnnoDoc("Ebola Virus disease is EVD")
         doc.add_tier(self.annotator)

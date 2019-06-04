@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import rdflib
 import re
+import os
 from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
 from ..utils import batched
@@ -43,6 +44,7 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
     )""")
     print("Loading disease ontology...")
     disease_ontology = rdflib.Graph()
+    disease_ontology.parse(os.path.join(os.path.dirname(__file__), "doid_extension.ttl"), format="turtle")
     try:
         disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
     except URLError:
@@ -134,18 +136,6 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
                 # capitalization is preserved.
                 tuples.append((syn_string, uri, weight))
         cur.executemany(insert_command, tuples)
-    # Extra synonyms not in the disease ontology.
-    cur.executemany(insert_command, [
-        ('HIV', 'http://purl.obolibrary.org/obo/DOID_526', 3),
-        ('Ebola', 'http://purl.obolibrary.org/obo/DOID_4325', 3),
-        ('EVD', 'http://purl.obolibrary.org/obo/DOID_4325', 3),
-        ('cVDPV1', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('cVDPV2', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('cVDPV3', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('poliovirus', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('polio', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('CCHF', 'http://purl.obolibrary.org/obo/DOID_12287', 3),
-    ])
     cur.execute('''
     INSERT INTO synonyms
     SELECT synonym, entity_id, max(weight)
