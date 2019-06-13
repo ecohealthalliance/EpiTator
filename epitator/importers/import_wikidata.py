@@ -45,7 +45,7 @@ def import_wikidata(drop_previous=False):
     except URLError:
         print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
         raise
-    results = json.loads(response.read())['results']['bindings']
+    results = json.loads(six.text_type(response.read(), 'utf-8'))['results']['bindings']
     print("Importing synonyms...")
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [
         (result['item']['value'], result['itemLabel']['value'])
