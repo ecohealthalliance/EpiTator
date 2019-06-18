@@ -10,10 +10,14 @@ import re
 import os
 from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
-from ..utils import batched
+from ..utils import batched, normalize_disease_name
 
 
 DISEASE_ONTOLOGY_URL = "http://purl.obolibrary.org/obo/doid.owl"
+
+BRACKET_RE = re.compile(r"[\(\[\)\]]")
+BRACKETED_CONTENT_RE = re.compile(r"\(.*?\)|\[.*?\]")
+AND_OR_RE = re.compile(r"^(or|and)\b", re.I)
 
 
 def import_disease_ontology(drop_previous=False, root_uri=None):
@@ -118,23 +122,17 @@ def import_disease_ontology(drop_previous=False, root_uri=None):
                 weight += 1
             syn_string = str(rdict['synonym'])
             uri = str(rdict['entity'])
-            # Remove text that starts with a bracket
-            if re.match(re.compile(r"^(\[|\()", re.I), syn_string):
+
+            syn_string = re.sub(BRACKETED_CONTENT_RE, " ", syn_string)
+            syn_string = re.sub(r"\s+", " ", syn_string).strip()
+            # Remove text with unmatched brackets
+            if re.search(BRACKET_RE, syn_string):
                 continue
-            syn_string = re.sub(r"\s*\(.*?\)\s*", " ", syn_string)
-            syn_string = re.sub(r"\s*\[.*?\]\s*", " ", syn_string)
-            syn_string = syn_string.strip()
-            if re.match(re.compile(r"^(or|and)\b", re.I), syn_string):
+            if re.match(AND_OR_RE, syn_string):
                 continue
             if len(syn_string) == 0:
                 continue
-            elif len(syn_string) > 6:
-                tuples.append((syn_string.lower(), uri, weight))
-                tuples.append((syn_string, uri, weight))
-            else:
-                # Short syn_strings are likely to be acronyms so
-                # capitalization is preserved.
-                tuples.append((syn_string, uri, weight))
+            tuples.append((normalize_disease_name(syn_string), uri, weight))
         cur.executemany(insert_command, tuples)
     cur.execute('''
     INSERT INTO synonyms
