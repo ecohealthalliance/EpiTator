@@ -41,19 +41,15 @@ def windows_max_int():
     # Find largest integer that does not cause an OverflowError for csv.field_size_limit using "binary search"
     top = 2**32  # Largest int in Python has 64 bit but largest int in Windows has 32 bit
     lower = 2**30  # The largest int is between 2^30 and 2^32
-    diff = top - lower
-    while diff > 1:
+    mid = (top + lower) // 2
+    while top - lower != 1:
         try:
-            mid = int(top - lower / 2)
-            csv.field_size_limit(mid)
-            lower = top
-            top = 2 ** 32
-            diff = abs(top - lower)
+            mid = (top + lower) // 2
+            csv.field_size_limit(mid + 1)  # Find the mid that barely causes an OverflowError
+            lower = mid
         except OverflowError:
-            top_old = top
-            top = int(top_old / 2)
-            diff = abs(top - lower)
-    return top - 1
+            top = (top + lower) // 2
+    return mid
 
 
 def read_geonames_csv(http_proxy, https_proxy):
