@@ -158,8 +158,8 @@ Yesterday 2 patients died.
         doc = AnnoDoc("""
 2 cases on 26 Dec 2014
 
-1- Riyadh: 31-year-old Saudi female, non-healthcare worker, currently in critical condition
-2- Quriat: 70-year-old Saudi male, non-healthcare worker, currently in stable condition
+1- Riyadh, Saudi Arabia: 31-year-old Saudi female, non-healthcare worker, currently in critical condition
+2- Qurayyat, Saudi Arabia: 70-year-old Saudi male, non-healthcare worker, currently in stable condition
 
 
 
@@ -223,3 +223,17 @@ Date / Cases / New cases per week
 """)
         doc.add_tier(self.annotator)
         self.assertTrue(1907 in [span.metadata['value'] for span in doc.tiers['incidents']])
+
+    def test_non_cumulative_total(self):
+        doc = AnnoDoc("""
+Between 1 January 2011 - 22 Dec 2014, a total of 103 confirmed cases of hantavirus have been reported in Antarctica.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.tiers['incidents'][0].metadata['type'], 'caseCount')
+
+    def test_global_cases(self):
+        doc = AnnoDoc("""
+As of June 2018 a total of 100 cases have been reported globally.
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(doc.tiers['incidents'][0].metadata['locations'][0]['name'], 'Earth')

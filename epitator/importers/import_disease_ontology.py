@@ -7,14 +7,22 @@ from __future__ import absolute_import
 from __future__ import print_function
 import rdflib
 import re
+import os
+from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
-from ..utils import batched
+from ..utils import batched, normalize_disease_name
 
 
 DISEASE_ONTOLOGY_URL = "http://purl.obolibrary.org/obo/doid.owl"
 
+BRACKET_RE = re.compile(r"[\(\[\)\]]")
+BRACKETED_CONTENT_RE = re.compile(r"\(.*?\)|\[.*?\]")
+AND_OR_RE = re.compile(r"^(or|and)\b", re.I)
 
-def import_disease_ontology(drop_previous=False):
+
+def import_disease_ontology(drop_previous=False, root_uri=None):
+    if not root_uri:
+        root_uri = "obo:DOID_0050117"
     connection = get_database_connection(create_database=True)
     cur = connection.cursor()
     if drop_previous:
@@ -40,7 +48,12 @@ def import_disease_ontology(drop_previous=False):
     )""")
     print("Loading disease ontology...")
     disease_ontology = rdflib.Graph()
-    disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+    disease_ontology.parse(os.path.join(os.path.dirname(__file__), "doid_extension.ttl"), format="turtle")
+    try:
+        disease_ontology.parse(DISEASE_ONTOLOGY_URL, format="xml")
+    except URLError:
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
 
     # Store disease ontology version
     version_query = disease_ontology.query("""
@@ -58,10 +71,10 @@ def import_disease_ontology(drop_previous=False):
     SELECT ?entity ?label
     WHERE {
         # only include diseases by infectious agent
-        ?entity rdfs:subClassOf* obo:DOID_0050117
+        ?entity rdfs:subClassOf* %s
         ; rdfs:label ?label
     }
-    """)
+    """ % (root_uri,))
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Disease Ontology')", [
         (str(result[0]), str(result[1]))
         for result in disease_labels])
@@ -109,35 +122,18 @@ def import_disease_ontology(drop_previous=False):
                 weight += 1
             syn_string = str(rdict['synonym'])
             uri = str(rdict['entity'])
-            # Remove text that starts with a bracket
-            if re.match(re.compile(r"^(\[|\()", re.I), syn_string):
+
+            syn_string = re.sub(BRACKETED_CONTENT_RE, " ", syn_string)
+            syn_string = re.sub(r"\s+", " ", syn_string).strip()
+            # Remove text with unmatched brackets
+            if re.search(BRACKET_RE, syn_string):
                 continue
-            syn_string = re.sub(r"\s*\(.*?\)\s*", " ", syn_string)
-            syn_string = re.sub(r"\s*\[.*?\]\s*", " ", syn_string)
-            syn_string = syn_string.strip()
-            if re.match(re.compile(r"^(or|and)\b", re.I), syn_string):
+            if re.match(AND_OR_RE, syn_string):
                 continue
             if len(syn_string) == 0:
                 continue
-            elif len(syn_string) > 6:
-                tuples.append((syn_string.lower(), uri, weight))
-                tuples.append((syn_string, uri, weight))
-            else:
-                # Short syn_strings are likely to be acronyms so
-                # capitalization is preserved.
-                tuples.append((syn_string, uri, weight))
+            tuples.append((normalize_disease_name(syn_string), uri, weight))
         cur.executemany(insert_command, tuples)
-    # Extra synonyms not in the disease ontology.
-    cur.executemany(insert_command, [
-        ('HIV', 'http://purl.obolibrary.org/obo/DOID_526', 3),
-        ('Ebola', 'http://purl.obolibrary.org/obo/DOID_4325', 3),
-        ('EVD', 'http://purl.obolibrary.org/obo/DOID_4325', 3),
-        ('cVDPV1', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('cVDPV2', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('cVDPV3', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('poliovirus', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-        ('polio', 'http://purl.obolibrary.org/obo/DOID_4953', 3),
-    ])
     cur.execute('''
     INSERT INTO synonyms
     SELECT synonym, entity_id, max(weight)
@@ -154,6 +150,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--drop-previous", dest='drop_previous', action='store_true')
+    parser.add_argument("--root-uri", default=None)
     parser.set_defaults(drop_previous=False)
     args = parser.parse_args()
-    import_disease_ontology(args.drop_previous)
+    import_disease_ontology(args.drop_previous, args.root_uri)

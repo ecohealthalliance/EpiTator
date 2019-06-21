@@ -2,12 +2,13 @@
 """Annotates keywords from the synonyms database
 and resolves them to uris."""
 from __future__ import absolute_import
-from collections import defaultdict
 from .annotator import Annotator, AnnoSpan, AnnoTier
 from .ngram_annotator import NgramAnnotator
 from .get_database_connection import get_database_connection
+from collections import defaultdict
 import sqlite3
 import logging
+import re
 
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
@@ -57,9 +58,12 @@ class ResolvedKeywordAnnotator(Annotator):
         span_text_to_spans = defaultdict(list)
         for ngram_span in doc.tiers['ngrams'].spans:
             span_text = ngram_span.text
-            span_text_to_spans[ngram_span.text].append(ngram_span)
-            if span_text != span_text.lower():
-                span_text_to_spans[span_text.lower()].append(ngram_span)
+            span_text_to_spans[span_text].append(ngram_span)
+            # Remove internal hyphens and slashes. Ones at the start and end
+            # could be part of punctuation or formatting.
+            normalized_text = re.sub(r"\b[\s\-\/]+\b", " ", span_text.lower()).strip()
+            if span_text != normalized_text:
+                span_text_to_spans[normalized_text].append(ngram_span)
 
         ngrams = list(set(span_text_to_spans.keys()))
         cursor = self.connection.cursor()

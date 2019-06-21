@@ -20,6 +20,14 @@ class TestCountAnnotator(unittest.TestCase):
                            'weight': 3,
                            'label': u'hand, foot and mouth disease'}], list(results))
 
+    def test_lookup_synonym2(self):
+        results = self.db_interface.lookup_synonym('Creutzfeldt - Jakob', 'disease')
+        self.assertEqual('Creutzfeldt-Jakob disease', next(results)['label'])
+
+    def test_lookup_synonym3(self):
+        results = self.db_interface.lookup_synonym('Tick Borne Encephalitis', 'disease')
+        self.assertEqual('http://purl.obolibrary.org/obo/DOID_0050175', next(results)['id'])
+
     def test_get_entity(self):
         result = self.db_interface.get_entity('http://purl.obolibrary.org/obo/DOID_4325')
         self.assertEqual({'source': u'Disease Ontology',

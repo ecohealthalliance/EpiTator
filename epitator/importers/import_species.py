@@ -9,6 +9,7 @@ import sqlite3
 from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
+from six.moves.urllib_error import URLError
 from tempfile import NamedTemporaryFile
 import os
 from ..get_database_connection import get_database_connection
@@ -22,7 +23,11 @@ ITIS_URL = "https://www.itis.gov/downloads/itisSqlite.zip"
 # https://www.itis.gov/pdf/ITIS_ConceptualModelEntityDefinition.pdf
 def download_itis_database():
     print("Downloading ITIS data from: " + ITIS_URL)
-    url = request.urlopen(ITIS_URL)
+    try:
+        url = request.urlopen(ITIS_URL)
+    except URLError:
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
     zipfile = ZipFile(BytesIO(url.read(int(url.headers['content-length']))))
     print("Download complete")
     named_temp_file = NamedTemporaryFile()

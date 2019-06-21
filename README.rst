@@ -9,7 +9,7 @@ Installation
 .. code:: bash
 
     pip install epitator
-    python -m spacy download en_core_web_sm
+    python -m spacy download en_core_web_md
 
 
 Annotators
@@ -57,7 +57,7 @@ Resolved Keyword Annotator
 
 The resolved keyword annotator uses an sqlite database of entities to resolve
 mentions of multiple synonyms for an entity to a single id.
-This project includes scripts for importing diseases and animal species into
+This project includes scripts for importing infectious diseases and animal species into
 that database. The following commands can be used to invoke them:
 
 The scripts import data from the `Disease Ontology <http://disease-ontology.org/>`_,
@@ -69,6 +69,9 @@ Currently the Disease Ontology is under public domain and ITIS requests citation
 .. code:: bash
 
     python -m epitator.importers.import_species
+    # By default entities under the disease by infectious agent class will be
+    # imported from the disease ontology, but this can be altered by supplying
+    # a --root-uri parameter.
     python -m epitator.importers.import_disease_ontology
     python -m epitator.importers.import_wikidata
 

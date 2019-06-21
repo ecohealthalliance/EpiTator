@@ -8,6 +8,9 @@ from . import utils
 import re
 
 
+infinity = float('inf')
+
+
 def is_valid_number(num_string):
     """
     Check that number can be parsed and does not begin with 0.
@@ -15,19 +18,14 @@ def is_valid_number(num_string):
     if num_string[0] == '0' and len(num_string) > 1:
         return False
     value = utils.parse_spelled_number(num_string)
-    return value is not None
+    return value not in [None, infinity]
 
 
 class RawNumberAnnotator(Annotator):
 
     def annotate(self, doc):
-        if 'dates' not in doc.tiers:
-            doc.add_tiers(DateAnnotator())
-        if 'spacy.tokens' not in doc.tiers:
-            doc.add_tiers(SpacyAnnotator())
-        dates = doc.tiers['dates']
-        spacy_tokens = doc.tiers['spacy.tokens']
-        spacy_nes = doc.tiers['spacy.nes']
+        spacy_tokens, spacy_nes = doc.require_tiers('spacy.tokens', 'spacy.nes', via=SpacyAnnotator)
+        dates, unfiltered_dates = doc.require_tiers('dates', 'dates.all', via=DateAnnotator)
         numbers = []
         spacy_numbers = []
         for ne_span in spacy_nes:
@@ -57,11 +55,10 @@ class RawNumberAnnotator(Annotator):
         # Add delimited numbers
         numbers += doc.create_regex_tier(
             r'[1-9]\d{0,2}(( \d{3})+|(,\d{3})+)').spans
-        # Remove counts that overlap a date
+        # Remove numbers that overlap a date
         filtered_numbers = []
-        date_annotations_and_spacy_ner_dates = dates + spacy_nes.with_label('DATE').without_overlaps(dates)
         dates_by_number_span = AnnoTier(numbers).group_spans_by_containing_span(
-            date_annotations_and_spacy_ner_dates,
+            unfiltered_dates,
             allow_partial_containment=True)
         for number_span, date_spans in dates_by_number_span:
             if len(date_spans) > 1:

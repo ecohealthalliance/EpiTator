@@ -7,53 +7,157 @@ from numpy import array, int32
 
 
 HIGH_CONFIDENCE_THRESHOLD = 0.5
-GEONAME_SCORE_THRESHOLD = 0.1
+GEONAME_SCORE_THRESHOLD = 0.13
 base_classifier =\
-{'C': 1.0,
- 'class_weight': None,
- 'classes_': array([False,  True], dtype=bool),
- 'coef_': array([[ 0.3213819 ,  0.01823242,  0.02336938,  0.29849362,  2.47665562,
-         0.47210803,  0.16109926,  0.        , -0.97918471,  0.00476336,
-        -0.01442839, -0.60016267, -0.23542543,  1.89213763,  0.        ,
-        -1.68017007,  0.        ,  0.        ,  0.        ,  0.        ,
-         0.        ]]),
- 'dual': False,
- 'fit_intercept': True,
- 'intercept_': array([-10.3865459]),
- 'intercept_scaling': 1,
- 'max_iter': 100,
- 'multi_class': 'ovr',
- 'n_iter_': array([30], dtype=int32),
- 'n_jobs': 1,
- 'penalty': 'l1',
- 'random_state': None,
- 'solver': 'liblinear',
- 'tol': 0.0001,
- 'verbose': 0,
- 'warm_start': False}
+{
+    'penalty': 'l1',
+    'dual': False,
+    'tol': 0.0001,
+    'C': 0.1,
+    'fit_intercept': True,
+    'intercept_scaling': 1,
+    'class_weight': None,
+    'random_state': None,
+    'solver': 'liblinear',
+    'max_iter': 100,
+    'multi_class': 'warn',
+    'verbose': 0,
+    'warm_start': False,
+    'n_jobs': None,
+    'classes_': array([False,  True]),
+    'coef_': array([[
+        # log_population
+        0.3288826652391892,
+        # name_count
+        0.21180346761017554,
+        # names_used
+        0.6921137888810455,
+        # exact_name_match
+        0.8907122816181057,
+        # multiple_spans
+        0.4385195357489847,
+        # span_length
+        0.14885276617871698,
+        # all_acronyms
+        -2.4168746146102844,
+        # cannonical_name_used
+        2.179668174506593,
+        # loc_NE_portion
+        1.116805637212708,
+        # other_NE_portion
+        -0.19762918486107944,
+        # noun_portion
+        0.0,
+        # num_tokens
+        0.45408740342595283,
+        # med_token_prob
+        -0.3287514923579695,
+        # exact_alternatives
+        -0.9026051613064152,
+        # PPL_feature_code
+        -0.8713730521972315,
+        # ADM_feature_code
+        -1.3357916436134925,
+        # PCL_feature_code
+        2.2270435390046472,
+        # other_feature_code
+        0.0,
+        # first_order
+        1.217498915455807,
+        # combined_span
+        1.5478451457037072,
+        # close_locations
+        0.0,
+        # very_close_locations
+        0.0,
+        # base_score
+        0.0,
+        # base_score_margin
+        0.0,
+        # contained_locations
+        0.0,
+        # containing_locations
+        0.0,
+    ]]),
+    'intercept_': array([-12.90888507]),
+    'n_iter_': array([42], dtype=int32),
+}
+
 contextual_classifier =\
-{'C': 1.0,
- 'class_weight': None,
- 'classes_': array([False,  True], dtype=bool),
- 'coef_': array([[ 0.33234538,  0.02662401,  0.02615038,  0.2902419 ,  2.67413257,
-         0.58878742,  0.15810715, -2.57352368, -2.8911252 , -0.01368534,
-        -0.01187249, -1.28375178, -1.05650366,  1.52334291, -0.63130291,
-        -1.85594312,  0.54173888,  0.64798624, -0.46296609,  0.10588069,
-        -0.95874479]]),
- 'dual': False,
- 'fit_intercept': True,
- 'intercept_': array([-7.96994027]),
- 'intercept_scaling': 1,
- 'max_iter': 100,
- 'multi_class': 'ovr',
- 'n_iter_': array([35], dtype=int32),
- 'n_jobs': 1,
- 'penalty': 'l1',
- 'random_state': None,
- 'solver': 'liblinear',
- 'tol': 0.0001,
- 'verbose': 0,
- 'warm_start': False}
+{
+    'penalty': 'l1',
+    'dual': False,
+    'tol': 0.0001,
+    'C': 0.1,
+    'fit_intercept': True,
+    'intercept_scaling': 1,
+    'class_weight': None,
+    'random_state': None,
+    'solver': 'liblinear',
+    'max_iter': 100,
+    'multi_class': 'warn',
+    'verbose': 0,
+    'warm_start': False,
+    'n_jobs': None,
+    'classes_': array([False,  True]),
+    'coef_': array([[
+        # log_population
+        0.28228248087215385,
+        # name_count
+        0.19424959537231867,
+        # names_used
+        0.4115855267983377,
+        # exact_name_match
+        0.339488954171464,
+        # multiple_spans
+        0.3082735346279554,
+        # span_length
+        0.15794944543924766,
+        # all_acronyms
+        -2.0910830240634297,
+        # cannonical_name_used
+        1.9360786322544647,
+        # loc_NE_portion
+        1.5434804936396482,
+        # other_NE_portion
+        0.0,
+        # noun_portion
+        0.0,
+        # num_tokens
+        0.4670721503329358,
+        # med_token_prob
+        -0.2642808804913221,
+        # exact_alternatives
+        -0.7689405320821576,
+        # PPL_feature_code
+        -0.450305349464007,
+        # ADM_feature_code
+        -0.9421785297062796,
+        # PCL_feature_code
+        1.885630901040498,
+        # other_feature_code
+        0.0,
+        # first_order
+        1.0904825221747996,
+        # combined_span
+        0.31258233468268437,
+        # close_locations
+        0.1364085867326155,
+        # very_close_locations
+        -0.00243964840385385,
+        # base_score
+        -1.1232711320877737,
+        # base_score_margin
+        2.6704843451856335,
+        # contained_locations
+        0.0784905901350068,
+        # containing_locations
+        0.47875034021904533,
+    ]]),
+    'intercept_': array([-11.7165164]),
+    'n_iter_': array([33], dtype=int32),
+}
+
 # Logistic regression code from scipy
 def predict_proba(X, classifier):
     """Probability estimation for OvR logistic regression.

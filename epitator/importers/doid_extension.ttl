@@ -1,0 +1,35 @@
+# The disease ontology is a single parentage ontology so some infectious
+# diseases are not included in the "disease by infectious agent" class.
+# This extends the ontology to add some of those infecious diseases to the
+# to the "disease by infectious agent" class.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix DOID: <http://purl.obolibrary.org/obo/DOID_> .
+# bacterial meningitis
+DOID:9470 rdfs:subClassOf DOID:0050117 .
+# virial meningitis
+DOID:10310 rdfs:subClassOf DOID:0050117 .
+# viral pneumonia
+DOID:10533 rdfs:subClassOf DOID:0050117 .
+# bacterial pneumonia
+DOID:874 rdfs:subClassOf DOID:0050117 .
+# Prion diseases
+DOID:649 rdfs:subClassOf DOID:0050117 .
+# Acute diarrhea
+DOID:0050140 rdfs:subClassOf DOID:0050117 .
+# Campylobacteriosis
+DOID:13622 rdfs:subClassOf DOID:0050117 .
+# Cytomegalovirus retinitis
+DOID:0080160 rdfs:subClassOf DOID:934 .
+# Clostridium difficile colitis
+DOID:0060185 rdfs:subClassOf DOID:104 .
+
+# Extra synonyms not in the disease ontology.
+@prefix oboInOwl: <http://www.geneontology.org/formats/oboInOwl#> .
+DOID:526 oboInOwl:hasExactSynonym "HIV" .
+DOID:4325 oboInOwl:hasExactSynonym "Ebola", "EVD" .
+DOID:4953 oboInOwl:hasExactSynonym "poliovirus", "polio" ;
+          oboInOwl:hasNarrowSynonym "cVDPV1", "cVDPV2", "cVDPV3" .
+DOID:12287 oboInOwl:hasExactSynonym "CCHF", "Crimean-Congo Haemorrhagic Fever" .
+DOID:1328 oboInOwl:hasExactSynonym "RVF" .
+DOID:11320 oboInOwl:hasExactSynonym "monkey fever" .
+DOID:14397 oboInOwl:hasExactSynonym "Amoebic Dysentery" .

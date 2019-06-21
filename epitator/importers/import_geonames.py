@@ -8,8 +8,9 @@ import sys
 from six import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib import request
+from six.moves.urllib.error import URLError
 from ..get_database_connection import get_database_connection
-from ..utils import parse_number, batched
+from ..utils import parse_number, batched, normalize_text
 
 
 GEONAMES_ZIP_URL = "http://download.geonames.org/export/dump/allCountries.zip"
@@ -54,7 +55,11 @@ def windows_max_int():
 
 def read_geonames_csv(http_proxy, https_proxy):
     print("Downloading geoname data from: " + GEONAMES_ZIP_URL)
-    url = request.urlopen(GEONAMES_ZIP_URL)
+    try:
+        url = request.urlopen(GEONAMES_ZIP_URL)
+    except URLError:
+        print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
+        raise
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
     # Loading geonames data may cause errors without this line:
@@ -94,7 +99,7 @@ def import_geonames(drop_previous=False):
     table_exists = len(list(cur.execute("""SELECT name FROM sqlite_master
         WHERE type='table' AND name='geonames'"""))) > 0
     if table_exists:
-        print("The geonames table already exists."
+        print("The geonames table already exists. "
               "Run this again with --drop-previous to recreate it.")
         return
     # Create table
@@ -133,11 +138,14 @@ def import_geonames(drop_previous=False):
                 tuple(geoname[field]
                       for field, sqltype in geonames_field_mappings
                       if sqltype))
-            for alternatename in set(geoname['alternatenames'] + [geoname['name'], geoname['asciiname']]):
-                alternatename_tuples.append((
-                    geoname['geonameid'],
-                    alternatename,
-                    alternatename.lower().strip()))
+            for possible_name in set([geoname['name'], geoname['asciiname']] + geoname['alternatenames']):
+                normalized_name = normalize_text(possible_name)
+                # require at least 2 word characters.
+                if re.match(r"(.*\w){2,}", normalized_name):
+                    alternatename_tuples.append((
+                        geoname['geonameid'],
+                        possible_name,
+                        normalized_name.lower()))
         cur.executemany(geonames_insert_command, geoname_tuples)
         cur.executemany(alternatenames_insert_command, alternatename_tuples)
         cur.executemany(adminnames_insert_command, adminname_tuples)

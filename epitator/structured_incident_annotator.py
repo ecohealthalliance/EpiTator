@@ -8,8 +8,10 @@ from .resolved_keyword_annotator import ResolvedKeywordAnnotator
 from .spacy_annotator import SpacyAnnotator
 from .date_annotator import DateAnnotator
 from .raw_number_annotator import RawNumberAnnotator
+from .utils import median
 import re
 import logging
+import datetime
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -26,18 +28,7 @@ class Table():
 
 def is_null(val_string):
     val_string = val_string.strip()
-    return val_string == "" or val_string == "-"
-
-
-def median(li):
-    if len(li) == 0:
-        return None
-    mid_idx = int((len(li) - 1) / 2)
-    li = sorted(li)
-    if len(li) % 2 == 1:
-        return li[mid_idx]
-    else:
-        return (li[mid_idx] + li[mid_idx + 1]) / 2
+    return val_string == "" or val_string == "-" or val_string == "0"
 
 
 def merge_metadata(sofar, child_metadata):
@@ -177,7 +168,7 @@ class StructuredIncidentAnnotator(Annotator):
             table_by_column = list(zip(*data_rows))
             column_types = []
             parsed_column_entities = []
-            for column_values in table_by_column:
+            for column_values, column_name in zip(table_by_column, first_row):
                 num_non_null_rows = sum(not is_null(value.text) for value in column_values)
                 column_values = AnnoTier(column_values)
                 # Choose column type based on greatest percent match,
@@ -193,8 +184,13 @@ class StructuredIncidentAnnotator(Annotator):
                     num_matches = sum(
                         contained_spans is not None
                         for contained_spans in column_entities)
-                    # Prefer other types like dates over integers if all else is equal.
-                    match_score = num_matches + (0 if value_type == "integer" else 1)
+                    match_score = num_matches
+                    if value_type == "integer":
+                        if column_name.text.lower() in set(['cases', 'deaths', 'susceptible', 'culled']):
+                            match_score += 2
+                    else:
+                        # Prefer other types like dates over integers if all else is equal.
+                        match_score += 1
                     if num_non_null_rows > 0 and float(num_matches) / num_non_null_rows > 0.3:
                         if match_score > max_score:
                             max_score = match_score
@@ -227,7 +223,7 @@ class StructuredIncidentAnnotator(Annotator):
                         date_diffs += [
                             abs(d.metadata['datetime_range'][0] - next_d.metadata['datetime_range'][0])
                             for d, next_d in zip(entity_group, entity_group[1:])]
-                    date_period = median(date_diffs)
+                    date_period = median([d for d in date_diffs if d < datetime.timedelta(365 * 11)])
                     break
             # Implicit metadata has to come first so values in other rows will
             # overrite it.
@@ -315,7 +311,10 @@ class StructuredIncidentAnnotator(Annotator):
                         row_incident_status = value
 
                 row_incidents = []
+                logger.info('---')
                 for column, value in zip(table.column_definitions, row):
+                    logger.info(column)
+                    logger.info(value)
                     if not value:
                         continue
                     if column['type'] == "integer":
@@ -364,6 +363,7 @@ class StructuredIncidentAnnotator(Annotator):
                         elif not incident_base_type and isinstance(column_name, AnnoSpan):
                             contained_spans = entities_by_type['species'].spans_contained_by_span(column_name)
                             if len(contained_spans) > 0:
+                                logger.info(contained_spans[0].text)
                                 incident_base_type = "caseCount"
                                 entity = contained_spans[0].metadata['species']['entity']
                                 incident_species = {
@@ -397,9 +397,8 @@ class StructuredIncidentAnnotator(Annotator):
                                 incident_location = contained_spans[0].metadata['geoname'].to_dict()
                                 del incident_location['parents']
 
-                        if incident_date != CANNOT_PARSE:
-                            if incident_date:
-                                incident_date = incident_date.metadata['datetime_range']
+                        if incident_date and incident_date != CANNOT_PARSE:
+                            incident_date = incident_date.metadata['datetime_range']
                             if table.metadata.get('date_period'):
                                 if incident_aggregation != "cumulative":
                                     incident_date = [

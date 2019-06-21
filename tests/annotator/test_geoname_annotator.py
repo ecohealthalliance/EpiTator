@@ -6,11 +6,11 @@ from __future__ import absolute_import
 import unittest
 from epitator.annotator import AnnoDoc
 from epitator.geoname_annotator import GeonameAnnotator
-import logging
+# import logging
+# from .test_utils import with_log_level
 import six
 import os
 import io
-logging.getLogger('epitator.geoname_annotator').setLevel(logging.ERROR)
 
 
 class GeonameAnnotatorTest(unittest.TestCase):
@@ -33,6 +33,7 @@ class GeonameAnnotatorTest(unittest.TestCase):
         del geoname['name_count']
         del geoname['score']
         del geoname['population']
+        del geoname['lemmas_used']
         self.assertEqual(geoname, {
             'admin1_code': u'IL',
             'admin1_name': u'Illinois',
@@ -86,6 +87,16 @@ class GeonameAnnotatorTest(unittest.TestCase):
         doc = AnnoDoc(u"I'm from Fairview, Oregon and also Duluth, Minnesota.")
         doc.add_tier(self.annotator)
         self.assertEqual(len(doc.tiers['geonames'].spans), 2)
+
+    def test_multipart_names_5(self):
+        text = 'From Seattle, WA, Canada is not far away.'
+        doc = AnnoDoc(text)
+        doc.add_tier(self.annotator, split_compound_geonames=True)
+
+        self.assertEqual(doc.text, text)
+        self.assertEqual(len(doc.tiers['geonames'].spans), 3)
+        self.assertEqual(doc.tiers['geonames'].spans[0].text, "Seattle")
+        self.assertEqual(doc.tiers['geonames'].spans[1].text, "WA")
 
     def test_bug_causing_sentence(self):
         text = u"""
@@ -185,9 +196,6 @@ class GeonameAnnotatorTest(unittest.TestCase):
         combined_span_found = False
         for geoname in candidates:
             self.assertTrue(geoname not in geoname.alternate_locations)
-            for alternate in geoname.alternate_locations:
-                self.assertTrue(
-                    len(set(alternate.spans).intersection(geoname.spans)) > 0)
             for span in geoname.spans:
                 if span.start == 3 and span.end == 47:
                     combined_span_found = True
@@ -198,8 +206,8 @@ class GeonameAnnotatorTest(unittest.TestCase):
         # that the ascii version works.
         doc = AnnoDoc(u"At Cao Bang, Vietnam 5 cases were recorded.")
         doc.add_tier(self.annotator)
-        self.assertEqual(
-            doc.tiers['geonames'].spans[0].geoname['geonameid'], '1586182')
+        self.assertTrue(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'] in ['1586182', '1586185'])
 
     def test_ne_overlap(self):
         doc = AnnoDoc("""
@@ -226,7 +234,20 @@ More specialized journals are available only in Moscow and perhaps St. Petersbur
         # Imat is resolved to a location with a non-matching unicode i.
         doc = AnnoDoc(u"They are in Imat, Corum, Turkey.")
         doc.add_tier(self.annotator)
-        # print([span.metadata['geoname']['geonameid'] for span in doc.tiers['geonames']])
+
+    # @with_log_level(logging.getLogger('epitator.geoname_annotator'), logging.INFO)
+    def test_linebreak_handling(self):
+        doc = AnnoDoc("""They will perform in West
+Virginia on Friday.""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '4826850')
+
+    def test_example(self):
+        doc = AnnoDoc("Where is Chiang Mai?")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            doc.tiers['geonames'].spans[0].geoname['geonameid'], '1153671')
 
 
 if __name__ == '__main__':

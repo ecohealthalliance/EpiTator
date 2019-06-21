@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from .get_database_connection import get_database_connection
+import re
 
 
 class DatabaseInterface(object):
@@ -26,7 +27,7 @@ class DatabaseInterface(object):
         GROUP BY entity_id
         ORDER BY weight DESC, length(synonym) ASC
         LIMIT 20
-        ''', ['%' + synonym + '%', entity_type])
+        ''', ['%' + re.sub(r"[\s\-\/]+", " ", synonym) + '%', entity_type])
 
     def get_entity(self, entity_id):
         cursor = self.db_connection.cursor()

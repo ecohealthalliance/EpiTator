@@ -4,6 +4,9 @@ from __future__ import print_function
 import re
 from collections import defaultdict
 from itertools import compress
+import unicodedata
+
+space_punct_re = re.compile(r"[\s\(\)\[\]\.\-\/\,]+")
 
 NUMBERS = {
     'zero': 0,
@@ -216,3 +219,42 @@ def merge_dicts(dicts, unique=False, simplify=None):
 
 def verboseprint(verbose=False, *args, **kwargs):
     print(*args, **kwargs) if verbose else lambda *args, **kwargs: None
+
+
+def median(li):
+    if len(li) == 0:
+        return None
+    mid_idx = int((len(li) - 1) / 2)
+    li = sorted(li)
+    if len(li) % 2 == 1:
+        return li[mid_idx]
+    else:
+        return (li[mid_idx] + li[mid_idx + 1]) / 2
+
+
+def normalize_text(text):
+    """
+    Attempt to convert text to a simplified representation so it can
+    be compared ignoring diacritical marks, differences in character codes
+    for similar symbols, differences in whitespace, and similar issues.
+    If the simplified text ends up being too short to form an
+    useful representation of the text, the original text will be returned.
+    That will happen when non-latin text is used because non-latin charaters are
+    usually removed from the simplified text.
+    """
+    text = text.replace('\u2019', "'")
+    result = unicodedata.normalize('NFKD', text)\
+        .encode('ascii', 'ignore').decode()
+    result = space_punct_re.sub(' ', result).strip()
+    if len(result) < 3:
+        result = space_punct_re.sub(' ', text).strip()
+    return result
+
+
+def normalize_disease_name(name):
+    if len(name) <= 6:
+        # Shorter syn_strings are likely to be acronyms so only exact
+        # matches are allowed.
+        return name
+    else:
+        return re.sub(r"[\s\-\/]+", " ", name).strip()
