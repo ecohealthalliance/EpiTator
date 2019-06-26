@@ -237,3 +237,32 @@ As of June 2018 a total of 100 cases have been reported globally.
 """)
         doc.add_tier(self.annotator)
         self.assertEqual(doc.tiers['incidents'][0].metadata['locations'][0]['name'], 'Earth')
+
+    def test_species_association(self):
+        doc = AnnoDoc('''
+According to the OIE records, the annual numbers of reported glanders outbreaks (in equidae)
+in India in 2017 was 106. For the months January to June 2018,
+a total of 32 outbreaks have been reported to the OIE from India,
+including 119 cases, of which 61 died and 58 had to be killed.
+
+7 human cases of glanders occurred in June 1999.
+''')
+        doc.add_tier(self.annotator)
+        test_utils.assertHasProps(
+            doc.tiers['incidents'].spans[0].metadata, {
+                'value': 119,
+                'type': 'caseCount',
+                'dateRange': [
+                    datetime.datetime(2018, 6, 1, 0, 0),
+                    datetime.datetime(2018, 7, 1, 0, 0)],
+                'species': {'id': 'tsn:180691', 'label': 'Equus caballus'},
+            })
+        test_utils.assertHasProps(
+            doc.tiers['incidents'].spans[-1].metadata, {
+                'value': 7,
+                'type': 'caseCount',
+                'dateRange': [
+                    datetime.datetime(1999, 6, 1, 0, 0),
+                    datetime.datetime(1999, 7, 1, 0, 0)],
+                'species': {'id': 'tsn:180092', 'label': 'Homo sapiens'},
+            })

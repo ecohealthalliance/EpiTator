@@ -3,7 +3,9 @@
 and resolves them to uris."""
 from __future__ import absolute_import
 from .annotator import Annotator, AnnoSpan, AnnoTier
+from .annospan import SpanGroup
 from .ngram_annotator import NgramAnnotator
+from .spacy_annotator import SpacyAnnotator
 from .get_database_connection import get_database_connection
 from collections import defaultdict
 import sqlite3
@@ -52,11 +54,11 @@ class ResolvedKeywordAnnotator(Annotator):
 
     def annotate(self, doc):
         logger.info('start resolved keyword annotator')
-        if 'ngrams' not in doc.tiers:
-            doc.add_tiers(NgramAnnotator())
-            logger.info('%s ngrams' % len(doc.tiers['ngrams']))
+        tokens = doc.require_tiers('spacy.tokens', via=SpacyAnnotator)
+        ngrams = doc.require_tiers('ngrams', via=NgramAnnotator)
+
         span_text_to_spans = defaultdict(list)
-        for ngram_span in doc.tiers['ngrams'].spans:
+        for ngram_span, ngram_tokens in ngrams.group_spans_by_containing_span(tokens):
             span_text = ngram_span.text
             span_text_to_spans[span_text].append(ngram_span)
             # Remove internal hyphens and slashes. Ones at the start and end
@@ -64,6 +66,12 @@ class ResolvedKeywordAnnotator(Annotator):
             normalized_text = re.sub(r"\b[\s\-\/]+\b", " ", span_text.lower()).strip()
             if span_text != normalized_text:
                 span_text_to_spans[normalized_text].append(ngram_span)
+            # Match pluralized keywords by lemmatizing the final token.
+            lemmatized_text = ngram_tokens[-1].lemma_
+            if not span_text.endswith(lemmatized_text):
+                if len(ngram_tokens) > 1:
+                    lemmatized_text = SpanGroup(ngram_tokens[0:-1]).text + ' ' + lemmatized_text
+                span_text_to_spans[lemmatized_text.lower()].append(ngram_span)
 
         ngrams = list(set(span_text_to_spans.keys()))
         cursor = self.connection.cursor()

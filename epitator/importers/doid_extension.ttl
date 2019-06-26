@@ -33,3 +33,4 @@ DOID:12287 oboInOwl:hasExactSynonym "CCHF", "Crimean-Congo Haemorrhagic Fever" .
 DOID:1328 oboInOwl:hasExactSynonym "RVF" .
 DOID:11320 oboInOwl:hasExactSynonym "monkey fever" .
 DOID:14397 oboInOwl:hasExactSynonym "Amoebic Dysentery" .
+DOID:0060859 oboInOwl:hasRelatedSynonym "salmonella" .

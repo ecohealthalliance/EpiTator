@@ -40,8 +40,9 @@ def assertHasProps(d, props):
             missing_props.append(kpath)
     if len(missing_props) > 0:
         raise AssertionError(
-            "Missing properties:\n{}\n{}".format(str(d), str(props))
-        )
+            "Missing properties:\n{}".format('\n'.join(
+                "%s: %s != %s" % ('.'.join(p), get_path(d, p), get_path(props, p))
+                for p in missing_props)))
 
 
 def assertMetadataContents(test, expected):
