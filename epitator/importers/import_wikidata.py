@@ -12,6 +12,7 @@ from six.moves.urllib.parse import urlencode
 from six.moves.urllib.error import URLError
 import json
 import datetime
+from ..utils import normalize_disease_name
 
 
 def import_wikidata(drop_previous=False):
@@ -47,25 +48,31 @@ def import_wikidata(drop_previous=False):
         print("If you are operating behind a firewall, try setting the HTTP_PROXY/HTTPS_PROXY environment variables.")
         raise
     results = json.loads(six.text_type(response.read(), 'utf-8'))['results']['bindings']
-    print("Importing synonyms...")
+    print("Importing %s wikidata entities..." % len(results))
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", [
         (result['item']['value'], result['itemLabel']['value'])
         for result in results])
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, 1)", [
-        (result['itemLabel']['value'], result['item']['value'])
+        (normalize_disease_name(result['itemLabel']['value']), result['item']['value'])
         for result in results])
     print("Importing manually added diseases not in disease ontology...")
     # Wikidata entities are used in place of those from the disease ontology.
     additional_diseases = [
         ('https://www.wikidata.org/wiki/Q16654806', 'Middle East respiratory syndrome',),
+        ('https://www.wikidata.org/wiki/Q6946', 'Cytomegalovirus'),
         ('https://www.wikidata.org/wiki/Q1142751', 'Norovirus',),
         ('https://www.wikidata.org/wiki/Q15928531', 'Nipah virus',),
         ('https://www.wikidata.org/wiki/Q18350119', 'Acute flaccid myelitis',),
         ('https://www.wikidata.org/wiki/Q6163830', 'Seoul virus',),
-        ('https://www.wikidata.org/wiki/Q101896', 'Gonorrhoea')]
+        ('https://www.wikidata.org/wiki/Q101896', 'Gonorrhoea'),
+        ('https://www.wikidata.org/wiki/Q62658688', 'Rotavirus Disease'),
+        ('https://www.wikidata.org/wiki/Q2600216', 'Yersiniosis'),
+        ('https://www.wikidata.org/wiki/Q19000403', 'Enterovirus infectious disease'),
+        ('https://www.wikidata.org/wiki/Q837054', 'Adenovirus infection'),
+    ]
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", additional_diseases)
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, 3)", [
-        (disease_name, uri,) for uri, disease_name in additional_diseases])
+        (normalize_disease_name(disease_name), uri,) for uri, disease_name in additional_diseases])
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, ?)", [
         ('MERS', 'https://www.wikidata.org/wiki/Q16654806', 3),
         ('Middle East respiratory syndrome coronavirus', 'https://www.wikidata.org/wiki/Q16654806', 3),

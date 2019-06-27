@@ -34,3 +34,9 @@ DOID:1328 oboInOwl:hasExactSynonym "RVF" .
 DOID:11320 oboInOwl:hasExactSynonym "monkey fever" .
 DOID:14397 oboInOwl:hasExactSynonym "Amoebic Dysentery" .
 DOID:0060859 oboInOwl:hasRelatedSynonym "salmonella" .
+DOID:0050012 oboInOwl:hasExactSynonym "Chikungunya Virus Disease" .
+DOID:8659 oboInOwl:hasExactSynonym "Varicella Zoster" .
+DOID:13622 oboInOwl:hasExactSynonym "Campylobacter Enteritis" .
+DOID:11263 oboInOwl:hasExactSynonym "Chlamydia Infection", "Chlamydia Trachomatis Infection" .
+DOID:10718 oboInOwl:hasExactSynonym "Giardia Infection" .
+DOID:1024 oboInOwl:hasExactSynonym "Hansen Disease", "Hansen's Disease" .

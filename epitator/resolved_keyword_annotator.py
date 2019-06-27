@@ -64,6 +64,7 @@ class ResolvedKeywordAnnotator(Annotator):
             # Remove internal hyphens and slashes. Ones at the start and end
             # could be part of punctuation or formatting.
             normalized_text = re.sub(r"\b[\s\-\/]+\b", " ", span_text.lower()).strip()
+            normalized_text = re.sub(r"['\"]", "", normalized_text)
             if span_text != normalized_text:
                 span_text_to_spans[normalized_text].append(ngram_span)
             # Match pluralized keywords by lemmatizing the final token.

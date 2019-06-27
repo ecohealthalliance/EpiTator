@@ -19,6 +19,8 @@ class DatabaseInterface(object):
 
     def lookup_synonym(self, synonym, entity_type):
         cursor = self.db_connection.cursor()
+        synonym = re.sub(r"[\s\-\/]+", " ", synonym)
+        synonym = re.sub(r"[\"']", "", synonym)
         return cursor.execute('''
         SELECT id, label, synonym, max(weight) AS weight
         FROM synonyms
@@ -27,7 +29,7 @@ class DatabaseInterface(object):
         GROUP BY entity_id
         ORDER BY weight DESC, length(synonym) ASC
         LIMIT 20
-        ''', ['%' + re.sub(r"[\s\-\/]+", " ", synonym) + '%', entity_type])
+        ''', ['%' + synonym + '%', entity_type])
 
     def get_entity(self, entity_id):
         cursor = self.db_connection.cursor()
