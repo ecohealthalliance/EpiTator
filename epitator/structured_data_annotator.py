@@ -28,7 +28,9 @@ for separator in table_cell_separators:
                       pypar.Optional("\n").suppress())
     table_parser ^= (
         (pypar.LineStart() + pypar.Optional(pypar.White())).suppress() +
-        row * (1, None)).setResultsName("delimiter:" + separator)
+        # Allow line breaks for table headings
+        row + pypar.Optional(pypar.Regex(r"[\-_=]{3,}") + pypar.Literal("\n") * (1, 2)).suppress() +
+        row * (0, None)).setResultsName("delimiter:" + separator)
 table_parser.parseWithTabs()
 
 key_value_separators = [":", "-", ">"]

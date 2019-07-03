@@ -469,3 +469,27 @@ Connecticut / 9
             '4829764', '5551752', '4099753',
             '5332921', '5417618', '5690763',
             '5769223', '4831725'])
+
+    def test_case_synonyms(self):
+        doc = AnnoDoc("""
+As of 7 Jun 2019, a total of 279 people infected with the outbreak strains of _Salmonella_ have been reported from 41 states.
+A list of the states and the number of cases in each is on the map of reported cases page.
+
+State / Ill people
+
+------------------
+
+Alabama / 7
+
+Arkansas / 8
+
+Arizona / 1
+
+California / 9
+
+Colorado / 4
+
+Connecticut / 3
+""")
+        doc.add_tier(self.annotator)
+        self.assertEqual(len(doc.tiers['structured_incidents']), 6)
