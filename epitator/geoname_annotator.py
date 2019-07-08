@@ -434,7 +434,7 @@ class GeonameAnnotator(Annotator):
             if lower_case_direction.match(span_text):
                 span_text_to_spans[re.sub(r"(north|south|east|west)\s(.+)", r"\1ern \2", span_text)].extend(spans)
         possible_geonames = list(span_text_to_spans.keys())
-        possible_geonames_escaped = [x.replace("'", "''") if "'" in x else x for x in possible_geonames ]
+        possible_geonames_escaped = [x.replace("'", "''") if "'" in x else x for x in possible_geonames]
         logger.info('%s possible geoname texts' % len(possible_geonames))
         cursor = self.connection.cursor()
         geoname_results = list(cursor.execute('''
