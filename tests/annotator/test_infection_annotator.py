@@ -32,7 +32,7 @@ class TestInfectionAnnotator(unittest.TestCase):
 
     def test_false_positive_counts(self):
         examples = [
-            #'In the case of mosquito-borne diseases indoor spraying is a common intervention',
+            # 'In the case of mosquito-borne diseases indoor spraying is a common intervention',
             'Measles - Democratic Republic of the Congo (Katanga) 2007.1775',
             'Meningitis - Democratic Republic of Congo [02] 970814010223',
             'On 11 / 16 / 1982 the The Last Unicorn was the most popular movie.'
@@ -140,6 +140,7 @@ class TestInfectionAnnotator(unittest.TestCase):
 
     def test_recovered_case_removal(self):
         self.assertHasCounts('5 recovered cases of Ebola were discharged from the hospital.', [])
+
 
 if __name__ == '__main__':
     unittest.main()
