@@ -71,7 +71,7 @@ def assertMetadataContents(test, expected):
         else:
             if test_val != expected_val:
                 incorrect_metadata.append((keypath, test_val))
-    if len(missing_metadata) > 0:
+    if len(missing_metadata) + len(incorrect_metadata) > 0:
         raise AssertionError("""
 Test Metadata: {}
 Expected Metadata {}
