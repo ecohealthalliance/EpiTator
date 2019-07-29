@@ -73,7 +73,7 @@ def import_wikidata(drop_previous=False):
     cur.executemany("INSERT INTO entities VALUES (?, ?, 'disease', 'Wikidata')", additional_diseases)
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, 3)", [
         (normalize_disease_name(disease_name), uri,) for uri, disease_name in additional_diseases])
-    MERS_synonyms = ['MERS', 'Middle East respiratory syndrome coronavirus', 'MERS-CoV']
+    MERS_synonyms = ['MERS', 'Middle East respiratory syndrome coronavirus', 'MERS-CoV', 'MERS Coronavirus']
     cur.executemany("INSERT INTO synonyms VALUES (?, ?, ?)", [
         (normalize_disease_name(synonym), 'https://www.wikidata.org/wiki/Q16654806', 3)
         for synonym in MERS_synonyms

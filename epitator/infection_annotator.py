@@ -355,7 +355,8 @@ def add_count_modifiers(spans, doc):
         'max|less|below|under|most|maximum|up',
         'min|greater|above|over|least|minimum|down|exceeds',
         'approximate|about|near|around',
-        'ongoing|active'
+        'ongoing|active',
+        'recovered|recover'
     ]
 
     person_and_place_nes = spacy_nes.with_label('GPE') + spacy_nes.with_label('PERSON')
@@ -418,4 +419,7 @@ class InfectionAnnotator(Annotator):
         spans.extend(from_noun_chunks_with_infection_lemmas(doc, debug))
         spans.extend(from_noun_chunks_with_person_lemmas(doc, debug))
         tier = add_count_modifiers(spans, doc)
-        return {'infections': tier}
+        return {
+            'infections': AnnoTier(
+                [span for span in tier if 'recovered' not in span.metadata['attributes']],
+                presorted=True)}
