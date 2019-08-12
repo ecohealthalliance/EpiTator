@@ -22,6 +22,11 @@ DOID:13622 rdfs:subClassOf DOID:0050117 .
 DOID:0080160 rdfs:subClassOf DOID:934 .
 # Clostridium difficile colitis
 DOID:0060185 rdfs:subClassOf DOID:104 .
+# Pyoderma
+DOID:4223 rdfs:subClassOf DOID:0050117 .
+# Scarlet Fever
+DOID:8596 rdfs:subClassOf DOID:0050117 .
+
 
 # Extra synonyms not in the disease ontology.
 @prefix oboInOwl: <http://www.geneontology.org/formats/oboInOwl#> .
@@ -33,3 +38,13 @@ DOID:12287 oboInOwl:hasExactSynonym "CCHF", "Crimean-Congo Haemorrhagic Fever" .
 DOID:1328 oboInOwl:hasExactSynonym "RVF" .
 DOID:11320 oboInOwl:hasExactSynonym "monkey fever" .
 DOID:14397 oboInOwl:hasExactSynonym "Amoebic Dysentery" .
+DOID:0060859 oboInOwl:hasRelatedSynonym "salmonella" .
+DOID:0050012 oboInOwl:hasExactSynonym "Chikungunya Virus Disease", "Chikungunya Virus Infection" .
+DOID:8659 oboInOwl:hasExactSynonym "Varicella Zoster" .
+DOID:13622 oboInOwl:hasExactSynonym "Campylobacter Enteritis" .
+DOID:11263 oboInOwl:hasExactSynonym "Chlamydia Infection", "Chlamydia Trachomatis Infection" .
+DOID:10718 oboInOwl:hasExactSynonym "Giardia Infection" .
+DOID:1024 oboInOwl:hasExactSynonym "Hansen Disease", "Hansen's Disease" .
+DOID:10844 oboInOwl:hasExactSynonym "Japanese Encephalitis Virus Infection" .
+DOID:7551 oboInOwl:hasRelatedSynonym "Gonococcal Infection" .
+DOID:9146 oboInOwl:hasExactSynonym "Black Fever" .

@@ -257,4 +257,5 @@ def normalize_disease_name(name):
         # matches are allowed.
         return name
     else:
+        name = re.sub(r"['\"]", "", name)
         return re.sub(r"[\s\-\/]+", " ", name).strip()

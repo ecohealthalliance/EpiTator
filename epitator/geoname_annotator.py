@@ -434,6 +434,7 @@ class GeonameAnnotator(Annotator):
             if lower_case_direction.match(span_text):
                 span_text_to_spans[re.sub(r"(north|south|east|west)\s(.+)", r"\1ern \2", span_text)].extend(spans)
         possible_geonames = list(span_text_to_spans.keys())
+        possible_geonames_escaped = [x.replace("'", "''") if "'" in x else x for x in possible_geonames]
         logger.info('%s possible geoname texts' % len(possible_geonames))
         cursor = self.connection.cursor()
         geoname_results = list(cursor.execute('''
@@ -445,9 +446,8 @@ class GeonameAnnotator(Annotator):
         FROM geonames
         JOIN alternatename_counts USING ( geonameid )
         JOIN alternatenames USING ( geonameid )
-        WHERE alternatename_lemmatized IN
-        (''' + ','.join('?' for x in possible_geonames) + ''')
-        GROUP BY geonameid''', possible_geonames))
+        WHERE alternatename_lemmatized IN (''' + ','.join("'{0}'".format(x) for x in possible_geonames_escaped) + ''')
+        GROUP BY geonameid'''))
         logger.info('%s geonames fetched' % len(geoname_results))
         geoname_results = [GeonameRow(g) for g in geoname_results]
         candidate_geonames = []

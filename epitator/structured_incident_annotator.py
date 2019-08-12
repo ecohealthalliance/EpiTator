@@ -326,7 +326,7 @@ class StructuredIncidentAnnotator(Annotator):
                         incident_base_type = None
                         if row_incident_base_type:
                             incident_base_type = row_incident_base_type
-                        elif "cases" in column_name_text:
+                        elif re.search(r"\b(cases|ill|infections)\b", column_name_text, re.I):
                             incident_base_type = "caseCount"
                         elif "deaths" in column_name_text:
                             incident_base_type = "deathCount"

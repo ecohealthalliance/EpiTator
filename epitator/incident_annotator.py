@@ -158,6 +158,16 @@ class IncidentAnnotator(Annotator):
                 else:
                     span.metadata['scope'] = 'document'
 
+        species_tier = AnnoTier([
+            AnnoSpan(span.start, span.end, span.doc, metadata=span.metadata)
+            for span in species_tier], presorted=True)
+        # scope one off species mentions to sentences.
+        for span in species_tier:
+            if disease_mentions[span.metadata['species']['id']] == 1:
+                span.metadata['scope'] = 'sentence'
+            else:
+                span.metadata['scope'] = 'document'
+
         structured_incidents = doc.require_tiers(
             'structured_incidents', via=StructuredIncidentAnnotator)
         date_tier = doc.require_tiers('dates', via=DateAnnotator)
@@ -183,14 +193,7 @@ class IncidentAnnotator(Annotator):
         date_territories = get_territories(date_tier, sent_spans, phrase_spans)
         geoname_territories = get_territories(geonames, sent_spans, phrase_spans)
         disease_territories = get_territories(disease_tier, sent_spans, phrase_spans)
-        # Only include the sentence the word appears in for species territories since
-        # the species is implicitly human in most of the articles we're analyzing.
-        species_territories = []
-        for sent_span, span_group in sent_spans.group_spans_by_containing_span(species_tier):
-            species_territories.append(AnnoSpan(
-                sent_span.start, sent_span.end, sent_span.doc,
-                metadata=span_group))
-        species_territories = AnnoTier(species_territories)
+        species_territories = get_territories(species_tier, sent_spans, phrase_spans)
         incidents = []
         for count_span in case_counts:
             count = count_span.metadata.get('count')
