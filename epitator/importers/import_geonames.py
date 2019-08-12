@@ -47,8 +47,12 @@ def read_geonames_csv():
         raise
     zipfile = ZipFile(BytesIO(url.read()))
     print("Download complete")
-    # Loading geonames data may cause errors without this line:
-    csv.field_size_limit(sys.maxint if six.PY2 else six.MAXSIZE)
+    # Loading geonames data may cause errors without setting csv.field_size_limit:
+    if sys.platform == "win32":
+        max_c_long_on_windows = (2**32 / 2) - 1
+        csv.field_size_limit(max_c_long_on_windows)
+    else:
+        csv.field_size_limit(sys.maxint if six.PY2 else six.MAXSIZE)
     with zipfile.open('allCountries.txt') as f:
         reader = unicodecsv.DictReader(f,
                                        fieldnames=[
