@@ -289,9 +289,12 @@ class DateAnnotator(Annotator):
                     span_date = strict_parser.get_date_data(span.text)['date_obj']
                 except (TypeError, ValueError):
                     continue
-                if span_date and span_date < datetime.datetime.now():
-                    if not latest_date or span_date > latest_date:
-                        latest_date = span_date
+
+                if span_date:
+                    timezone_span = span_date.tzinfo
+                    if span_date < datetime.datetime.now():
+                        if not latest_date or span_date > latest_date:
+                            latest_date = span_date
             if latest_date:
                 doc_date = latest_date
 
