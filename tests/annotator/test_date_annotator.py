@@ -293,3 +293,11 @@ A 31-year-old man from east Delhi's Mandawali succumbed to malaria at Safdarjung
             doc.tiers['dates'].spans[0].datetime_range,
             [datetime.datetime(1912, 1, 1),
              datetime.datetime(1918, 1, 1)])
+
+    def test_aware_datetime(self):
+        doc = AnnoDoc(" trade Date: Fri 29 Sep 2018 13:31 BST Source: Express")
+        doc.add_tier(self.annotator)
+        self.assertEqual(
+            [date.replace(tzinfo=None) for date in doc.tiers['dates'].spans[0].datetime_range],
+            [datetime.datetime(2018, 9, 29, 13, 31),
+             datetime.datetime(2018, 9, 30, 13, 31)])
