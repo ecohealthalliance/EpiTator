@@ -20,52 +20,53 @@ base_classifier =\
     'random_state': None,
     'solver': 'liblinear',
     'max_iter': 100,
-    'multi_class': 'warn',
+    'multi_class': 'auto',
     'verbose': 0,
     'warm_start': False,
     'n_jobs': None,
+    'l1_ratio': None,
     'classes_': array([False,  True]),
     'coef_': array([[
         # log_population
-        0.3288826652391892,
+        0.2833264880250032,
         # name_count
-        0.21180346761017554,
+        0.496850674834566,
         # names_used
-        0.6921137888810455,
+        0.6182820633848923,
         # exact_name_match
-        0.8907122816181057,
+        1.2348109901150883,
         # multiple_spans
-        0.4385195357489847,
+        1.0027275126871056,
         # span_length
-        0.14885276617871698,
+        0.1556028330182338,
         # all_acronyms
-        -2.4168746146102844,
+        -1.723855098135833,
         # cannonical_name_used
-        2.179668174506593,
+        2.4448401433682614,
         # loc_NE_portion
-        1.116805637212708,
+        1.100324515118662,
         # other_NE_portion
-        -0.19762918486107944,
+        -0.006789540638115011,
         # noun_portion
-        0.0,
+        1.7846512186329173,
         # num_tokens
-        0.45408740342595283,
+        0.4449857820783286,
         # med_token_prob
-        -0.3287514923579695,
+        -0.35487604034835174,
         # exact_alternatives
-        -0.9026051613064152,
+        -0.7357808282729202,
         # PPL_feature_code
-        -0.8713730521972315,
+        -3.313119817081297,
         # ADM_feature_code
-        -1.3357916436134925,
+        -3.8508572602598976,
         # PCL_feature_code
-        2.2270435390046472,
+        0.002625732530454115,
         # other_feature_code
-        0.0,
+        -2.5725460514389598,
         # first_order
-        1.217498915455807,
+        0.8582848733971942,
         # combined_span
-        1.5478451457037072,
+        0.7845557182369852,
         # close_locations
         0.0,
         # very_close_locations
@@ -79,8 +80,8 @@ base_classifier =\
         # containing_locations
         0.0,
     ]]),
-    'intercept_': array([-12.90888507]),
-    'n_iter_': array([42], dtype=int32),
+    'intercept_': array([-14.6902496]),
+    'n_iter_': array([44], dtype=int32),
 }
 
 contextual_classifier =\
@@ -95,67 +96,68 @@ contextual_classifier =\
     'random_state': None,
     'solver': 'liblinear',
     'max_iter': 100,
-    'multi_class': 'warn',
+    'multi_class': 'auto',
     'verbose': 0,
     'warm_start': False,
     'n_jobs': None,
+    'l1_ratio': None,
     'classes_': array([False,  True]),
     'coef_': array([[
         # log_population
-        0.28228248087215385,
+        0.3787203315925731,
         # name_count
-        0.19424959537231867,
+        0.47246832816657763,
         # names_used
-        0.4115855267983377,
+        1.0765607603242244,
         # exact_name_match
-        0.339488954171464,
+        1.4705218728593559,
         # multiple_spans
-        0.3082735346279554,
+        1.3801379355279673,
         # span_length
-        0.15794944543924766,
+        0.21060539648691756,
         # all_acronyms
-        -2.0910830240634297,
+        -2.5491642087123516,
         # cannonical_name_used
-        1.9360786322544647,
+        2.877038521477874,
         # loc_NE_portion
-        1.5434804936396482,
+        1.6424801016350434,
         # other_NE_portion
-        0.0,
+        -0.38562595379247006,
         # noun_portion
-        0.0,
+        2.002630501746275,
         # num_tokens
-        0.4670721503329358,
+        0.4152636087418877,
         # med_token_prob
-        -0.2642808804913221,
+        -0.32906537630371446,
         # exact_alternatives
-        -0.7689405320821576,
+        -0.8984979885089859,
         # PPL_feature_code
-        -0.450305349464007,
+        -4.534782739767053,
         # ADM_feature_code
-        -0.9421785297062796,
+        -5.510120071836727,
         # PCL_feature_code
-        1.885630901040498,
+        0.003626341435930206,
         # other_feature_code
-        0.0,
+        -3.2323872260723783,
         # first_order
-        1.0904825221747996,
+        1.451007214897749,
         # combined_span
-        0.31258233468268437,
+        1.480736480667228,
         # close_locations
-        0.1364085867326155,
+        0.1719448315096514,
         # very_close_locations
-        -0.00243964840385385,
+        -0.07886456859233734,
         # base_score
-        -1.1232711320877737,
+        -5.393131594700634,
         # base_score_margin
-        2.6704843451856335,
+        3.119070808829057,
         # contained_locations
-        0.0784905901350068,
+        0.1825358655341298,
         # containing_locations
-        0.47875034021904533,
+        0.962090412821035,
     ]]),
-    'intercept_': array([-11.7165164]),
-    'n_iter_': array([33], dtype=int32),
+    'intercept_': array([-14.57426316]),
+    'n_iter_': array([52], dtype=int32),
 }
 
 # Logistic regression code from scipy
