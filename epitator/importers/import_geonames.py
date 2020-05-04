@@ -49,7 +49,7 @@ def read_geonames_csv():
     print("Download complete")
     # Loading geonames data may cause errors without setting csv.field_size_limit:
     if sys.platform == "win32":
-        max_c_long_on_windows = (2**32 / 2) - 1
+        max_c_long_on_windows = int((2**32 / 2) - 1)
         csv.field_size_limit(max_c_long_on_windows)
     else:
         csv.field_size_limit(sys.maxint if six.PY2 else six.MAXSIZE)
