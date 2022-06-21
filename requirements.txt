@@ -1,6 +1,6 @@
 --index-url https://pypi.python.org/simple/
 unicodecsv
-numpy==1.16.1
+numpy==1.22.0
 geopy
 python-dateutil
 dateparser==0.7.1
